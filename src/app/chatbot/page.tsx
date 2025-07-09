@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,8 +106,8 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 flex flex-col h-[calc(100vh-theme(spacing.24))]">
-      <Card className="flex-1 flex flex-col shadow-xl overflow-hidden">
+    <div className="h-screen w-screen p-4 sm:p-6 md:p-8 flex flex-col">
+      <Card className="container mx-auto flex-1 flex flex-col shadow-xl overflow-hidden">
         <CardHeader className="border-b">
           <CardTitle className="font-headline flex items-center"><MessageSquare className="mr-2 text-primary" />AI Interview Coach</CardTitle>
           <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
@@ -117,7 +116,7 @@ export default function ChatbotPage() {
         <ScrollArea className="flex-1 p-0 min-h-0">
           <CardContent className="p-6 space-y-4">
           {chatHistory.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+            <div className="flex flex-col items-center justify-center text-center pt-16">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
             </div>
