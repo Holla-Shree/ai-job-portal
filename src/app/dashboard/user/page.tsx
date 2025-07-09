@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, Mail, FileText, Search, Sparkles } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -54,10 +54,10 @@ export default function UserPortalPage() {
           if (resumeDataUri) {
             const result = await analyzeResume({ resumeDataUri });
             setResumeAnalysis(result);
-            // Populate resume text for job recommendations
-            const fullText = `Skills: ${result.skills.join(', ') || 'N/A'}\nExperience: ${result.experience.join('; ') || 'N/A'}\nEducation: ${result.education.join('; ') || 'N/A'}\nContact: ${result.contactInformation || 'N/A'}`;
+            // Populate resume text for job recommendations with the anonymized summary and details
+            const fullText = `Summary: ${result.summary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience: ${result.experience.join('; ') || 'N/A'}\n\nEducation: ${result.education.join('; ') || 'N/A'}`;
             jobForm.setValue('resumeText', fullText);
-            toast({ title: "Resume Analyzed", description: "Resume content extracted successfully." });
+            toast({ title: "Resume Analyzed", description: "Your anonymized profile has been created." });
           }
         };
         reader.readAsDataURL(file);
@@ -101,7 +101,7 @@ export default function UserPortalPage() {
               <Card className="shadow-lg">
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Upload & Analyze Resume</CardTitle>
-                  <CardDescription>Let AI extract key information from your resume.</CardDescription>
+                  <CardDescription>Let AI extract key information from your resume, removing personal details to ensure fair matching.</CardDescription>
                 </CardHeader>
                 <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
                   <CardContent>
@@ -124,13 +124,17 @@ export default function UserPortalPage() {
 
               <Card className="shadow-lg">
                 <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><UserCircle className="mr-2 text-primary" />Analyzed Profile</CardTitle>
-                  <CardDescription>Information extracted from your resume.</CardDescription>
+                  <CardTitle className="font-headline flex items-center"><UserCircle className="mr-2 text-primary" />Anonymized Profile</CardTitle>
+                  <CardDescription>Information extracted from your resume for bias-free matching.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                   {resumeAnalysis ? (
                     <div className="space-y-4">
+                       <div>
+                        <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
+                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.summary || 'Not available'}</p>
+                      </div>
                       <div>
                         <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Skills</h4>
                         <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
@@ -138,22 +142,18 @@ export default function UserPortalPage() {
                       <div>
                         <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Experience</h4>
                         <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                          {resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>) || <li>Not available</li>}
+                          {resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>).length > 0 ? resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>) : <li>Not available</li>}
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-semibold flex items-center"><UserCircle className="mr-2 h-5 w-5 text-accent" />Education</h4>
                          <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                          {resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>) || <li>Not available</li>}
+                          {resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>) : <li>Not available</li>}
                         </ul>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold flex items-center"><Mail className="mr-2 h-5 w-5 text-accent" />Contact Information</h4>
-                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.contactInformation || 'Not available'}</p>
                       </div>
                     </div>
                   ) : (
-                    !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your profile details here.</p>
+                    !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your anonymized profile here.</p>
                   )}
                 </CardContent>
               </Card>
@@ -169,8 +169,8 @@ export default function UserPortalPage() {
               <form onSubmit={jobForm.handleSubmit(handleJobRecommendation)}>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="resumeText">Your Resume / Profile Summary</Label>
-                    <Textarea id="resumeText" {...jobForm.register("resumeText")} rows={8} placeholder="Paste your resume text or a summary of your profile and skills." className="mt-1" />
+                    <Label htmlFor="resumeText">Your Anonymized Resume / Profile Summary</Label>
+                    <Textarea id="resumeText" {...jobForm.register("resumeText")} rows={8} placeholder="Upload your resume in the 'My Profile' tab to automatically populate this." className="mt-1" />
                     {jobForm.formState.errors.resumeText && <p className="text-sm text-destructive mt-1">{jobForm.formState.errors.resumeText.message}</p>}
                   </div>
                   <div>
@@ -241,5 +241,3 @@ export default function UserPortalPage() {
     </ScrollArea>
   );
 }
-
-    
