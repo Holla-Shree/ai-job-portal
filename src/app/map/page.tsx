@@ -118,7 +118,6 @@ export default function JobMapPage() {
   };
 
   return (
-    <GoogleMapsProvider>
       <div className="container mx-auto py-8 h-[calc(100vh-theme(spacing.24))] flex flex-col md:flex-row gap-6">
         <Card className="w-full md:w-1/3 shadow-xl flex flex-col">
           <CardHeader>
@@ -150,8 +149,8 @@ export default function JobMapPage() {
               <ScrollArea className="flex-grow">
                 <div className="space-y-3 pr-3">
                   {filteredJobs.map((job) => (
-                    <Card 
-                      key={job.id} 
+                    <Card
+                      key={job.id}
                       className={`cursor-pointer transition-all hover:shadow-md ${selectedJob?.id === job.id ? 'border-primary ring-2 ring-primary' : 'border-border'}`}
                       onClick={() => handleMarkerClick(job)}
                       aria-pressed={selectedJob?.id === job.id}
@@ -179,56 +178,57 @@ export default function JobMapPage() {
           </CardContent>
         </Card>
 
-        <div className="w-full md:w-2/3 h-[300px] md:h-full rounded-lg overflow-hidden shadow-xl border border-border">
-          <Map
-            defaultCenter={mapCenter}
-            defaultZoom={zoom}
-            center={mapCenter}
-            zoom={zoom}
-            gestureHandling={'greedy'}
-            disableDefaultUI={true}
-            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || 'JOBMATCH_AI_MAP'} // Optional: Use a Map ID for custom styling
-            className="w-full h-full"
-            onCenterChanged={(ev) => setMapCenter(ev.detail.center)}
-            onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
-          >
-            {filteredJobs.map((job) => (
-              <AdvancedMarker
-                key={job.id}
-                position={job.position}
-                onClick={() => handleMarkerClick(job)}
-                title={`${job.title} at ${job.company}`}
-              >
-                <Pin 
-                  background={selectedJob?.id === job.id ? 'var(--primary-hsl)' : 'var(--accent-hsl)'} // Use HSL vars from CSS
-                  borderColor={selectedJob?.id === job.id ? 'var(--primary-hsl)' : 'var(--accent-hsl)'}
-                  glyphColor={selectedJob?.id === job.id ? 'var(--primary-foreground-hsl)' : 'var(--accent-foreground-hsl)'}
-                />
-              </AdvancedMarker>
-            ))}
+        <div className="w-full md:w-2/3 h-full rounded-lg overflow-hidden shadow-xl border border-border">
+            <GoogleMapsProvider>
+                <Map
+                    defaultCenter={mapCenter}
+                    defaultZoom={zoom}
+                    center={mapCenter}
+                    zoom={zoom}
+                    gestureHandling={'greedy'}
+                    disableDefaultUI={true}
+                    mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || 'JOBMATCH_AI_MAP'} // Optional: Use a Map ID for custom styling
+                    className="w-full h-full"
+                    onCenterChanged={(ev) => setMapCenter(ev.detail.center)}
+                    onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
+                >
+                    {filteredJobs.map((job) => (
+                    <AdvancedMarker
+                        key={job.id}
+                        position={job.position}
+                        onClick={() => handleMarkerClick(job)}
+                        title={`${job.title} at ${job.company}`}
+                    >
+                        <Pin
+                        background={selectedJob?.id === job.id ? 'hsl(var(--primary))' : 'hsl(var(--accent))'}
+                        borderColor={selectedJob?.id === job.id ? 'hsl(var(--primary))' : 'hsl(var(--accent))'}
+                        glyphColor={selectedJob?.id === job.id ? 'hsl(var(--primary-foreground))' : 'hsl(var(--accent-foreground))'}
+                        />
+                    </AdvancedMarker>
+                    ))}
 
-            {selectedJob && (
-              <InfoWindow
-                position={selectedJob.position}
-                onCloseClick={() => setSelectedJob(null)}
-                pixelOffset={[0,-40]}
-              >
-                <Card className="w-64 shadow-none border-none">
-                  <CardHeader className="p-3">
-                    <CardTitle className="text-md font-semibold">{selectedJob.title}</CardTitle>
-                    <CardDescription className="text-xs">{selectedJob.company} - {selectedJob.location}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-3 text-xs">
-                    {selectedJob.description && <p className="mb-1">{selectedJob.description}</p>}
-                    {selectedJob.salary && <p className="font-medium">Salary: {selectedJob.salary}</p>}
-                    <Button size="xs" variant="link" className="p-0 h-auto mt-1 text-primary">View Details</Button>
-                  </CardContent>
-                </Card>
-              </InfoWindow>
-            )}
-          </Map>
+                    {selectedJob && (
+                    <InfoWindow
+                        position={selectedJob.position}
+                        onCloseClick={() => setSelectedJob(null)}
+                        pixelOffset={[0,-40]}
+                    >
+                        <Card className="w-64 shadow-none border-none">
+                        <CardHeader className="p-3">
+                            <CardTitle className="text-md font-semibold">{selectedJob.title}</CardTitle>
+                            <CardDescription className="text-xs">{selectedJob.company} - {selectedJob.location}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-3 text-xs">
+                            {selectedJob.description && <p className="mb-1">{selectedJob.description}</p>}
+                            {selectedJob.salary && <p className="font-medium">Salary: {selectedJob.salary}</p>}
+                            <Button size="xs" variant="link" className="p-0 h-auto mt-1 text-primary">View Details</Button>
+                        </CardContent>
+                        </Card>
+                    </InfoWindow>
+                    )}
+                </Map>
+            </GoogleMapsProvider>
         </div>
       </div>
-    </GoogleMapsProvider>
   );
 }
