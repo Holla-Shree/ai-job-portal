@@ -18,21 +18,76 @@ interface JobListing {
   description?: string;
 }
 
-// Mock job data - replace with actual data fetching
+// Mock job data for Indian locations
 const mockJobs: JobListing[] = [
-  { id: '1', title: 'Software Engineer', company: 'Tech Corp', location: 'San Francisco, CA', position: { lat: 37.7749, lng: -122.4194 }, salary: '$120k - $150k', description: 'Develop awesome software.' },
-  { id: '2', title: 'Product Manager', company: 'Innovate Ltd', location: 'New York, NY', position: { lat: 40.7128, lng: -74.0060 }, salary: '$130k - $160k', description: 'Manage innovative products.' },
-  { id: '3', title: 'UX Designer', company: 'Creative Co', location: 'Austin, TX', position: { lat: 30.2672, lng: -97.7431 }, salary: '$100k - $130k', description: 'Design user-friendly interfaces.' },
-  { id: '4', title: 'Data Scientist', company: 'Analytics Inc.', location: 'Chicago, IL', position: { lat: 41.8781, lng: -87.6298 }, description: 'Analyze complex datasets.' },
-  { id: '5', title: 'Marketing Specialist', company: 'Growth Solutions', location: 'Boston, MA', position: { lat: 42.3601, lng: -71.0589 }, salary: '$90k - $110k', description: 'Drive marketing campaigns.' },
+  // Bengaluru
+  { id: '1', title: 'Senior Backend Engineer', company: 'TekSystems India', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹25L - ₹40L', description: 'Building scalable backend services for our fintech platform.' },
+  { id: '2', title: 'Data Scientist', company: 'Analytic Visions', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹18L - ₹30L', description: 'Leveraging ML models to derive business insights.' },
+  { id: '3', title: 'Product Manager', company: 'InnovateHub', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹30L - ₹50L', description: 'Driving the product roadmap for our B2B SaaS product.' },
+  { id: '4', title: 'DevOps Engineer', company: 'CloudNet', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹15L - ₹25L', description: 'Automating deployment and scaling infrastructure.' },
+  { id: '5', title: 'UX/UI Designer', company: 'Pixel Perfect', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹12L - ₹22L', description: 'Creating beautiful and intuitive user experiences.' },
+  // Mumbai
+  { id: '6', title: 'Financial Analyst', company: 'Capital Growth', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹15L - ₹28L', description: 'Market research and financial modeling.' },
+  { id: '7', title: 'Full Stack Developer', company: 'CodeWave Tech', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹14L - ₹24L', description: 'Developing web applications using MERN stack.' },
+  { id: '8', title: 'Digital Marketing Head', company: 'BrandConnect', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹20L - ₹35L', description: 'Leading all digital marketing campaigns.' },
+  { id: '9', title: 'Mobile App Developer (Android)', company: 'Appify Solutions', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹10L - ₹18L', description: 'Creating native Android applications.' },
+  { id: '10', title: 'Investment Banker', company: 'Alpha Investments', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹40L - ₹80L', description: 'Managing M&A and capital raising.' },
+  // Delhi
+  { id: '11', title: 'Cloud Architect', company: 'InfraSolutions', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹35L - ₹60L', description: 'Designing and implementing cloud strategies.' },
+  { id: '12', title: 'Content Strategist', company: 'WordWeavers', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹8L - ₹15L', description: 'Developing content for marketing and branding.' },
+  { id: '13', title: 'Business Development Manager', company: 'Growth Partners', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹12L - ₹20L', description: 'Identifying new business opportunities.' },
+  { id: '14', title: 'AI/ML Engineer', company: 'Cognitive AI', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹20L - ₹32L', description: 'Building and deploying machine learning models.' },
+  { id: '15', title: 'Cybersecurity Analyst', company: 'SecureNet', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹14L - ₹26L', description: 'Protecting company assets from cyber threats.' },
+  // Hyderabad
+  { id: '16', title: 'Game Developer', company: 'Playful Pixels', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹12L - ₹25L', description: 'Developing games for mobile and PC platforms.' },
+  { id: '17', title: 'QA Automation Engineer', company: 'TestRight', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹10L - ₹18L', description: 'Creating automated test suites.' },
+  { id: '18', title: 'Database Administrator', company: 'DataCore', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹15L - ₹25L', description: 'Managing and maintaining company databases.' },
+  { id: '19', title: 'Frontend Developer (React)', company: 'WebWeavers', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹12L - ₹20L', description: 'Building responsive user interfaces with React.' },
+  { id: '20', title: 'IT Project Manager', company: 'ProManage', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹22L - ₹35L', description: 'Overseeing IT projects from conception to completion.' },
+  // Pune
+  { id: '21', title: 'Automotive Engineer', company: 'AutoWorks', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹10L - ₹18L', description: 'Designing and testing automotive components.' },
+  { id: '22', title: 'Java Developer', company: 'Enterprise Solutions', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹10L - ₹20L', description: 'Developing enterprise-level Java applications.' },
+  { id: '23', title: 'HR Business Partner', company: 'PeopleFirst', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹14L - ₹22L', description: 'Aligning HR strategies with business objectives.' },
+  { id: '24', title: 'SAP Consultant', company: 'ERP Experts', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹18L - ₹30L', description: 'Implementing and customizing SAP modules.' },
+  { id: '25', title: 'Technical Writer', company: 'DocuCraft', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹7L - ₹12L', description: 'Creating clear and concise technical documentation.' },
+  // Chennai
+  { id: '26', title: 'Embedded Systems Engineer', company: 'ChipDesign', location: 'Chennai, India', position: { lat: 13.0827, lng: 80.2707 }, salary: '₹12L - ₹22L', description: 'Working on firmware and hardware for IoT devices.' },
+  { id: '27', title: 'SaaS Sales Specialist', company: 'CloudSell', location: 'Chennai, India', position: { lat: 13.0827, lng: 80.2707 }, salary: '₹9L - ₹16L', description: 'Driving sales for our SaaS products.' },
+  { id: '28', title: 'Robotics Engineer', company: 'MechanoBot', location: 'Chennai, India', position: { lat: 13.0827, lng: 80.2707 }, salary: '₹15L - ₹28L', description: 'Designing and building robotic systems.' },
+  { id: '29', title: 'Data Engineer', company: 'DataFlow', location: 'Chennai, India', position: { lat: 13.0827, lng: 80.2707 }, salary: '₹16L - ₹28L', description: 'Building and maintaining data pipelines.' },
+  { id: '30', title: 'Cloud Support Engineer', company: 'SupportSphere', location: 'Chennai, India', position: { lat: 13.0827, lng: 80.2707 }, salary: '₹8L - ₹14L', description: 'Providing technical support for cloud services.' },
+  // Kolkata
+  { id: '31', title: 'SEO Specialist', company: 'RankHigh', location: 'Kolkata, India', position: { lat: 22.5726, lng: 88.3639 }, salary: '₹6L - ₹12L', description: 'Improving organic search rankings.' },
+  { id: '32', title: 'Graphic Designer', company: 'Creative Canvas', location: 'Kolkata, India', position: { lat: 22.5726, lng: 88.3639 }, salary: '₹5L - ₹10L', description: 'Creating visual concepts for various media.' },
+  { id: '33', title: 'IT Administrator', company: 'SysAdmin Co.', location: 'Kolkata, India', position: { lat: 22.5726, lng: 88.3639 }, salary: '₹7L - ₹13L', description: 'Managing company IT infrastructure.' },
+  { id: '34', title: 'Telecommunications Engineer', company: 'ConnectFast', location: 'Kolkata, India', position: { lat: 22.5726, lng: 88.3639 }, salary: '₹9L - ₹17L', description: 'Designing and managing telecom networks.' },
+  { id: '35', title: 'Accountant', company: 'Balance Sheets Inc.', location: 'Kolkata, India', position: { lat: 22.5726, lng: 88.3639 }, salary: '₹6L - ₹11L', description: 'Managing financial records and compliance.' },
+  // Noida
+  { id: '36', title: 'Mobile Developer (iOS)', company: 'AppCraft', location: 'Noida, India', position: { lat: 28.5355, lng: 77.3910 }, salary: '₹14L - ₹25L', description: 'Developing cutting-edge applications for iOS.' },
+  { id: '37', title: 'Salesforce Developer', company: 'Cloudy CRM', location: 'Noida, India', position: { lat: 28.5355, lng: 77.3910 }, salary: '₹12L - ₹22L', description: 'Customizing and developing on the Salesforce platform.' },
+  { id: '38', title: 'Video Editor', company: 'MediaMakers', location: 'Noida, India', position: { lat: 28.5355, lng: 77.3910 }, salary: '₹6L - ₹11L', description: 'Editing and producing video content.' },
+  { id: '39', title: 'Network Engineer', company: 'NetSecure', location: 'Noida, India', position: { lat: 28.5355, lng: 77.3910 }, salary: '₹10L - ₹18L', description: 'Managing and securing network infrastructure.' },
+  { id: '40', title: 'Operations Manager', company: 'EfficientOps', location: 'Noida, India', position: { lat: 28.5355, lng: 77.3910 }, salary: '₹18L - ₹30L', description: 'Overseeing daily business operations.' },
+  // Gurugram
+  { id: '41', title: 'Management Consultant', company: 'Strategy First', location: 'Gurugram, India', position: { lat: 28.4595, lng: 77.0266 }, salary: '₹25L - ₹50L', description: 'Advising clients on business strategy.' },
+  { id: '42', title: 'Python Developer', company: 'PyLogic', location: 'Gurugram, India', position: { lat: 28.4595, lng: 77.0266 }, salary: '₹12L - ₹22L', description: 'Backend development using Django and Flask.' },
+  { id: '43', title: 'Supply Chain Analyst', company: 'LogiChain', location: 'Gurugram, India', position: { lat: 28.4595, lng: 77.0266 }, salary: '₹10L - ₹18L', description: 'Optimizing supply chain processes.' },
+  { id: '44', title: 'UI Engineer (Angular)', company: 'Interface Inc.', location: 'Gurugram, India', position: { lat: 28.4595, lng: 77.0266 }, salary: '₹13L - ₹23L', description: 'Building complex front-end applications with Angular.' },
+  { id: '45', title: 'Chief Financial Officer (CFO)', company: 'Venture Capital Firm', location: 'Gurugram, India', position: { lat: 28.4595, lng: 77.0266 }, salary: '₹80L - ₹1.5Cr', description: 'Leading financial strategy for a portfolio of startups.' },
+  // Mixed
+  { id: '46', title: 'Biotechnologist', company: 'GeneTech', location: 'Hyderabad, India', position: { lat: 17.3850, lng: 78.4867 }, salary: '₹8L - ₹15L', description: 'Research and development in genetic engineering.' },
+  { id: '47', title: 'Civil Engineer', company: 'InfraBuild', location: 'Pune, India', position: { lat: 18.5204, lng: 73.8567 }, salary: '₹9L - ₹16L', description: 'Designing and overseeing construction projects.' },
+  { id: '48', title: 'Blockchain Developer', company: 'Decentral Future', location: 'Bengaluru, India', position: { lat: 12.9716, lng: 77.5946 }, salary: '₹20L - ₹40L', description: 'Building decentralized applications (dApps).' },
+  { id: '49', title: 'E-commerce Manager', company: 'ShopNow', location: 'Delhi, India', position: { lat: 28.7041, lng: 77.1025 }, salary: '₹15L - ₹25L', description: 'Managing online store operations and strategy.' },
+  { id: '50', title: 'Chief Technology Officer (CTO)', company: 'NextGen Startup', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹70L - ₹1.2Cr', description: 'Leading the technology vision and team.' },
 ];
 
 export default function JobMapPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredJobs, setFilteredJobs] = useState<JobListing[]>(mockJobs);
   const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
-  const [mapCenter, setMapCenter] = useState({ lat: 39.8283, lng: -98.5795 }); // Center of US
-  const [zoom, setZoom] = useState(4);
+  const [mapCenter, setMapCenter] = useState({ lat: 21.1458, lng: 79.0882 }); // Center of India
+  const [zoom, setZoom] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
