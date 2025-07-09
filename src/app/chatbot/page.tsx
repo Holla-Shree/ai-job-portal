@@ -36,21 +36,16 @@ export default function ChatbotPage() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentJobDesc, setCurrentJobDesc] = useState<string>("");
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<ChatInputFormValues>({
     resolver: zodResolver(chatInputSchema),
   });
 
   useEffect(() => {
-    // Scroll to bottom when chat history updates
-    if (scrollAreaRef.current) {
-      const scrollViewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-      if(scrollViewport) {
-        scrollViewport.scrollTop = scrollViewport.scrollHeight;
-      }
-    }
-  }, [chatHistory]);
+    // Scroll to bottom when new messages are added or loading state changes
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory, isLoading]);
 
   const handleChatSubmit: SubmitHandler<ChatInputFormValues> = async (data) => {
     setIsLoading(true);
@@ -119,10 +114,10 @@ export default function ChatbotPage() {
           <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
         </CardHeader>
         
-        <ScrollArea className="flex-1 p-0 min-h-0" ref={scrollAreaRef}>
-          <CardContent className="p-6 space-y-4 h-full">
-          {chatHistory.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center">
+        <ScrollArea className="flex-1 p-0 min-h-0">
+          <CardContent className="p-6 space-y-4">
+          {chatHistory.length === 0 && !isLoading && (
+            <div className="flex flex-col items-center justify-center h-[50vh] text-center">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
             </div>
@@ -161,6 +156,7 @@ export default function ChatbotPage() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
           </CardContent>
         </ScrollArea>
 
