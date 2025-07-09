@@ -70,6 +70,18 @@ For each recommendation, provide:
 {{/if}}
 
 Provide your recommendations in the specified format.`,
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+      },
+    ],
+  },
 });
 
 const recommendJobsFlow = ai.defineFlow(
