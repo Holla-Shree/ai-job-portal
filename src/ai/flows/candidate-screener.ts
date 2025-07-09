@@ -47,12 +47,12 @@ const prompt = ai.definePrompt({
   name: 'screenCandidatePrompt',
   input: {schema: ScreenCandidateInputSchema},
   output: {schema: ScreenCandidateOutputSchema},
-  prompt: `You are an expert, unbiased Senior Technical Recruiter. Your task is to objectively evaluate a candidate's profile against a given job description. Your analysis must be based solely on the provided texts.
+  prompt: `You are an expert, unbiased Senior Technical Recruiter. Your task is to perform a deep, semantic evaluation of a candidate's profile against a given job description. Go beyond simple keyword matching and analyze the underlying skills, experience level, and responsibilities.
 
 You will provide:
-1.  **Match Strength**: A clear assessment (Strong Match, Good Match, Weak Match, or Not a Fit).
+1.  **Match Strength**: A clear assessment (Strong Match, Good Match, Weak Match, or Not a Fit) based on overall contextual fit.
 2.  **Rationale**: A detailed, balanced explanation for your assessment. Mention specific skills or experiences from the candidate's profile that align with the job description, and also areas where they might be lacking.
-3.  **Missing Qualifications**: A list of key qualifications or requirements from the job description that are not clearly present in the candidate's profile.
+3.  **Missing Qualifications**: A list of key qualifications from the job description that are not clearly present in the candidate's profile.
 
 **Job Description:**
 ---
@@ -64,7 +64,7 @@ You will provide:
 {{{candidateProfile}}}
 ---
 
-Perform the evaluation now.`,
+Perform the semantic evaluation now.`,
   config: {
     safetySettings: [
       {
