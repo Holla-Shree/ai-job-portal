@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
@@ -132,6 +133,7 @@ export default function JobMapPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
+                suppressHydrationWarning={true}
               />
             </div>
             {isLoading && (
