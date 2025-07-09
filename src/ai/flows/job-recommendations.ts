@@ -15,15 +15,29 @@ import {z} from 'genkit';
 const RecommendJobsInputSchema = z.object({
   resumeText: z
     .string()
-    .describe('The text content of the job seeker\'s resume.'),
+    .describe("The text content of the job seeker's resume."),
   keywords: z.string().describe('Preferred job keywords of the job seeker.'),
 });
 export type RecommendJobsInput = z.infer<typeof RecommendJobsInputSchema>;
 
 const RecommendJobsOutputSchema = z.object({
   jobRecommendations: z
-    .array(z.string())
-    .describe('A list of recommended job titles based on the resume and keywords.'),
+    .array(
+      z.object({
+        title: z.string().describe('The specific, recommended job title.'),
+        company: z
+          .string()
+          .describe(
+            'An example of a type of company that hires for this role (e.g., "a SaaS startup", "a large tech company").'
+          ),
+        reasoning: z
+          .string()
+          .describe(
+            "A brief, 1-2 sentence explanation of why this job is a good match based on the user's profile."
+          ),
+      })
+    )
+    .describe('A list of semantically matched job recommendations.'),
 });
 export type RecommendJobsOutput = z.infer<typeof RecommendJobsOutputSchema>;
 
@@ -35,12 +49,22 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: `You are a job recommendation expert. Based on the job seeker's resume and preferred keywords, recommend relevant job titles.
+  prompt: `You are an expert career advisor and job market analyst. Your task is to provide insightful, semantic job recommendations based on a user's resume summary and their preferred keywords.
 
-Resume Text: {{{resumeText}}}
-Keywords: {{{keywords}}}
+Instead of simple keyword matching, analyze the provided resume text to understand the user's core skills, experience level (e.g., junior, mid-level, senior), and potential career trajectory. Use this deep understanding to suggest 5-7 specific and relevant job titles that would be a strong fit.
 
-Provide a list of job titles that the job seeker might be interested in.`,
+For each recommendation, provide:
+1.  A specific Job Title.
+2.  An example of a type of Company that typically hires for this role (e.g., "a fast-growing SaaS startup", "a large enterprise tech company", "a digital marketing agency").
+3.  A concise, one-sentence Reasoning for why this is a good match, connecting it to the user's profile.
+
+**User's Resume Summary:**
+{{{resumeText}}}
+
+**User's Keywords / Desired Roles:**
+{{{keywords}}}
+
+Provide your recommendations in the specified format.`,
 });
 
 const recommendJobsFlow = ai.defineFlow(

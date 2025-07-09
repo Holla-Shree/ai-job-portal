@@ -132,23 +132,23 @@ export default function UserPortalPage() {
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Skills</h4>
-                        <p className="text-sm text-muted-foreground_ pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
+                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
                       </div>
                       <div>
                         <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Experience</h4>
-                        <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground_">
+                        <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
                           {resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>) || <li>Not available</li>}
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-semibold flex items-center"><UserCircle className="mr-2 h-5 w-5 text-accent" />Education</h4>
-                         <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground_">
+                         <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
                           {resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>) || <li>Not available</li>}
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-semibold flex items-center"><Mail className="mr-2 h-5 w-5 text-accent" />Contact Information</h4>
-                        <p className="text-sm text-muted-foreground_ pl-7">{resumeAnalysis.contactInformation || 'Not available'}</p>
+                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.contactInformation || 'Not available'}</p>
                       </div>
                     </div>
                   ) : (
@@ -188,15 +188,33 @@ export default function UserPortalPage() {
               {isLoadingJobs && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
               {jobRecommendations && (
                 <CardContent className="mt-6">
-                  <h3 className="font-headline text-xl font-semibold mb-3">Recommended Jobs:</h3>
+                  <h3 className="font-headline text-xl font-semibold mb-4">Recommended Jobs:</h3>
                   {jobRecommendations.jobRecommendations.length > 0 ? (
-                    <ul className="list-disc list-inside space-y-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {jobRecommendations.jobRecommendations.map((job, index) => (
-                        <li key={index} className="text-foreground_">{job}</li>
+                        <Card key={index} className="flex flex-col">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Briefcase className="h-5 w-5 text-primary" />
+                              {job.title}
+                            </CardTitle>
+                            <CardDescription className="text-xs pt-1">
+                              Typically at: {job.company}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="flex-grow">
+                            <p className="text-sm text-muted-foreground">{job.reasoning}</p>
+                          </CardContent>
+                           <CardFooter>
+                              <Button variant="secondary" size="sm" className="w-full">
+                                  Find Similar
+                              </Button>
+                          </CardFooter>
+                        </Card>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground">No specific job titles recommended based on the input. Try refining your resume text or keywords.</p>
+                    <p className="text-muted-foreground text-center py-4">No specific job titles recommended based on the input. Try refining your resume text or keywords.</p>
                   )}
                 </CardContent>
               )}
