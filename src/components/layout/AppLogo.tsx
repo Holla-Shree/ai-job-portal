@@ -3,8 +3,8 @@ import { Briefcase } from 'lucide-react'; // Or a more suitable logo icon
 
 export function AppLogo() {
   return (
-    <Link href="/" className="flex items-center gap-2 text-sidebar-foreground hover:text-sidebar-primary transition-colors">
-      <Briefcase className="h-7 w-7 text-primary" />
+    <Link href="/" className="flex items-center gap-2 text-primary transition-colors hover:text-primary/90">
+      <Briefcase className="h-7 w-7" />
       <span className="font-headline text-xl font-semibold">
         JobMatch AI
       </span>
