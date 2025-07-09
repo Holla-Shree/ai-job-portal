@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,10 +90,9 @@ export default function UserPortalPage() {
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">User Job Portal</h1>
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
             <TabsTrigger value="profile"><UserCircle className="mr-2" />My Profile & Resume</TabsTrigger>
             <TabsTrigger value="recommendations"><Search className="mr-2" />Job Recommendations</TabsTrigger>
-            <TabsTrigger value="applications" disabled><Briefcase className="mr-2" />My Applications (Soon)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -220,21 +220,10 @@ export default function UserPortalPage() {
               )}
             </Card>
           </TabsContent>
-          
-          <TabsContent value="applications">
-             <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-headline">My Applications</CardTitle>
-                    <CardDescription>Track your job applications here. This feature is coming soon!</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">Stay tuned for updates.</p>
-                </CardContent>
-            </Card>
-          </TabsContent>
-
         </Tabs>
       </div>
     </ScrollArea>
   );
 }
+
+    
