@@ -22,7 +22,7 @@ type ResumeUploadFormValues = z.infer<typeof resumeUploadSchema>;
 
 const jobRecommendationSchema = z.object({
   resumeText: z.string().min(1, "Resume text is required."),
-  keywords: z.string().min(1, "Keywords are required."),
+  keywords: z.string().optional(),
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
@@ -173,8 +173,8 @@ export default function UserPortalPage() {
                     {jobForm.formState.errors.resumeText && <p className="text-sm text-destructive mt-1">{jobForm.formState.errors.resumeText.message}</p>}
                   </div>
                   <div>
-                    <Label htmlFor="keywords">Preferred Job Keywords (e.g., Software Engineer, Remote, Marketing)</Label>
-                    <Input id="keywords" {...jobForm.register("keywords")} placeholder="Enter keywords separated by commas" className="mt-1" />
+                    <Label htmlFor="keywords">Preferred Job Keywords (Optional)</Label>
+                    <Input id="keywords" {...jobForm.register("keywords")} placeholder="e.g., Software Engineer, Remote, Marketing" className="mt-1" />
                     {jobForm.formState.errors.keywords && <p className="text-sm text-destructive mt-1">{jobForm.formState.errors.keywords.message}</p>}
                   </div>
                 </CardContent>

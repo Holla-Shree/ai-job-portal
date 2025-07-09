@@ -16,7 +16,10 @@ const RecommendJobsInputSchema = z.object({
   resumeText: z
     .string()
     .describe("The text content of the job seeker's resume."),
-  keywords: z.string().describe('Preferred job keywords of the job seeker.'),
+  keywords: z
+    .string()
+    .optional()
+    .describe('Preferred job keywords of the job seeker.'),
 });
 export type RecommendJobsInput = z.infer<typeof RecommendJobsInputSchema>;
 
@@ -49,7 +52,7 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: `You are an expert career advisor and job market analyst. Your task is to provide insightful, semantic job recommendations based on a user's resume summary and their preferred keywords.
+  prompt: `You are an expert career advisor and job market analyst. Your task is to provide insightful, semantic job recommendations based on a user's resume summary and, if provided, their preferred keywords.
 
 Instead of simple keyword matching, analyze the provided resume text to understand the user's core skills, experience level (e.g., junior, mid-level, senior), and potential career trajectory. Use this deep understanding to suggest 5-7 specific and relevant job titles that would be a strong fit.
 
@@ -60,9 +63,11 @@ For each recommendation, provide:
 
 **User's Resume Summary:**
 {{{resumeText}}}
+{{#if keywords}}
 
 **User's Keywords / Desired Roles:**
 {{{keywords}}}
+{{/if}}
 
 Provide your recommendations in the specified format.`,
 });
