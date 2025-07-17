@@ -24,6 +24,13 @@ const ScreenCandidateOutputSchema = z.object({
     .describe(
       'An assessment of how well the candidate matches the job requirements.'
     ),
+  score: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe(
+      'A numerical score from 0 to 100 representing the candidate-job fit. 100 is a perfect match.'
+    ),
   rationale: z
     .string()
     .describe(
@@ -49,10 +56,11 @@ const prompt = ai.definePrompt({
   output: {schema: ScreenCandidateOutputSchema},
   prompt: `You are an expert, unbiased Senior Technical Recruiter. Your task is to perform a deep, semantic evaluation of a candidate's profile against a given job description. Go beyond simple keyword matching and analyze the underlying skills, experience level, and responsibilities.
 
-You will provide:
-1.  **Match Strength**: A clear assessment (Strong Match, Good Match, Weak Match, or Not a Fit) based on overall contextual fit.
-2.  **Rationale**: A detailed, balanced explanation for your assessment. Mention specific skills or experiences from the candidate's profile that align with the job description, and also areas where they might be lacking.
-3.  **Missing Qualifications**: A list of key qualifications from the job description that are not clearly present in the candidate's profile.
+Based on your semantic evaluation, you will provide:
+1.  **Match Strength**: A clear assessment (Strong Match, Good Match, Weak Match, or Not a Fit).
+2.  **Score**: A numerical score from 0 to 100, where 100 is a perfect match. A "Strong Match" should be > 85, "Good Match" between 70-85, "Weak Match" between 50-69, and "Not a Fit" < 50.
+3.  **Rationale**: A detailed, balanced explanation for your assessment. Mention specific skills or experiences from the candidate's profile that align with the job description, and also areas where they might be lacking.
+4.  **Missing Qualifications**: A list of key qualifications from the job description that are not clearly present in the candidate's profile.
 
 **Job Description:**
 ---

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2 } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,6 +16,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { generateJobDescription } from '@/ai/flows/job-description-generator';
 import { screenCandidate, ScreenCandidateOutput } from '@/ai/flows/candidate-screener';
+import { Progress } from '@/components/ui/progress';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
+// Mock Candidate Data
+const MOCK_CANDIDATES = [
+  { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science.' },
+  { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering.' },
+  { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp.' },
+  { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code.' },
+  { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau.' },
+];
+
+interface ScoredCandidate extends ScreenCandidateOutput {
+  candidate: { id: string; name: string; profile: string; };
+}
 
 // Job Posting form schema
 const jobPostingSchema = z.object({
@@ -33,27 +48,17 @@ const generatorSchema = z.object({
 });
 type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
-// Candidate Screener form schema
-const screenerSchema = z.object({
-  jobDescription: z.string().min(50, "A full job description is required."),
-  candidateProfile: z.string().min(50, "A candidate profile/resume text is required."),
-});
-type ScreenerFormValues = z.infer<typeof screenerSchema>;
-
-
 export default function RecruiterPortalPage() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [screeningResult, setScreeningResult] = useState<ScreenCandidateOutput | null>(null);
+  const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
+  const [screeningProgress, setScreeningProgress] = useState(0);
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
-  const screenerForm = useForm<ScreenerFormValues>({ resolver: zodResolver(screenerSchema) });
 
-  // Sync job title from main form to generator form when dialog opens
   React.useEffect(() => {
     if (isGeneratorOpen) {
       const currentJobTitle = jobPostForm.getValues("jobTitle");
@@ -62,15 +67,6 @@ export default function RecruiterPortalPage() {
       }
     }
   }, [isGeneratorOpen, jobPostForm, generatorForm]);
-
-  const handleJobPost: SubmitHandler<JobPostingFormValues> = async (data) => {
-    setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("Job Posting Data:", data);
-    toast({ title: "Job Posted!", description: `The job "${data.jobTitle}" has been successfully posted.` });
-    jobPostForm.reset();
-    setIsSubmitting(false);
-  };
   
   const handleGenerateDescription: SubmitHandler<GeneratorFormValues> = async (data) => {
     setIsGenerating(true);
@@ -92,18 +88,32 @@ export default function RecruiterPortalPage() {
     }
   };
   
-  const handleScreenCandidate: SubmitHandler<ScreenerFormValues> = async (data) => {
+  const handleAutoScreen: SubmitHandler<JobPostingFormValues> = async (data) => {
     setIsScreening(true);
-    setScreeningResult(null);
+    setScreeningResults([]);
+    setScreeningProgress(0);
+    toast({ title: "Screening Started", description: "AI is now screening candidates against your job description." });
+    
+    const results: ScoredCandidate[] = [];
     try {
-      const result = await screenCandidate(data);
-      setScreeningResult(result);
-      toast({ title: "Screening Complete", description: "Candidate has been evaluated." });
+      for (let i = 0; i < MOCK_CANDIDATES.length; i++) {
+        const candidate = MOCK_CANDIDATES[i];
+        const screeningResult = await screenCandidate({
+          jobDescription: data.jobDescription,
+          candidateProfile: candidate.profile,
+        });
+        results.push({ ...screeningResult, candidate });
+        setScreeningProgress(((i + 1) / MOCK_CANDIDATES.length) * 100);
+      }
+      results.sort((a, b) => b.score - a.score); // Sort by score descending
+      setScreeningResults(results);
+      toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates.` });
     } catch (error) {
-      console.error("Error screening candidate:", error);
-      toast({ variant: "destructive", title: "Screening Failed", description: "Could not evaluate the candidate." });
+       console.error("Error during auto-screening:", error);
+       toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
     } finally {
-      setIsScreening(false);
+       setIsScreening(false);
+       setScreeningProgress(100);
     }
   };
 
@@ -117,24 +127,25 @@ export default function RecruiterPortalPage() {
     }
   };
 
+  const getScoreColor = (score: number) => {
+    if (score > 85) return "text-primary";
+    if (score > 70) return "text-accent-foreground";
+    if (score > 50) return "text-muted-foreground";
+    return "text-destructive";
+  };
+
   return (
     <ScrollArea className="h-[calc(100vh-theme(spacing.32))]">
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Tools</h1>
 
-        <Tabs defaultValue="post-job" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6 max-w-2xl mx-auto">
-            <TabsTrigger value="post-job"><PlusCircle className="mr-2" />Post a Job</TabsTrigger>
-            <TabsTrigger value="screen-candidate"><Users className="mr-2" />Candidate Screener</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="post-job">
-            <Card className="max-w-2xl mx-auto shadow-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <Card className="shadow-xl">
               <CardHeader>
-                <CardTitle className="font-headline flex items-center">Post a New Job</CardTitle>
-                <CardDescription>Fill in the details below to publish a job listing.</CardDescription>
+                <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a Job & Screen</CardTitle>
+                <CardDescription>Fill in the details to post a job and automatically screen candidates from the talent pool.</CardDescription>
               </CardHeader>
-              <form onSubmit={jobPostForm.handleSubmit(handleJobPost)}>
+              <form onSubmit={jobPostForm.handleSubmit(handleAutoScreen)}>
                 <CardContent className="space-y-6">
                   <div>
                     <Label htmlFor="jobTitle">Job Title</Label>
@@ -185,76 +196,68 @@ export default function RecruiterPortalPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} Post Job
+                  <Button type="submit" disabled={isScreening}>
+                    {isScreening ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
+                    {isScreening ? 'Screening Candidates...' : 'Post Job & Auto-Screen'}
                   </Button>
                 </CardFooter>
               </form>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="screen-candidate">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              <Card className="shadow-xl">
+            <Card className="shadow-lg sticky top-24">
                 <CardHeader>
-                  <CardTitle className="font-headline">AI Candidate Screener</CardTitle>
-                  <CardDescription>Evaluate a candidate against a job description.</CardDescription>
-                </CardHeader>
-                <form onSubmit={screenerForm.handleSubmit(handleScreenCandidate)}>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="jdScreener">Job Description</Label>
-                      <Textarea id="jdScreener" {...screenerForm.register("jobDescription")} rows={8} placeholder="Paste the full job description here." />
-                      {screenerForm.formState.errors.jobDescription && <p className="text-sm text-destructive mt-1">{screenerForm.formState.errors.jobDescription.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="candidateProfile">Candidate Profile / Resume Text</Label>
-                      <Textarea id="candidateProfile" {...screenerForm.register("candidateProfile")} rows={8} placeholder="Paste the candidate's resume text or anonymized profile here." />
-                      {screenerForm.formState.errors.candidateProfile && <p className="text-sm text-destructive mt-1">{screenerForm.formState.errors.candidateProfile.message}</p>}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button type="submit" disabled={isScreening}>
-                      {isScreening ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 className="mr-2 h-4 w-4" />}
-                      Screen Candidate
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-
-              <Card className="shadow-lg sticky top-24">
-                <CardHeader>
-                  <CardTitle className="font-headline">Screening Result</CardTitle>
-                  <CardDescription>The AI's evaluation will appear here.</CardDescription>
+                  <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
+                  <CardDescription>Top candidates for your job will appear here, ranked by match score.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isScreening && <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                  {!isScreening && !screeningResult && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Submit a job and candidate to see results.</div>}
-                  {screeningResult && (
-                    <div className="space-y-4 text-sm">
-                       <div>
-                         <h4 className="font-semibold mb-2">Match Strength</h4>
-                         <Badge variant={getBadgeVariant(screeningResult.matchStrength)}>{screeningResult.matchStrength}</Badge>
-                       </div>
-                       <div>
-                         <h4 className="font-semibold mb-1">Rationale</h4>
-                         <p className="text-muted-foreground whitespace-pre-wrap">{screeningResult.rationale}</p>
-                       </div>
-                       {screeningResult.missingQualifications && screeningResult.missingQualifications.length > 0 && (
-                         <div>
-                           <h4 className="font-semibold mb-1">Missing Qualifications</h4>
-                           <ul className="list-disc list-inside text-muted-foreground">
-                             {screeningResult.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
-                           </ul>
-                         </div>
-                       )}
+                  {isScreening && (
+                    <div className="space-y-2">
+                       <Progress value={screeningProgress} className="w-full" />
+                       <p className="text-sm text-muted-foreground text-center">Screening {MOCK_CANDIDATES.length} candidates... ({Math.round(screeningProgress)}%)</p>
                     </div>
                   )}
+                  {!isScreening && screeningResults.length === 0 && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Post a job to see screened candidates.</div>}
+                  {screeningResults.length > 0 && (
+                    <ScrollArea className="h-[500px]">
+                      <Accordion type="single" collapsible className="w-full">
+                         {screeningResults.map((result) => (
+                          <AccordionItem key={result.candidate.id} value={result.candidate.id}>
+                            <AccordionTrigger>
+                               <div className="flex justify-between items-center w-full pr-4">
+                                 <div className="text-left">
+                                   <p className="font-semibold">{result.candidate.name}</p>
+                                   <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                 </div>
+                                 <div className="text-right">
+                                    <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                    <p className="text-xs text-muted-foreground">Match Score</p>
+                                 </div>
+                               </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                               <div className="space-y-3 text-sm px-2">
+                                 <div>
+                                   <h4 className="font-semibold mb-1">Rationale</h4>
+                                   <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
+                                 </div>
+                                 {result.missingQualifications && result.missingQualifications.length > 0 && (
+                                   <div>
+                                     <h4 className="font-semibold mb-1">Missing Qualifications</h4>
+                                     <ul className="list-disc list-inside text-muted-foreground">
+                                       {result.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
+                                     </ul>
+                                   </div>
+                                 )}
+                               </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                         ))}
+                      </Accordion>
+                    </ScrollArea>
+                  )}
                 </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </Card>
+        </div>
       </div>
     </ScrollArea>
   );
