@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen } from "lucide-react";
+import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { interviewPreparationChatbot, InterviewPreparationInput, InterviewPreparationOutput } from '@/ai/flows/interview-preparation';
+import { generateInterviewQuestions } from '@/ai/flows/question-generator';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const chatInputSchema = z.object({
-  jobDescription: z.string().min(10, "Job description is too short."),
+  jobDescription: z.string().min(10, "Job description is required to get suggestions."),
   interviewQuestion: z.string().min(5, "Interview question is too short."),
   userAnswer: z.string().min(1, "Your answer is required."),
 });
@@ -32,9 +34,10 @@ interface ChatMessage {
 export default function ChatbotPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [currentJobDesc, setCurrentJobDesc] = useState<string>("");
-  const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<ChatInputFormValues>({
@@ -42,15 +45,11 @@ export default function ChatbotPage() {
   });
 
   useEffect(() => {
-    // Scroll to bottom when new messages are added or loading state changes
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isLoading]);
 
   const handleChatSubmit: SubmitHandler<ChatInputFormValues> = async (data) => {
     setIsLoading(true);
-    setCurrentJobDesc(data.jobDescription);
-    setCurrentQuestion(data.interviewQuestion);
-
     const userMessage: ChatMessage = { id: Date.now().toString(), sender: 'user', content: `My answer to "${data.interviewQuestion}": ${data.userAnswer}`, type: 'answer' };
     setChatHistory(prev => [...prev, userMessage]);
 
@@ -85,7 +84,7 @@ export default function ChatbotPage() {
       setChatHistory(prev => [...prev, botMessage]);
       
       toast({ title: "Feedback Received", description: "AI has analyzed your answer." });
-      form.setValue('userAnswer', ''); // Clear user answer input
+      form.setValue('userAnswer', '');
 
     } catch (error) {
       console.error("Chatbot error:", error);
@@ -97,10 +96,35 @@ export default function ChatbotPage() {
     }
   };
   
+  const handleSuggestQuestions = async () => {
+    const jobDescription = form.getValues("jobDescription");
+    if (!jobDescription || jobDescription.length < 10) {
+       form.trigger("jobDescription");
+       toast({ variant: "destructive", title: "Job Description Needed", description: "Please provide a job description first." });
+       return;
+    }
+    setIsGeneratingQuestions(true);
+    setSuggestedQuestions([]);
+    setIsQuestionDialogOpen(true);
+    try {
+        const result = await generateInterviewQuestions({ jobDescription });
+        setSuggestedQuestions(result.questions);
+    } catch (error) {
+        console.error("Error generating questions:", error);
+        toast({ variant: "destructive", title: "Error", description: "Failed to suggest questions." });
+        setIsQuestionDialogOpen(false);
+    } finally {
+        setIsGeneratingQuestions(false);
+    }
+  };
+  
+  const handleSelectQuestion = (question: string) => {
+    form.setValue("interviewQuestion", question, { shouldValidate: true });
+    setIsQuestionDialogOpen(false);
+  };
+  
   const startNewSession = () => {
     setChatHistory([]);
-    setCurrentJobDesc("");
-    setCurrentQuestion("");
     form.reset();
     toast({ title: "New Session Started", description: "Ready for a new interview practice."});
   };
@@ -113,10 +137,9 @@ export default function ChatbotPage() {
           <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
         </CardHeader>
         
-        <div className="flex-1 p-0 overflow-y-auto">
-          <CardContent className="p-6 space-y-4">
+        <CardContent className="flex-1 p-6 space-y-4 overflow-y-auto">
           {chatHistory.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center text-center py-4">
+            <div className="flex flex-col items-center justify-center text-center py-2">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
             </div>
@@ -157,7 +180,6 @@ export default function ChatbotPage() {
           )}
           <div ref={messagesEndRef} />
           </CardContent>
-        </div>
 
         <CardFooter className="border-t p-0 mt-auto">
           <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
@@ -168,7 +190,41 @@ export default function ChatbotPage() {
                     {form.formState.errors.jobDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.jobDescription.message}</p>}
                 </div>
                 <div>
-                    <Label htmlFor="interviewQuestion" className="text-xs font-medium">Interview Question</Label>
+                    <div className="flex justify-between items-center">
+                        <Label htmlFor="interviewQuestion" className="text-xs font-medium">Interview Question</Label>
+                        <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto" onClick={handleSuggestQuestions} disabled={isGeneratingQuestions}>
+                                    <Lightbulb className="mr-1.5 h-3 w-3" /> Suggest Questions
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                <DialogTitle>Suggested Questions</DialogTitle>
+                                <DialogDescription>
+                                    Here are some questions tailored to the job description. Click one to start practicing.
+                                </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4">
+                                {isGeneratingQuestions ? (
+                                    <div className="flex items-center justify-center h-24">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {suggestedQuestions.map((q, i) => (
+                                        <li key={i}>
+                                            <Button variant="outline" className="w-full h-auto text-wrap text-left justify-start" onClick={() => handleSelectQuestion(q)}>
+                                                {q}
+                                            </Button>
+                                        </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                     <Input id="interviewQuestion" {...form.register("interviewQuestion")} placeholder="e.g., Tell me about yourself." className="mt-1 text-sm" suppressHydrationWarning={true} />
                     {form.formState.errors.interviewQuestion && <p className="text-xs text-destructive mt-1">{form.formState.errors.interviewQuestion.message}</p>}
                 </div>
