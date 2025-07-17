@@ -160,7 +160,6 @@ export default function RecruiterPortalPage() {
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-theme(spacing.32))]">
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Tools</h1>
 
@@ -229,7 +228,7 @@ export default function RecruiterPortalPage() {
               </form>
             </Card>
 
-            <Card className="shadow-lg sticky top-24">
+            <Card className="shadow-lg sticky top-8">
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
                   <CardDescription>Top candidates for your job will appear here, ranked by match score.</CardDescription>
@@ -284,8 +283,5 @@ export default function RecruiterPortalPage() {
             </Card>
         </div>
       </div>
-    </ScrollArea>
   );
 }
-
-    

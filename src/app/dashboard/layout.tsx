@@ -1,6 +1,7 @@
 
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function DashboardLayout({
   children,
@@ -8,9 +9,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col">
       <AppHeader />
-      <main className="flex-1 p-6 bg-background">{children}</main>
+      <main className="flex-1 overflow-hidden bg-background">
+        <ScrollArea className="h-full">
+            {children}
+        </ScrollArea>
+      </main>
       <AppFooter />
     </div>
   );

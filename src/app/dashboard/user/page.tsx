@@ -86,7 +86,6 @@ export default function UserPortalPage() {
   };
 
   return (
-    <ScrollArea className="h-[calc(100vh-theme(spacing.32))]">
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">User Job Portal</h1>
         <Tabs defaultValue="profile" className="w-full">
@@ -238,6 +237,3 @@ export default function UserPortalPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </ScrollArea>
-  );
-}

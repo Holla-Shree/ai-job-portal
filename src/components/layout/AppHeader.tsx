@@ -1,8 +1,9 @@
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MapPin, MessageSquare } from 'lucide-react';
+import { Menu, Briefcase, User, MapPin, MessageSquare, Shield } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ const navItems = [
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase },
   { href: '/map', label: 'Job Map', icon: MapPin },
   { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare },
+  { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield },
 ];
 
 export function AppHeader() {
