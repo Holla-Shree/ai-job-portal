@@ -225,7 +225,7 @@ export default function ChatbotPage() {
                             </DialogContent>
                         </Dialog>
                     </div>
-                    <Input id="interviewQuestion" {...form.register("interviewQuestion")} placeholder="e.g., Tell me about yourself." className="mt-1 text-sm" suppressHydrationWarning={true} />
+                    <Input id="interviewQuestion" {...form.register("interviewQuestion")} placeholder="e.g., Tell me about yourself." className="mt-1 text-sm" />
                     {form.formState.errors.interviewQuestion && <p className="text-xs text-destructive mt-1">{form.formState.errors.interviewQuestion.message}</p>}
                 </div>
             </div>
@@ -244,11 +244,11 @@ export default function ChatbotPage() {
                   }
                 }}
               />
-              <Button type="submit" size="icon" disabled={isLoading} suppressHydrationWarning={true}>
+              <Button type="submit" size="icon" disabled={isLoading}>
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span className="sr-only">Send Answer</span>
               </Button>
-              <Button type="button" variant="outline" onClick={startNewSession} disabled={isLoading} suppressHydrationWarning={true}>
+              <Button type="button" variant="outline" onClick={startNewSession} disabled={isLoading}>
                 New Session
               </Button>
             </div>
