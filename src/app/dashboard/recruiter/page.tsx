@@ -18,15 +18,30 @@ import { Badge } from "@/components/ui/badge";
 import { generateJobDescription } from '@/ai/flows/job-description-generator';
 import { screenCandidate, ScreenCandidateOutput } from '@/ai/flows/candidate-screener';
 import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Mock Candidate Data
 const MOCK_CANDIDATES = [
-  { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science.' },
-  { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering.' },
-  { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp.' },
-  { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code.' },
-  { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau.' },
+    { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science from IIT Bombay.' },
+    { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering from BITS Pilani.' },
+    { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp from UpGrad.' },
+    { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code. Based in Pune.' },
+    { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau. From Hyderabad.' },
+    { id: 'cand6', name: 'Amit Kumar', profile: 'Product Manager with 6 years of experience in the SaaS industry. Proven track record of launching successful B2B products. Strong analytical skills and experience with Agile methodologies. MBA from IIM Ahmedabad.' },
+    { id: 'cand7', name: 'Neha Gupta', profile: 'UX/UI Designer with a focus on mobile applications. 5 years of experience creating intuitive and user-friendly designs for iOS and Android. Proficient in Figma, Sketch, and Adobe Creative Suite. Portfolio available upon request.' },
+    { id: 'cand8', name: 'Karan Malhotra', profile: 'Cybersecurity Analyst with 7 years of experience in threat detection and incident response. Certified Information Systems Security Professional (CISSP). Experience with SIEM tools like Splunk. Based in Delhi.' },
+    { id: 'cand9', name: 'Isha Nair', profile: 'Digital Marketing Manager with a decade of experience in SEO, SEM, and social media marketing. Successfully managed multi-million dollar ad budgets. Google Ads certified. Currently located in Mumbai.' },
+    { id: 'cand10', name: 'Rajesh Kumar', profile: 'Mobile App Developer with expertise in Flutter. 4 years of experience building cross-platform applications for startups. Published several apps on the Play Store and App Store.' },
+    { id: 'cand11', name: 'Deepika Rao', profile: 'QA Automation Engineer with 5 years of experience. Expertise in building testing frameworks from scratch using Selenium and Cypress. Strong understanding of software development life cycle. From Bengaluru.' },
+    { id: 'cand12', name: 'Arjun Desai', profile: 'Cloud Solutions Architect with 9 years of experience. AWS Certified Solutions Architect – Professional. Specializes in designing and implementing scalable and cost-effective cloud infrastructure for enterprises.' },
+    { id: 'cand13', name: 'Sunita Joshi', profile: 'HR Business Partner with 8 years of experience in the tech industry. Expertise in talent acquisition, employee relations, and performance management. SHRM-CP certified.' },
+    { id: 'cand14', name: 'Manish Verma', profile: 'Data Engineer with 4 years of experience building and maintaining ETL pipelines. Proficient in Apache Spark, Kafka, and Airflow. Experience with big data technologies on AWS.' },
+    { id: 'cand15', name: 'Pooja Agarwal', profile: 'Business Analyst with a background in finance. 6 years of experience translating business requirements into technical specifications for fintech products. Based in Gurugram.' },
+    { id: 'cand16', name: 'Siddharth Chatterjee', profile: 'Content Strategist and Writer with 7 years of experience creating engaging content for B2B tech companies. Expertise in long-form blog posts, white papers, and case studies. From Kolkata.' },
+    { id: 'cand17', name: 'Aditi Sharma', profile: 'Salesforce Developer with 3 years of experience. Certified Salesforce Platform Developer I. Experience in Apex, Visualforce, and Lightning Web Components. Based in Noida.' },
+    { id: 'cand18', name: 'Vivek Iyer', profile: 'Senior Java Developer with 10 years of experience in building enterprise-grade applications using Spring Boot and Hibernate. Strong understanding of microservices and RESTful APIs. From Chennai.' },
+    { id: 'cand19', name: 'Fatima Khan', profile: 'Scrum Master with 5 years of experience facilitating agile ceremonies for multiple development teams. Certified ScrumMaster (CSM). Passionate about improving team velocity and productivity.' },
+    { id: 'cand20', name: 'Nikhil Reddy', profile: 'AI/ML Engineer with 2 years of experience post-Master\'s. Researched and implemented computer vision models using PyTorch. Strong mathematical and statistical background. Graduated from IISc Bangalore.' },
 ];
 
 interface ScoredCandidate extends ScreenCandidateOutput {
@@ -272,3 +287,5 @@ export default function RecruiterPortalPage() {
     </ScrollArea>
   );
 }
+
+    
