@@ -11,7 +11,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { interviewPreparationChatbot, InterviewPreparationInput, InterviewPreparationOutput } from '@/ai/flows/interview-preparation';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
@@ -106,17 +105,17 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="h-screen w-screen p-4 sm:p-6 md:p-8 flex flex-col">
-      <Card className="container mx-auto flex-1 flex flex-col shadow-xl overflow-hidden">
+    <div className="flex flex-col min-h-screen p-4 sm:p-6 md:p-8">
+      <Card className="container mx-auto w-full flex-1 flex flex-col shadow-xl">
         <CardHeader className="border-b">
           <CardTitle className="font-headline flex items-center"><MessageSquare className="mr-2 text-primary" />AI Interview Coach</CardTitle>
           <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
         </CardHeader>
         
-        <ScrollArea className="flex-1 p-0 min-h-0">
+        <div className="flex-1 p-0">
           <CardContent className="p-6 space-y-4">
           {chatHistory.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center text-center pt-16">
+            <div className="flex flex-col items-center justify-center text-center py-16">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
             </div>
@@ -157,9 +156,9 @@ export default function ChatbotPage() {
           )}
           <div ref={messagesEndRef} />
           </CardContent>
-        </ScrollArea>
+        </div>
 
-        <CardFooter className="border-t p-0">
+        <CardFooter className="border-t p-0 mt-auto">
           <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
             <div className="p-4 space-y-3 bg-background/50">
                 <div>
