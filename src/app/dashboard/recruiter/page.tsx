@@ -1,5 +1,6 @@
+
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 export default function RecruiterPortalPage() {
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -58,6 +60,10 @@ export default function RecruiterPortalPage() {
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   React.useEffect(() => {
     if (isGeneratorOpen) {
@@ -133,6 +139,10 @@ export default function RecruiterPortalPage() {
     if (score > 50) return "text-muted-foreground";
     return "text-destructive";
   };
+  
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <ScrollArea className="h-[calc(100vh-theme(spacing.32))]">
