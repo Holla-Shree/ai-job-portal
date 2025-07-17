@@ -15,6 +15,7 @@ import { analyzeResume, AnalyzeResumeOutput } from '@/ai/flows/resume-analyzer';
 import { recommendJobs, RecommendJobsOutput } from '@/ai/flows/job-recommendations';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import withAuth from '@/components/withAuth';
 
 const resumeUploadSchema = z.object({
   resumeFile: z.custom<FileList>().refine(files => files && files.length > 0, "Resume file is required."),
@@ -27,7 +28,7 @@ const jobRecommendationSchema = z.object({
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
-export default function UserPortalPage() {
+function UserPortalPage() {
   const { toast } = useToast();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
@@ -237,3 +238,7 @@ export default function UserPortalPage() {
           </TabsContent>
         </Tabs>
       </div>
+  );
+}
+
+export default withAuth(UserPortalPage, ['user', 'admin']);

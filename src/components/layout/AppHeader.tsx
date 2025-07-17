@@ -3,22 +3,51 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MapPin, MessageSquare, Shield } from 'lucide-react';
+import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn } from 'lucide-react';
 import { AppLogo } from './AppLogo';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/mode-toggle';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+
 
 const navItems = [
-  { href: '/dashboard/user', label: 'User Portal', icon: User },
-  { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase },
-  { href: '/map', label: 'Job Map', icon: MapPin },
-  { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare },
-  { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield },
+  { href: '/dashboard/user', label: 'User Portal', icon: User, roles: ['user', 'admin'] },
+  { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter', 'admin'] },
+  { href: '/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
+  { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
+  { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield, roles: ['admin'] },
 ];
 
 export function AppHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+  
+  const getVisibleNavItems = () => {
+      if (!user) return [];
+      return navItems.filter(item => item.roles.includes(user.role));
+  }
+
+  const visibleNavItems = getVisibleNavItems();
+  
+  const getInitials = (role: string) => {
+    return role.charAt(0).toUpperCase();
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,7 +68,7 @@ export function AppHeader() {
              <AppLogo />
             </div>
             <nav className="flex flex-col gap-2 p-4">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
@@ -57,7 +86,7 @@ export function AppHeader() {
         </Sheet>
         
         <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.label}
               href={item.href}
@@ -72,9 +101,38 @@ export function AppHeader() {
         </nav>
         <div className="flex items-center gap-2">
            <ModeToggle />
-          {/* Placeholder for Auth buttons */}
-          {/* <Button variant="outline" size="sm">Sign In</Button>
-          <Button size="sm">Sign Up</Button> */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-9 w-9">
+                     <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(user.role)}`} alt={user.role} data-ai-hint="person avatar"/>
+                     <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Logged in as</p>
+                    <p className="text-xs leading-none text-muted-foreground capitalize">{user.role}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4"/>
+                Sign In
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

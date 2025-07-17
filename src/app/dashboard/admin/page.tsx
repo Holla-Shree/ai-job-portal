@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Briefcase, FileText, BarChart2, Activity } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import withAuth from '@/components/withAuth';
 
 // Mock Data
 const MOCK_STATS = {
@@ -56,7 +57,7 @@ const aiUsageChartConfig = {
     }
 } satisfies ChartConfig;
 
-export default function AdminPanelPage() {
+function AdminPanelPage() {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => {
         setIsClient(true);
@@ -198,3 +199,6 @@ export default function AdminPanelPage() {
         </div>
     );
 }
+
+
+export default withAuth(AdminPanelPage, ['admin']);

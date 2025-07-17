@@ -19,6 +19,7 @@ import { generateJobDescription } from '@/ai/flows/job-description-generator';
 import { screenCandidate, ScreenCandidateOutput } from '@/ai/flows/candidate-screener';
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import withAuth from '@/components/withAuth';
 
 // Mock Candidate Data
 const MOCK_CANDIDATES = [
@@ -64,7 +65,7 @@ const generatorSchema = z.object({
 });
 type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
-export default function RecruiterPortalPage() {
+function RecruiterPortalPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -285,3 +286,5 @@ export default function RecruiterPortalPage() {
       </div>
   );
 }
+
+export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
