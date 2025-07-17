@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -73,6 +74,7 @@ function RecruiterPortalPage() {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [screeningProgress, setScreeningProgress] = useState(0);
+  const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
@@ -113,6 +115,7 @@ function RecruiterPortalPage() {
   const handleAutoScreen: SubmitHandler<JobPostingFormValues> = async (data) => {
     setIsScreening(true);
     setScreeningResults([]);
+    setShortlistedCandidates([]);
     setScreeningProgress(0);
     toast({ title: "Screening Started", description: "AI is now screening candidates against your job description." });
     
@@ -137,6 +140,24 @@ function RecruiterPortalPage() {
        setIsScreening(false);
        setScreeningProgress(100);
     }
+  };
+
+  const handleShortlistCandidate = (candidateId: string) => {
+    setShortlistedCandidates(prev => {
+      if (prev.includes(candidateId)) {
+        return prev.filter(id => id !== candidateId); // Un-shortlist
+      } else {
+        toast({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in your dashboard." });
+        return [...prev, candidateId]; // Shortlist
+      }
+    });
+  };
+
+  const handleScheduleInterview = (candidateName: string) => {
+     toast({
+        title: "Interview Scheduled",
+        description: `An invitation has been sent to ${candidateName}.`,
+     });
   };
 
   const getBadgeVariant = (strength: ScreenCandidateOutput['matchStrength']) => {
@@ -249,9 +270,12 @@ function RecruiterPortalPage() {
                           <AccordionItem key={result.candidate.id} value={result.candidate.id}>
                             <AccordionTrigger>
                                <div className="flex justify-between items-center w-full pr-4">
-                                 <div className="text-left">
-                                   <p className="font-semibold">{result.candidate.name}</p>
-                                   <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                 <div className="text-left flex items-center gap-2">
+                                   {shortlistedCandidates.includes(result.candidate.id) && <Star className="h-4 w-4 text-amber-400 fill-amber-400" />}
+                                   <div>
+                                     <p className="font-semibold">{result.candidate.name}</p>
+                                     <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                   </div>
                                  </div>
                                  <div className="text-right">
                                     <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
@@ -260,7 +284,7 @@ function RecruiterPortalPage() {
                                </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                               <div className="space-y-3 text-sm px-2">
+                               <div className="space-y-4 text-sm px-2">
                                  <div>
                                    <h4 className="font-semibold mb-1">Rationale</h4>
                                    <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
@@ -273,6 +297,38 @@ function RecruiterPortalPage() {
                                      </ul>
                                    </div>
                                  )}
+                                 <div className="flex items-center gap-2 pt-2 border-t">
+                                     <Button
+                                        variant={shortlistedCandidates.includes(result.candidate.id) ? "secondary" : "outline"}
+                                        size="sm"
+                                        onClick={() => handleShortlistCandidate(result.candidate.id)}
+                                      >
+                                        <Star className={`mr-2 h-4 w-4 ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-500 fill-amber-500' : ''}`} />
+                                        {shortlistedCandidates.includes(result.candidate.id) ? 'Shortlisted' : 'Shortlist'}
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="default" size="sm">
+                                            <CalendarPlus className="mr-2 h-4 w-4" />
+                                            Schedule Interview
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              This will simulate sending an interview invitation to {result.candidate.name}.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.name)}>
+                                              Confirm & Schedule
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                 </div>
                                </div>
                             </AccordionContent>
                           </AccordionItem>
@@ -288,3 +344,5 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
+
+    
