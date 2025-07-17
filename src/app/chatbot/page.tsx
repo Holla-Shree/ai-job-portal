@@ -33,6 +33,7 @@ interface ChatMessage {
 
 export default function ChatbotPage() {
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
@@ -43,6 +44,10 @@ export default function ChatbotPage() {
   const form = useForm<ChatInputFormValues>({
     resolver: zodResolver(chatInputSchema),
   });
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -129,15 +134,19 @@ export default function ChatbotPage() {
     toast({ title: "New Session Started", description: "Ready for a new interview practice."});
   };
 
+  if (!isClient) {
+    return null; // Render nothing on the server
+  }
+
   return (
-    <div className="flex flex-col min-h-screen p-4 sm:p-6 md:p-8">
+    <div className="flex flex-col h-screen p-4 sm:p-6 md:p-8">
       <Card className="container mx-auto w-full flex-1 flex flex-col shadow-xl">
         <CardHeader className="border-b">
           <CardTitle className="font-headline flex items-center"><MessageSquare className="mr-2 text-primary" />AI Interview Coach</CardTitle>
           <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
         </CardHeader>
         
-        <CardContent className="flex-1 p-6 space-y-4 overflow-y-auto">
+        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
           {chatHistory.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center text-center py-2">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
@@ -179,7 +188,7 @@ export default function ChatbotPage() {
             </div>
           )}
           <div ref={messagesEndRef} />
-          </CardContent>
+          </div>
 
         <CardFooter className="border-t p-0 mt-auto">
           <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
@@ -259,3 +268,5 @@ export default function ChatbotPage() {
     </div>
   );
 }
+
+    
