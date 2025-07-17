@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +116,7 @@ export default function ChatbotPage() {
         <div className="flex-1 p-0 overflow-y-auto">
           <CardContent className="p-6 space-y-4">
           {chatHistory.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center text-center py-8">
+            <div className="flex flex-col items-center justify-center text-center py-4">
               <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
             </div>
