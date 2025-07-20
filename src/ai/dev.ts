@@ -8,4 +8,4 @@ import '@/ai/flows/resume-analyzer.ts';
 import '@/ai/flows/job-description-generator.ts';
 import '@/ai/flows/candidate-screener.ts';
 import '@/ai/flows/question-generator.ts';
-import '@/ai/flows/admin-data-query.ts';
+import '@/ai/flows/lib/admin-data-query-flow.ts';
