@@ -1,10 +1,14 @@
+
+'use client';
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Briefcase, Users, Brain, MapPin, MessageCircle, FileText, UploadCloud, Search } from "lucide-react";
+import { Briefcase, Users, Brain, MapPin, MessageCircle, FileText, UploadCloud, Search, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   {
@@ -38,6 +42,23 @@ const features = [
 ];
 
 export default function HomePage() {
+  const { user } = useAuth();
+
+  const getDashboardLink = () => {
+    if (!user) return '/login';
+    switch (user.role) {
+      case 'user': return '/dashboard/user';
+      case 'recruiter': return '/dashboard/recruiter';
+      case 'admin': return '/dashboard/admin';
+      default: return '/login';
+    }
+  };
+
+  const getRoleName = () => {
+    if (!user) return '';
+    return user.role.charAt(0).toUpperCase() + user.role.slice(1);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
       <AppHeader />
@@ -54,12 +75,22 @@ export default function HomePage() {
                 Your intelligent partner in navigating the job market. Discover opportunities, enhance your skills, and land your dream job with the power of AI.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
-                  <Link href="/dashboard/user">I'm a Job Seeker</Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="shadow-lg hover:shadow-accent/50 transition-shadow">
-                  <Link href="/dashboard/recruiter">I'm a Recruiter</Link>
-                </Button>
+                {user ? (
+                   <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
+                    <Link href={getDashboardLink()}>
+                      Go to Your {getRoleName()} Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
+                      <Link href="/login">I'm a Job Seeker</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg" className="shadow-lg hover:shadow-accent/50 transition-shadow">
+                      <Link href="/login">I'm a Recruiter</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
