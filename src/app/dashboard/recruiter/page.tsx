@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,6 +21,8 @@ import { screenCandidate, ScreenCandidateOutput } from '@/ai/flows/candidate-scr
 import { Progress } from '@/components/ui/progress';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import withAuth from '@/components/withAuth';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Mock Candidate Data
 const MOCK_CANDIDATES = [
@@ -75,6 +77,7 @@ function RecruiterPortalPage() {
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [screeningProgress, setScreeningProgress] = useState(0);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
+  const [talentSearchTerm, setTalentSearchTerm] = useState('');
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
@@ -82,6 +85,17 @@ function RecruiterPortalPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const filteredTalentPool = useMemo(() => {
+    if (!talentSearchTerm) return MOCK_CANDIDATES;
+    const lowercasedTerm = talentSearchTerm.toLowerCase();
+    return MOCK_CANDIDATES.filter(
+      (candidate) =>
+        candidate.name.toLowerCase().includes(lowercasedTerm) ||
+        candidate.profile.toLowerCase().includes(lowercasedTerm)
+    );
+  }, [talentSearchTerm]);
+
 
   React.useEffect(() => {
     if (isGeneratorOpen) {
@@ -183,166 +197,220 @@ function RecruiterPortalPage() {
 
   return (
       <div className="container mx-auto py-8">
-        <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Tools</h1>
+        <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
+        <Tabs defaultValue="screening">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="screening"><Sparkles className="mr-2" />Post Job & Screen</TabsTrigger>
+            <TabsTrigger value="talent"><Users className="mr-2" />Talent Pool</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="screening">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <Card className="shadow-xl">
+                <CardHeader>
+                  <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a New Job</CardTitle>
+                  <CardDescription>Fill in the details to post a job and automatically screen candidates from the talent pool.</CardDescription>
+                </CardHeader>
+                <form onSubmit={jobPostForm.handleSubmit(handleAutoScreen)}>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <Label htmlFor="jobTitle">Job Title</Label>
+                      <Input id="jobTitle" {...jobPostForm.register("jobTitle")} placeholder="e.g., Senior Software Engineer" />
+                      {jobPostForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobTitle.message}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="companyName">Company Name</Label>
+                      <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
+                       {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
+                       {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="jobDescription">Job Description</Label>
+                        <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
+                          <DialogTrigger asChild>
+                            <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto">
+                              <Sparkles className="mr-1.5 h-4 w-4" /> Generate with AI
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <form onSubmit={generatorForm.handleSubmit(handleGenerateDescription)}>
+                              <DialogHeader>
+                                <DialogTitle>Generate Job Description</DialogTitle>
+                                <DialogDescription>Provide a job title and notes, and the AI will draft a description.</DialogDescription>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <Input {...generatorForm.register("jobTitle")} placeholder="Job Title" />
+                                {generatorForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{generatorForm.formState.errors.jobTitle.message}</p>}
+                                <Textarea {...generatorForm.register("notes")} placeholder="Keywords / Notes (Optional)..." />
+                              </div>
+                              <DialogFooter>
+                                <Button type="submit" disabled={isGenerating}>
+                                  {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Generate
+                                </Button>
+                              </DialogFooter>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                      <Textarea id="jobDescription" {...jobPostForm.register("jobDescription")} rows={8} placeholder="Provide a detailed description or generate one." />
+                      {jobPostForm.formState.errors.jobDescription && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobDescription.message}</p>}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button type="submit" disabled={isScreening}>
+                      {isScreening ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
+                      {isScreening ? 'Screening Candidates...' : 'Post Job & Auto-Screen'}
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <Card className="shadow-lg sticky top-8">
+                  <CardHeader>
+                    <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
+                    <CardDescription>Top candidates for your job will appear here, ranked by match score.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isScreening && (
+                      <div className="space-y-2">
+                         <Progress value={screeningProgress} className="w-full" />
+                         <p className="text-sm text-muted-foreground text-center">Screening {MOCK_CANDIDATES.length} candidates... ({Math.round(screeningProgress)}%)</p>
+                      </div>
+                    )}
+                    {!isScreening && screeningResults.length === 0 && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Post a job to see screened candidates.</div>}
+                    {screeningResults.length > 0 && (
+                      <ScrollArea className="h-[500px]">
+                        <Accordion type="single" collapsible className="w-full">
+                           {screeningResults.map((result) => (
+                            <AccordionItem key={result.candidate.id} value={result.candidate.id}>
+                              <AccordionTrigger>
+                                 <div className="flex justify-between items-center w-full pr-4">
+                                   <div className="text-left flex items-center gap-2">
+                                     {shortlistedCandidates.includes(result.candidate.id) && <Star className="h-4 w-4 text-amber-400 fill-amber-400" />}
+                                     <div>
+                                       <p className="font-semibold">{result.candidate.name}</p>
+                                       <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                     </div>
+                                   </div>
+                                   <div className="text-right">
+                                      <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                      <p className="text-xs text-muted-foreground">Match Score</p>
+                                   </div>
+                                 </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                 <div className="space-y-4 text-sm px-2">
+                                   <div>
+                                     <h4 className="font-semibold mb-1">Rationale</h4>
+                                     <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
+                                   </div>
+                                   {result.missingQualifications && result.missingQualifications.length > 0 && (
+                                     <div>
+                                       <h4 className="font-semibold mb-1">Missing Qualifications</h4>
+                                       <ul className="list-disc list-inside text-muted-foreground">
+                                         {result.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
+                                       </ul>
+                                     </div>
+                                   )}
+                                   <div className="flex items-center gap-2 pt-2 border-t">
+                                       <Button
+                                          variant={shortlistedCandidates.includes(result.candidate.id) ? "secondary" : "outline"}
+                                          size="sm"
+                                          onClick={() => handleShortlistCandidate(result.candidate.id)}
+                                        >
+                                          <Star className={`mr-2 h-4 w-4 ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-500 fill-amber-500' : ''}`} />
+                                          {shortlistedCandidates.includes(result.candidate.id) ? 'Shortlisted' : 'Shortlist'}
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="default" size="sm">
+                                              <CalendarPlus className="mr-2 h-4 w-4" />
+                                              Schedule Interview
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                This will simulate sending an interview invitation to {result.candidate.name}.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.name)}>
+                                                Confirm & Schedule
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                   </div>
+                                 </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                           ))}
+                        </Accordion>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="talent">
             <Card className="shadow-xl">
               <CardHeader>
-                <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a Job & Screen</CardTitle>
-                <CardDescription>Fill in the details to post a job and automatically screen candidates from the talent pool.</CardDescription>
+                  <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Talent Pool</CardTitle>
+                  <CardDescription>Browse and search all candidates in the system.</CardDescription>
               </CardHeader>
-              <form onSubmit={jobPostForm.handleSubmit(handleAutoScreen)}>
-                <CardContent className="space-y-6">
-                  <div>
-                    <Label htmlFor="jobTitle">Job Title</Label>
-                    <Input id="jobTitle" {...jobPostForm.register("jobTitle")} placeholder="e.g., Senior Software Engineer" />
-                    {jobPostForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobTitle.message}</p>}
+              <CardContent>
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search by name or keywords..."
+                      className="pl-10"
+                      value={talentSearchTerm}
+                      onChange={(e) => setTalentSearchTerm(e.target.value)}
+                    />
                   </div>
-                  <div>
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
-                     {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
-                     {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="jobDescription">Job Description</Label>
-                      <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
-                        <DialogTrigger asChild>
-                          <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto">
-                            <Sparkles className="mr-1.5 h-4 w-4" /> Generate with AI
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <form onSubmit={generatorForm.handleSubmit(handleGenerateDescription)}>
-                            <DialogHeader>
-                              <DialogTitle>Generate Job Description</DialogTitle>
-                              <DialogDescription>Provide a job title and notes, and the AI will draft a description.</DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <Input {...generatorForm.register("jobTitle")} placeholder="Job Title" />
-                              {generatorForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{generatorForm.formState.errors.jobTitle.message}</p>}
-                              <Textarea {...generatorForm.register("notes")} placeholder="Keywords / Notes (Optional)..." />
+                </div>
+                <ScrollArea className="h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Candidate</TableHead>
+                        <TableHead>Profile Summary</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTalentPool.map((candidate) => (
+                        <TableRow key={candidate.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <span>{candidate.name}</span>
                             </div>
-                            <DialogFooter>
-                              <Button type="submit" disabled={isGenerating}>
-                                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Generate
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <Textarea id="jobDescription" {...jobPostForm.register("jobDescription")} rows={8} placeholder="Provide a detailed description or generate one." />
-                    {jobPostForm.formState.errors.jobDescription && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobDescription.message}</p>}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isScreening}>
-                    {isScreening ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
-                    {isScreening ? 'Screening Candidates...' : 'Post Job & Auto-Screen'}
-                  </Button>
-                </CardFooter>
-              </form>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">{candidate.profile}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
             </Card>
-
-            <Card className="shadow-lg sticky top-8">
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
-                  <CardDescription>Top candidates for your job will appear here, ranked by match score.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isScreening && (
-                    <div className="space-y-2">
-                       <Progress value={screeningProgress} className="w-full" />
-                       <p className="text-sm text-muted-foreground text-center">Screening {MOCK_CANDIDATES.length} candidates... ({Math.round(screeningProgress)}%)</p>
-                    </div>
-                  )}
-                  {!isScreening && screeningResults.length === 0 && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Post a job to see screened candidates.</div>}
-                  {screeningResults.length > 0 && (
-                    <ScrollArea className="h-[500px]">
-                      <Accordion type="single" collapsible className="w-full">
-                         {screeningResults.map((result) => (
-                          <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                            <AccordionTrigger>
-                               <div className="flex justify-between items-center w-full pr-4">
-                                 <div className="text-left flex items-center gap-2">
-                                   {shortlistedCandidates.includes(result.candidate.id) && <Star className="h-4 w-4 text-amber-400 fill-amber-400" />}
-                                   <div>
-                                     <p className="font-semibold">{result.candidate.name}</p>
-                                     <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
-                                   </div>
-                                 </div>
-                                 <div className="text-right">
-                                    <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                    <p className="text-xs text-muted-foreground">Match Score</p>
-                                 </div>
-                               </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                               <div className="space-y-4 text-sm px-2">
-                                 <div>
-                                   <h4 className="font-semibold mb-1">Rationale</h4>
-                                   <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
-                                 </div>
-                                 {result.missingQualifications && result.missingQualifications.length > 0 && (
-                                   <div>
-                                     <h4 className="font-semibold mb-1">Missing Qualifications</h4>
-                                     <ul className="list-disc list-inside text-muted-foreground">
-                                       {result.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
-                                     </ul>
-                                   </div>
-                                 )}
-                                 <div className="flex items-center gap-2 pt-2 border-t">
-                                     <Button
-                                        variant={shortlistedCandidates.includes(result.candidate.id) ? "secondary" : "outline"}
-                                        size="sm"
-                                        onClick={() => handleShortlistCandidate(result.candidate.id)}
-                                      >
-                                        <Star className={`mr-2 h-4 w-4 ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-500 fill-amber-500' : ''}`} />
-                                        {shortlistedCandidates.includes(result.candidate.id) ? 'Shortlisted' : 'Shortlist'}
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="default" size="sm">
-                                            <CalendarPlus className="mr-2 h-4 w-4" />
-                                            Schedule Interview
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This will simulate sending an interview invitation to {result.candidate.name}.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.name)}>
-                                              Confirm & Schedule
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                 </div>
-                               </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                         ))}
-                      </Accordion>
-                    </ScrollArea>
-                  )}
-                </CardContent>
-            </Card>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
   );
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
-
-    
