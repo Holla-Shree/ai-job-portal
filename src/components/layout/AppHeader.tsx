@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 const navItems = [
   { href: '/dashboard/user', label: 'Dashboard', icon: User, roles: ['user', 'admin'] },
-  { href: '/dashboard/user/profile', label: 'My Profile', icon: UserCircle, roles: ['user', 'admin'] },
+  { href: '/dashboard/user/settings/profile', label: 'My Profile', icon: UserCircle, roles: ['user', 'admin'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter', 'admin'] },
   { href: '/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
   { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
@@ -44,7 +44,7 @@ export function AppHeader() {
       let items = navItems.filter(item => item.roles.includes(user.role));
       // Special rule: don't show both "Dashboard" and "My Profile" if not a user
       if(user.role !== 'user') {
-        items = items.filter(item => item.href !== '/dashboard/user/profile');
+        items = items.filter(item => item.href !== '/dashboard/user/settings/profile');
         items = items.filter(item => item.href !== '/dashboard/user');
       }
       return items;
