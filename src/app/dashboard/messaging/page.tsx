@@ -34,7 +34,6 @@ interface Conversation {
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
-    // Note: The 'sender' field in messages is now relative. 'me' is always the logged-in user.
     if (role === 'user') {
       return [
         {
@@ -67,7 +66,6 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         },
       ];
     }
-    // Recruiter's perspective
     return [
       {
         id: 'conv1',
@@ -346,9 +344,9 @@ function MessagingPage() {
                                 <AvatarFallback>{convo.avatar}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 truncate">
-                                <div className="flex justify-between items-center">
-                                    <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
-                                    {convo.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-current shrink-0" />}
+                                <div className="flex justify-between items-start">
+                                    <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
+                                    {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                 </div>
                                 <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
