@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send } from 'lucide-react';
+import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,16 @@ export function AppHeader() {
     if (role === 'admin') return 'A';
     return role.charAt(0).toUpperCase();
   }
+  
+  const getSettingsLink = () => {
+    if (!user) return '/login';
+    switch (user.role) {
+      case 'user': return '/dashboard/user/settings';
+      case 'recruiter': return '/dashboard/recruiter/settings';
+      case 'admin': return '/dashboard/admin'; // Or a dedicated admin settings page
+      default: return '/login';
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -132,6 +142,12 @@ export function AppHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                  <Link href={getSettingsLink()}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
