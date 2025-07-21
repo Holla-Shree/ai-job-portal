@@ -36,7 +36,7 @@ const RecommendJobsOutputSchema = z.object({
         reasoning: z
           .string()
           .describe(
-            "A brief, 1-2 sentence explanation of why this job is a good match based on the user's profile."
+            "A brief, 1-2 sentence explanation of why this job is a good match based on the user's profile and desired keywords."
           ),
       })
     )
@@ -52,24 +52,29 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: `You are an expert career advisor and job market analyst. Your task is to provide insightful, semantic job recommendations based on a user's resume summary and, if provided, their preferred keywords.
+  prompt: `You are an expert career advisor specializing in helping people transition into new careers. Your task is to provide insightful, semantic job recommendations.
 
-Instead of simple keyword matching, analyze the provided resume text to understand the user's core skills, experience level (e.g., junior, mid-level, senior), and potential career trajectory. Use this deep understanding to suggest 5-7 specific and relevant job titles that would be a strong fit.
+Analyze the user's resume to understand their background, but **give strong priority to their stated keywords**. The user's keywords indicate their desired career path, even if it's different from their past experience.
+
+Your goal is to bridge the gap between their past and their future goals.
+- If keywords are provided, focus recommendations on that field. Suggest entry-level or junior roles if their experience doesn't directly match.
+- Identify transferable skills from their resume (e.g., communication, project management, analytical skills) and explain how they apply to the new role.
+- If no keywords are provided, then base the recommendations on their resume.
 
 For each recommendation, provide:
-1.  A specific Job Title.
-2.  An example of a type of Company that typically hires for this role (e.g., "a fast-growing SaaS startup", "a large enterprise tech company", "a digital marketing agency").
-3.  A concise, one-sentence Reasoning for why this is a good match, connecting it to the user's profile.
+1.  **Job Title**: A specific title relevant to their desired field (or past experience if no keywords).
+2.  **Company**: A type of company that hires for this role.
+3.  **Reasoning**: A concise explanation connecting their transferable skills to the new role and acknowledging it may be a career change.
 
 **User's Resume Summary:**
 {{{resumeText}}}
-{{#if keywords}}
 
-**User's Keywords / Desired Roles:**
+{{#if keywords}}
+**User's Desired Roles (Keywords) - PRIORITIZE THIS:**
 {{{keywords}}}
 {{/if}}
 
-Provide your recommendations in the specified format.`,
+Provide your recommendations now in the specified format.`,
   config: {
     safetySettings: [
       {
