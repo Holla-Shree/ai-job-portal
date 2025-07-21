@@ -156,7 +156,7 @@ function MessagingPage() {
                                     <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
                                     <p className="text-xs text-muted-foreground">{convo.messages[convo.messages.length - 1].timestamp}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'user' ? convo.jobTitle : convo.partnerRole}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
                         </div>
@@ -183,7 +183,7 @@ function MessagingPage() {
                     </div>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" disabled={user?.role !== 'recruiter'}>
                                 <CalendarPlus className="mr-2 h-4 w-4" />
                                 Schedule Interview
                             </Button>
