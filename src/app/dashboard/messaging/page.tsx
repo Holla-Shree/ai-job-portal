@@ -178,7 +178,7 @@ function MessagingPage() {
                         </Avatar>
                         <div>
                             <CardTitle className="font-headline text-lg">{selectedConversation.partnerName}</CardTitle>
-                            <CardDescription>{user?.role === 'recruiter' ? `Candidate for ${selectedConversation.jobTitle}` : `Recruiter for ${selectedConversation.jobTitle}`}</CardDescription>
+                            <CardDescription>{user?.role === 'recruiter' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
                         </div>
                     </div>
                      <AlertDialog>
