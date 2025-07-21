@@ -89,6 +89,12 @@ function UserProfilePage() {
       setIsLoadingJobs(false);
     }
   };
+  
+  const handleFindSimilar = (jobTitle: string) => {
+    jobForm.setValue('keywords', jobTitle);
+    jobForm.handleSubmit(handleJobRecommendation)();
+  };
+
 
   return (
       <div className="w-full">
@@ -229,7 +235,9 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter>
-                            <Button variant="link" size="sm" className="p-0 h-auto">Find Similar</Button>
+                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => handleFindSimilar(job.title)}>
+                                Find Similar
+                            </Button>
                           </CardFooter>
                         </Card>
                       ))}
