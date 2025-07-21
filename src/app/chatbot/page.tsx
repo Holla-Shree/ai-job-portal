@@ -11,7 +11,7 @@ import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plu
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { interviewPreparationChatbot, InterviewPreparationInput } from '@/ai/flows/interview-preparation';
+import { interviewPreparationChatbot, InterviewPreparationInput, InterviewPreparationOutput } from '@/ai/flows/interview-preparation';
 import { generateInterviewQuestions } from '@/ai/flows/question-generator';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,12 +28,22 @@ const chatInputSchema = z.object({
 });
 type ChatInputFormValues = z.infer<typeof chatInputSchema>;
 
-interface ChatMessage {
+interface BaseMessage {
   id: string;
   sender: 'user' | 'bot' | 'system';
-  content: string | React.ReactNode;
-  type?: 'question' | 'answer' | 'analysis';
 }
+
+interface TextMessage extends BaseMessage {
+  type: 'question' | 'answer' | 'error';
+  content: string;
+}
+
+interface AnalysisMessage extends BaseMessage {
+  type: 'analysis';
+  content: InterviewPreparationOutput;
+}
+
+type ChatMessage = TextMessage | AnalysisMessage;
 
 interface ChatSession {
     id: string;
@@ -42,6 +52,26 @@ interface ChatSession {
     jobDescription: string;
     timestamp: number;
 }
+
+const AnalysisComponent = ({ analysis, suggestedImprovements, relevantCourses }: InterviewPreparationOutput) => (
+    <div className="space-y-3">
+        <div>
+        <h4 className="font-semibold text-sm flex items-center"><Brain className="w-4 h-4 mr-1.5 text-primary" />Analysis:</h4>
+        <p className="text-xs">{analysis}</p>
+        </div>
+        <div>
+        <h4 className="font-semibold text-sm flex items-center"><Sparkles className="w-4 h-4 mr-1.5 text-primary" />Suggested Improvements:</h4>
+        <p className="text-xs">{suggestedImprovements}</p>
+        </div>
+        {relevantCourses && (
+        <div>
+            <h4 className="font-semibold text-sm flex items-center"><BookOpen className="w-4 h-4 mr-1.5 text-primary" />Relevant Courses:</h4>
+            <p className="text-xs">{relevantCourses}</p>
+        </div>
+        )}
+    </div>
+);
+
 
 export default function ChatbotPage() {
   const { toast } = useToast();
@@ -97,7 +127,7 @@ export default function ChatbotPage() {
     const activeSession = sessions.find(s => s.id === activeSessionId);
     if (activeSession) {
       form.setValue('jobDescription', activeSession.jobDescription);
-      const lastQuestion = activeSession.messages.filter(m => m.type === 'question').pop()?.content as string;
+      const lastQuestion = activeSession.messages.findLast(m => m.type === 'question')?.content as string;
       if (lastQuestion) {
         form.setValue('interviewQuestion', lastQuestion);
       }
@@ -147,8 +177,8 @@ export default function ChatbotPage() {
     }
     setIsLoading(true);
 
-    const userQuestion: ChatMessage = { id: `q-${Date.now()}`, sender: 'system', content: data.interviewQuestion, type: 'question' };
-    const userAnswer: ChatMessage = { id: `a-${Date.now()}`, sender: 'user', content: data.userAnswer, type: 'answer' };
+    const userQuestion: TextMessage = { id: `q-${Date.now()}`, sender: 'system', content: data.interviewQuestion, type: 'question' };
+    const userAnswer: TextMessage = { id: `a-${Date.now()}`, sender: 'user', content: data.userAnswer, type: 'answer' };
 
     setSessions(prev => prev.map(s => {
       if (s.id === activeSessionId) {
@@ -159,31 +189,13 @@ export default function ChatbotPage() {
 
     try {
       const result = await interviewPreparationChatbot(data);
-      const botResponseContent = (
-        <div className="space-y-3">
-          <div>
-            <h4 className="font-semibold text-sm flex items-center"><Brain className="w-4 h-4 mr-1.5 text-primary" />Analysis:</h4>
-            <p className="text-xs">{result.analysis}</p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-sm flex items-center"><Sparkles className="w-4 h-4 mr-1.5 text-primary" />Suggested Improvements:</h4>
-            <p className="text-xs">{result.suggestedImprovements}</p>
-          </div>
-          {result.relevantCourses && (
-            <div>
-              <h4 className="font-semibold text-sm flex items-center"><BookOpen className="w-4 h-4 mr-1.5 text-primary" />Relevant Courses:</h4>
-              <p className="text-xs">{result.relevantCourses}</p>
-            </div>
-          )}
-        </div>
-      );
-      const botMessage: ChatMessage = { id: `bot-${Date.now()}`, sender: 'bot', content: botResponseContent, type: 'analysis' };
+      const botMessage: AnalysisMessage = { id: `bot-${Date.now()}`, sender: 'bot', content: result, type: 'analysis' };
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, botMessage] } : s));
       toast({ title: "Feedback Received", description: "AI has analyzed your answer." });
       form.setValue('userAnswer', '');
     } catch (error) {
       console.error("Chatbot error:", error);
-      const errorMessage: ChatMessage = { id: `err-${Date.now()}`, sender: 'system', content: "Sorry, I encountered an error. Please try again." };
+      const errorMessage: TextMessage = { id: `err-${Date.now()}`, sender: 'system', content: "Sorry, I encountered an error. Please try again.", type: 'error' };
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, errorMessage] } : s));
       toast({ variant: "destructive", title: "Error", description: "Failed to get feedback." });
     } finally {
@@ -223,14 +235,16 @@ export default function ChatbotPage() {
   }
 
   const renderMessageContent = (msg: ChatMessage) => {
-    if (typeof msg.content === 'string') {
-        if (msg.type === 'question') {
+    switch (msg.type) {
+        case 'question':
             return <div className="w-full text-center text-xs text-muted-foreground italic p-2">Question: "{msg.content}"</div>;
-        }
-        return msg.content;
+        case 'analysis':
+            return <AnalysisComponent {...msg.content} />;
+        case 'answer':
+        case 'error':
+        default:
+            return msg.content;
     }
-    // If content is not a string, it must be a ReactNode (JSX element), so return it directly.
-    return msg.content;
   };
   
   const sortedSessions = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
