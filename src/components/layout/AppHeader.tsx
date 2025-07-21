@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn, UserCircle } from 'lucide-react';
+import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ const navItems = [
   { href: '/dashboard/user', label: 'Dashboard', icon: User, roles: ['user', 'admin'] },
   { href: '/dashboard/user/settings/profile', label: 'My Profile', icon: UserCircle, roles: ['user', 'admin'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter', 'admin'] },
+  { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter', 'admin'] },
   { href: '/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
   { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
   { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield, roles: ['admin'] },

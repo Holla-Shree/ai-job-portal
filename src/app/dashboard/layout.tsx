@@ -16,7 +16,6 @@ export default function DashboardLayout({
             {children}
         </ScrollArea>
       </main>
-      <AppFooter />
     </div>
   );
 }
