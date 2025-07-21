@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -121,8 +121,10 @@ function MessagingPage() {
     const [conversations, setConversations] = useState<Conversation[]>(getMockConversations(user?.role || 'user'));
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations.find(c => c.pinned) || conversations[0] || null);
     const [messageInput, setMessageInput] = useState('');
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
+    const [isConvSelectionMode, setIsConvSelectionMode] = useState(false);
+    const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
 
     const sortedConversations = useMemo(() => {
         return [...conversations].sort((a, b) => {
@@ -133,8 +135,17 @@ function MessagingPage() {
     }, [conversations]);
 
     const handleSelectConversation = (conversationId: string) => {
-        if (isSelectionMode) {
-            setIsSelectionMode(false);
+        if(isConvSelectionMode) {
+             setSelectedConversations(prev => 
+                prev.includes(conversationId) 
+                ? prev.filter(id => id !== conversationId)
+                : [...prev, conversationId]
+            );
+            return;
+        }
+
+        if (isMessageSelectionMode) {
+            setIsMessageSelectionMode(false);
             setSelectedMessages([]);
         }
         const conversation = conversations.find(c => c.id === conversationId);
@@ -225,9 +236,26 @@ function MessagingPage() {
         setConversations(updatedConversations);
         setSelectedConversation(prev => prev ? { ...prev, messages: updatedMessages } : null);
         toast({ title: `${selectedMessages.length} Message(s) Deleted` });
-        setIsSelectionMode(false);
+        setIsMessageSelectionMode(false);
         setSelectedMessages([]);
     };
+
+    const handleBulkPin = (pin: boolean) => {
+        setConversations(prev => prev.map(c => selectedConversations.includes(c.id) ? { ...c, pinned: pin } : c));
+        toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
+        setIsConvSelectionMode(false);
+        setSelectedConversations([]);
+    };
+
+    const handleBulkDelete = () => {
+        setConversations(prev => prev.filter(c => !selectedConversations.includes(c.id)));
+        if (selectedConversations.includes(selectedConversation?.id || '')) {
+            setSelectedConversation(null);
+        }
+        toast({ title: `${selectedConversations.length} conversation(s) deleted` });
+        setIsConvSelectionMode(false);
+        setSelectedConversations([]);
+    }
 
 
   return (
@@ -236,7 +264,56 @@ function MessagingPage() {
         {/* Conversations List */}
         <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
-                <CardTitle className="font-headline text-2xl">Conversations</CardTitle>
+                {!isConvSelectionMode ? (
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="font-headline text-2xl">Conversations</CardTitle>
+                        <Button variant="ghost" size="icon" onClick={() => { setIsConvSelectionMode(true); setSelectedConversations([]); }}>
+                            <ListChecks className="h-5 w-5" />
+                            <span className="sr-only">Select Conversations</span>
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setIsConvSelectionMode(false)}>
+                            <X className="h-5 w-5" />
+                        </Button>
+                        <h3 className="font-semibold text-sm">{selectedConversations.length} selected</h3>
+                        <div className="flex-grow" />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" disabled={selectedConversations.length === 0}>Actions</Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleBulkPin(true)}>
+                                    <Pin className="mr-2 h-4 w-4" /> Pin
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleBulkPin(false)}>
+                                    <PinOff className="mr-2 h-4 w-4" /> Unpin
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                     <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete {selectedConversations.length} conversations?</AlertDialogTitle>
+                                            <AlertDialogDescription>This action cannot be undone and will permanently delete the selected conversations.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                                                Confirm Delete
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
                 <div className="relative mt-2">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search..." className="pl-8" />
@@ -250,13 +327,22 @@ function MessagingPage() {
                             key={convo.id}
                             className={cn(
                                 "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-                                selectedConversation?.id === convo.id ? "bg-primary/10" : "hover:bg-muted/50"
+                                selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
+                                isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
                             )}
                             onClick={() => handleSelectConversation(convo.id)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
                             tabIndex={0}
                             role="button"
                         >
+                            {isConvSelectionMode && (
+                                <Checkbox 
+                                    checked={selectedConversations.includes(convo.id)} 
+                                    onCheckedChange={() => handleSelectConversation(convo.id)}
+                                    className="mt-2"
+                                    aria-label={`Select conversation with ${convo.partnerName}`}
+                                />
+                            )}
                             <Avatar className="h-10 w-10 border">
                                  <AvatarImage src={`https://placehold.co/40x40.png?text=${convo.avatar}`} alt={convo.partnerName} data-ai-hint="person avatar" />
                                 <AvatarFallback>{convo.avatar}</AvatarFallback>
@@ -264,20 +350,11 @@ function MessagingPage() {
                             <div className="flex-1 truncate">
                                 <div className="flex justify-between items-center">
                                     <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
-                                    {convo.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-current" />}
+                                    {convo.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-current shrink-0" />}
                                 </div>
                                 <p className="text-xs text-muted-foreground truncate">{user?.role === 'user' ? convo.jobTitle : convo.partnerRole}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7 text-muted-foreground/50 transition-colors hover:text-muted-foreground"
-                                onClick={(e) => togglePinConversation(convo.id, e)}
-                                aria-label={convo.pinned ? "Unpin" : "Pin"}
-                            >
-                                {convo.pinned ? <PinOff className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4" />}
-                            </Button>
                         </div>
                     ))}
                     </div>
@@ -290,9 +367,9 @@ function MessagingPage() {
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-                    {isSelectionMode ? (
+                    {isMessageSelectionMode ? (
                         <div className="flex items-center gap-4 w-full">
-                            <Button variant="ghost" size="icon" onClick={() => { setIsSelectionMode(false); setSelectedMessages([]); }}>
+                            <Button variant="ghost" size="icon" onClick={() => { setIsMessageSelectionMode(false); setSelectedMessages([]); }}>
                                 <X className="h-5 w-5" />
                             </Button>
                             <h3 className="font-semibold">{selectedMessages.length} selected</h3>
@@ -311,7 +388,7 @@ function MessagingPage() {
                         </Avatar>
                         <div>
                             <CardTitle className="font-headline text-lg">{selectedConversation.partnerName}</CardTitle>
-                            <CardDescription>{user?.role === 'user' ? selectedConversation.jobTitle : `Candidate for: ${selectedConversation.jobTitle}`}</CardDescription>
+                            <CardDescription>{user?.role === 'recruiter' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -344,7 +421,7 @@ function MessagingPage() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {setIsSelectionMode(true); setSelectedMessages([]);}}>
+                            <DropdownMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]);}}>
                                 <CheckSquare className="mr-2 h-4 w-4" />
                                 Select Messages
                             </DropdownMenuItem>
@@ -385,7 +462,7 @@ function MessagingPage() {
                     <div className="space-y-4">
                     {selectedConversation.messages.map(msg => (
                         <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
-                            {isSelectionMode && (
+                            {isMessageSelectionMode && (
                                <Checkbox 
                                  id={`msg-select-${msg.id}`}
                                  checked={selectedMessages.includes(msg.id)}
