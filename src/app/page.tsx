@@ -15,14 +15,14 @@ const features = [
     icon: <Search className="h-10 w-10 text-primary" />,
     title: "AI Job Recommendations",
     description: "Get job suggestions perfectly matched to your skills and preferences using advanced AI.",
-    link: "/dashboard/user",
+    link: "/login",
     linkText: "Find Jobs"
   },
   {
     icon: <UploadCloud className="h-10 w-10 text-primary" />,
     title: "Smart Resume Parsing",
     description: "Upload your resume and let our AI extract key information to build your profile instantly.",
-    link: "/dashboard/user",
+    link: "/login",
     linkText: "Upload Resume"
   },
   {

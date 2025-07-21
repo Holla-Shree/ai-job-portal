@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn } from 'lucide-react';
+import { Menu, Briefcase, User, MapPin, MessageSquare, Shield, LogOut, LogIn, UserCircle } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 
 const navItems = [
-  { href: '/dashboard/user', label: 'User Portal', icon: User, roles: ['user', 'admin'] },
+  { href: '/dashboard/user', label: 'Dashboard', icon: User, roles: ['user', 'admin'] },
+  { href: '/dashboard/user/profile', label: 'My Profile', icon: UserCircle, roles: ['user', 'admin'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter', 'admin'] },
   { href: '/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
   { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
@@ -40,7 +41,13 @@ export function AppHeader() {
   
   const getVisibleNavItems = () => {
       if (!user) return [];
-      return navItems.filter(item => item.roles.includes(user.role));
+      let items = navItems.filter(item => item.roles.includes(user.role));
+      // Special rule: don't show both "Dashboard" and "My Profile" if not a user
+      if(user.role !== 'user') {
+        items = items.filter(item => item.href !== '/dashboard/user/profile');
+        items = items.filter(item => item.href !== '/dashboard/user');
+      }
+      return items;
   }
 
   const visibleNavItems = getVisibleNavItems();
