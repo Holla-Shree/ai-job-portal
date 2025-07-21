@@ -5,11 +5,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Briefcase, Users, Brain, MapPin, MessageCircle, FileText, UploadCloud, Search, ArrowRight } from "lucide-react";
+import { Briefcase, Users, Brain, MapPin, MessageCircle, FileText, UploadCloud, Search, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const features = [
   {
@@ -43,17 +45,35 @@ const features = [
 ];
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  const getDashboardLink = () => {
-    if (!user) return '/login';
-    switch (user.role) {
-      case 'user': return '/dashboard/user';
-      case 'recruiter': return '/dashboard/recruiter';
-      case 'admin': return '/dashboard/admin';
-      default: return '/login';
+  useEffect(() => {
+    if (!loading && user) {
+      switch (user.role) {
+        case 'user':
+          router.replace('/dashboard/user');
+          break;
+        case 'recruiter':
+          router.replace('/dashboard/recruiter');
+          break;
+        case 'admin':
+          router.replace('/dashboard/admin');
+          break;
+        default:
+          // Stay on the landing page if role is unknown
+          break;
+      }
     }
-  };
+  }, [user, loading, router]);
+
+  if (loading || user) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
@@ -159,5 +179,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
