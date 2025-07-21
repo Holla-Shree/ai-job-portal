@@ -17,7 +17,7 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/layout/AppLogo';
-import { User, Lock, Bell, Shield, LifeBuoy, CreditCard } from 'lucide-react';
+import { User, Lock, Bell, Shield, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const settingsNav = [
