@@ -34,6 +34,7 @@ interface Conversation {
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
+    // Note: The 'sender' field in messages is now relative. 'me' is always the logged-in user.
     if (role === 'user') {
       return [
         {
@@ -133,6 +134,12 @@ function MessagingPage() {
             return 0; // In a real app, you'd sort by last message timestamp here
         });
     }, [conversations]);
+    
+    const showPinAction = useMemo(() => {
+        if (selectedConversations.length === 0) return false;
+        // If any selected conversation is not pinned, show the Pin action
+        return selectedConversations.some(id => !conversations.find(c => c.id === id)?.pinned);
+    }, [selectedConversations, conversations]);
 
     const handleSelectConversation = (conversationId: string) => {
         if(isConvSelectionMode) {
@@ -201,18 +208,6 @@ function MessagingPage() {
         setSelectedConversation(updatedConversations[0] || null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
-    
-    const togglePinConversation = (convId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setConversations(
-          conversations.map(c =>
-            c.id === convId ? { ...c, pinned: !c.pinned } : c
-          )
-        );
-        toast({
-          title: conversations.find(c => c.id === convId)?.pinned ? 'Conversation Unpinned' : 'Conversation Pinned',
-        });
-      };
 
     const handleMessageSelection = (messageId: string) => {
         setSelectedMessages(prev => 
@@ -284,12 +279,15 @@ function MessagingPage() {
                                 <Button variant="outline" size="sm" disabled={selectedConversations.length === 0}>Actions</Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleBulkPin(true)}>
-                                    <Pin className="mr-2 h-4 w-4" /> Pin
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleBulkPin(false)}>
-                                    <PinOff className="mr-2 h-4 w-4" /> Unpin
-                                </DropdownMenuItem>
+                                {showPinAction ? (
+                                    <DropdownMenuItem onClick={() => handleBulkPin(true)}>
+                                        <Pin className="mr-2 h-4 w-4" /> Pin
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem onClick={() => handleBulkPin(false)}>
+                                        <PinOff className="mr-2 h-4 w-4" /> Unpin
+                                    </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -352,7 +350,7 @@ function MessagingPage() {
                                     <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
                                     {convo.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-current shrink-0" />}
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'user' ? convo.jobTitle : convo.partnerRole}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
                         </div>
@@ -485,7 +483,7 @@ function MessagingPage() {
                              </div>
                             {msg.sender === 'me' && (
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${user?.role === 'user' ? 'JS' : user?.role.charAt(0).toUpperCase()}`} alt="My Avatar" data-ai-hint="person avatar" />
+                                    <AvatarImage src={`https://placehold.co/40x40.png`} alt="My Avatar" data-ai-hint="person avatar" />
                                     <AvatarFallback>{user?.role === 'user' ? 'JS' : user?.role.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                             )}
