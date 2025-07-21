@@ -54,18 +54,16 @@ export default function SettingsLayout({
                 <SidebarGroupLabel>Settings</SidebarGroupLabel>
                 {settingsNav.map((item) => (
                     <SidebarMenuItem key={item.name}>
-                        <Link href={item.href} passHref>
-                            <SidebarMenuButton
-                                asChild
-                                isActive={pathname === item.href}
-                                tooltip={item.name}
-                            >
-                                <>
-                                    <item.icon />
-                                    <span>{item.name}</span>
-                                </>
-                            </SidebarMenuButton>
-                        </Link>
+                        <SidebarMenuButton
+                            asChild
+                            isActive={pathname === item.href}
+                            tooltip={item.name}
+                        >
+                            <Link href={item.href}>
+                                <item.icon />
+                                <span>{item.name}</span>
+                            </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                 ))}
              </SidebarGroup>
