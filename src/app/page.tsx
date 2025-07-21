@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -29,14 +30,14 @@ const features = [
     icon: <MessageCircle className="h-10 w-10 text-primary" />,
     title: "Interview Prep Chatbot",
     description: "Practice interview questions and get AI-powered feedback to ace your next interview.",
-    link: "/chatbot",
+    link: "/dashboard/chatbot",
     linkText: "Start Practicing"
   },
   {
     icon: <MapPin className="h-10 w-10 text-primary" />,
     title: "Interactive Job Map",
     description: "Visualize job opportunities in your desired locations with our interactive map search.",
-    link: "/map",
+    link: "/dashboard/map",
     linkText: "Explore Map"
   },
 ];
@@ -158,3 +159,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

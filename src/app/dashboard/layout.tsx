@@ -13,9 +13,14 @@ export default function DashboardLayout({
       <AppHeader />
       <main className="flex-1 overflow-hidden bg-background">
         <ScrollArea className="h-full">
-            {children}
+            <div className="h-[calc(100vh-theme(spacing.32))]">
+                {children}
+            </div>
         </ScrollArea>
       </main>
+      <AppFooter />
     </div>
   );
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -25,8 +26,8 @@ const navItems = [
   { href: '/dashboard/user/settings/profile', label: 'My Profile', icon: UserCircle, roles: ['user'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter'] },
   { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter', 'admin'] },
-  { href: '/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
-  { href: '/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
+  { href: '/dashboard/map', label: 'Job Map', icon: MapPin, roles: ['user', 'recruiter', 'admin'] },
+  { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
   { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield, roles: ['admin'] },
 ];
 
@@ -176,3 +177,5 @@ export function AppHeader() {
     </header>
   );
 }
+
+    

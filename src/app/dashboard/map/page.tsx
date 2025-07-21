@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { GoogleMapsProvider } from '@/components/GoogleMapsProvider';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, MapPin, Search, Building, DollarSign } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import withAuth from '@/components/withAuth';
 
 interface JobListing {
   id: string;
@@ -83,7 +85,7 @@ const mockJobs: JobListing[] = [
   { id: '50', title: 'Chief Technology Officer (CTO)', company: 'NextGen Startup', location: 'Mumbai, India', position: { lat: 19.0760, lng: 72.8777 }, salary: '₹70L - ₹1.2Cr', description: 'Leading the technology vision and team.' },
 ];
 
-export default function JobMapPage() {
+function JobMapPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredJobs, setFilteredJobs] = useState<JobListing[]>(mockJobs);
   const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
@@ -232,3 +234,7 @@ export default function JobMapPage() {
       </div>
   );
 }
+
+export default withAuth(JobMapPage, ['user', 'recruiter', 'admin']);
+
+    

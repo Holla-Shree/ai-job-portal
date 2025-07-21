@@ -1,4 +1,5 @@
 
+
 'use client';
 import React from 'react';
 import Link from 'next/link';
@@ -27,7 +28,7 @@ const dashboardItems = [
     icon: <MessageSquare className="h-10 w-10 text-primary" />,
     title: "Interview Prep Chatbot",
     description: "Practice makes perfect. Use our AI chatbot to sharpen your skills and get instant feedback.",
-    link: "/chatbot",
+    link: "/dashboard/chatbot",
     linkText: "Start Practicing"
   },
   {
@@ -80,3 +81,5 @@ function UserDashboardPage() {
 }
 
 export default withAuth(UserDashboardPage, ['user', 'admin']);
+
+    
