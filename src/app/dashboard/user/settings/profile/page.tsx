@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -55,7 +55,12 @@ function UserProfilePage() {
             const result = await analyzeResume({ resumeDataUri });
             setResumeAnalysis(result);
             // Populate resume text for job recommendations with the anonymized summary and details
-            const fullText = `Summary: ${result.summary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience: ${result.experience.join('; ') || 'N/A'}\n\nEducation: ${result.education.join('; ') || 'N/A'}`;
+            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n');
+            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n');
+            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n');
+
+            const fullText = `Summary: ${result.anonymizedSummary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience:\n${experienceText || 'N/A'}\n\nEducation:\n${educationText || 'N/A'}\n\nProjects:\n${projectsText || 'N/A'}\n\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
+            
             jobForm.setValue('resumeText', fullText);
             toast({ title: "Resume Analyzed", description: "Your anonymized profile has been created." });
           }
@@ -130,22 +135,42 @@ function UserProfilePage() {
                     <div className="space-y-4">
                        <div>
                         <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
-                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.summary || 'Not available'}</p>
+                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.anonymizedSummary || 'Not available'}</p>
                       </div>
                       <div>
-                        <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Skills</h4>
+                        <h4 className="font-semibold flex items-center"><Sparkles className="mr-2 h-5 w-5 text-accent" />Skills</h4>
                         <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
                       </div>
                       <div>
-                        <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Experience</h4>
-                        <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                          {resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>).length > 0 ? resumeAnalysis.experience.map((exp, i) => <li key={i}>{exp}</li>) : <li>Not available</li>}
+                        <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h4>
+                        <ul className="pl-7 text-sm text-muted-foreground space-y-2">
+                          {resumeAnalysis.experience.map((exp, i) => (
+                            <li key={i}>
+                              <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
+                              <ul className="list-disc list-inside pl-4">
+                                {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
+                              </ul>
+                            </li>
+                          )).length > 0 ? resumeAnalysis.experience.map((exp, i) => (
+                            <li key={i}>
+                              <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
+                              <ul className="list-disc list-inside pl-4">
+                                {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
+                              </ul>
+                            </li>
+                          )) : <li>Not available</li>}
                         </ul>
                       </div>
                       <div>
-                        <h4 className="font-semibold flex items-center"><UserCircle className="mr-2 h-5 w-5 text-accent" />Education</h4>
+                        <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Education</h4>
+                         <ul className="pl-7 text-sm text-muted-foreground space-y-1">
+                          {resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution}</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>) : <li>Not available</li>}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold flex items-center"><Award className="mr-2 h-5 w-5 text-accent" />Certifications</h4>
                          <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                          {resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}>{edu}</li>) : <li>Not available</li>}
+                          {resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>).length > 0 ? resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>) : <li>Not available</li>}
                         </ul>
                       </div>
                     </div>

@@ -21,20 +21,38 @@ const AnalyzeResumeInputSchema = z.object({
 export type AnalyzeResumeInput = z.infer<typeof AnalyzeResumeInputSchema>;
 
 const AnalyzeResumeOutputSchema = z.object({
-  skills: z
-    .array(z.string())
-    .describe('A list of skills extracted from the resume.'),
-  experience: z
-    .array(z.string())
-    .describe('A list of job experiences extracted from the resume.'),
-  education: z
-    .array(z.string())
-    .describe('A list of educations extracted from the resume.'),
-  summary: z
+  anonymizedSummary: z
     .string()
     .describe(
       'A concise, professional summary of the candidate profile, excluding all personal identifiable information (PII) like name, email, phone number, or address.'
     ),
+  skills: z
+    .array(z.string())
+    .describe('A list of all skills (programming languages, frameworks, tools, soft skills) extracted from the resume.'),
+  experience: z
+    .array(z.object({
+      jobTitle: z.string(),
+      company: z.string(),
+      duration: z.string(),
+      responsibilities: z.array(z.string()),
+    }))
+    .describe('A list of job experiences extracted from the resume.'),
+  education: z
+    .array(z.object({
+      degree: z.string(),
+      fieldOfStudy: z.string(),
+      institution: z.string(),
+      graduationYear: z.string().optional(),
+    }))
+    .describe('A list of educations extracted from the resume.'),
+  projects: z
+    .array(z.object({
+      title: z.string(),
+      description: z.string(),
+      technologies: z.array(z.string()),
+    }))
+    .describe('A list of projects extracted from the resume.'),
+  certifications: z.array(z.string()).describe('A list of certifications extracted from the resume.'),
 });
 export type AnalyzeResumeOutput = z.infer<typeof AnalyzeResumeOutputSchema>;
 
@@ -46,15 +64,29 @@ const prompt = ai.definePrompt({
   name: 'analyzeResumePrompt',
   input: {schema: AnalyzeResumeInputSchema},
   output: {schema: AnalyzeResumeOutputSchema},
-  prompt: `You are an expert resume analyzer with a strong focus on privacy and bias reduction. Your job is to extract key professional information from the resume provided and create an anonymized summary.
+  prompt: `You are an expert resume analyzer with an extremely strong focus on privacy and bias reduction. Your job is to extract key professional information from the resume provided and create a detailed, structured, and anonymized profile.
 
-  When analyzing the resume, you MUST:
-  1. Extract the candidate's skills, professional experience, and education history.
-  2. Create a concise, professional summary of the candidate's profile.
-  3. **Crucially, you MUST OMIT all Personally Identifiable Information (PII).** This includes, but is not limited to: the candidate's name, phone number, email address, physical address, and links to personal profiles (like LinkedIn or GitHub). The goal is to create a profile that can be evaluated purely on merit.
+  **CRITICAL Anonymization Rules:**
+  You MUST OMIT ALL of the following Personally Identifiable Information (PII). This is a strict requirement.
+  - Full Name
+  - Contact details (Phone number, Email address)
+  - Granular address or location details (City/State is acceptable if relevant, but not street addresses)
+  - Date of Birth
+  - Links to personal profiles (LinkedIn, GitHub, personal websites, etc.)
+  - Photographs
+  - Names of references or their contact information
 
-  Analyze the following resume: {{media url=resumeDataUri}}
-  `,
+  **Extraction Task:**
+  From the resume, you must extract the following information into the specified structured format.
+
+  - **Anonymized Summary**: Create a concise, professional summary of the candidate's profile. This summary MUST be anonymous and free of any PII listed above.
+  - **Skills**: Extract all technical skills (programming languages, frameworks, tools) and relevant soft skills.
+  - **Experience**: For each job, extract the job title, company, duration, and a list of key responsibilities or achievements.
+  - **Education**: For each degree, extract the degree name, field of study, institution, and graduation year.
+  - **Projects**: Extract key personal or academic projects, including their title, a brief description, and the technologies used.
+  - **Certifications**: List all professional certifications mentioned.
+
+  Analyze the following resume: {{media url=resumeDataUri}}`,
   config: {
     safetySettings: [
       {
