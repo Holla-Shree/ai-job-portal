@@ -250,7 +250,7 @@ function MessagingPage() {
     const handleBulkDelete = () => {
         setConversations(prev => prev.filter(c => !selectedConversations.includes(c.id)));
         if (selectedConversations.includes(selectedConversation?.id || '')) {
-            setSelectedConversation(null);
+            setSelectedConversation(conversations.filter(c => !selectedConversations.includes(c.id))[0] || null);
         }
         toast({ title: `${selectedConversations.length} conversation(s) deleted` });
         setIsConvSelectionMode(false);
@@ -520,3 +520,5 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
+
+    
