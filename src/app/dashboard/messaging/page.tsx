@@ -241,9 +241,10 @@ function MessagingPage() {
     };
 
     const handleBulkDelete = () => {
-        setConversations(prev => prev.filter(c => !selectedConversations.includes(c.id)));
+        const remainingConversations = conversations.filter(c => !selectedConversations.includes(c.id));
+        setConversations(remainingConversations);
         if (selectedConversations.includes(selectedConversation?.id || '')) {
-            setSelectedConversation(conversations.filter(c => !selectedConversations.includes(c.id))[0] || null);
+            setSelectedConversation(remainingConversations[0] || null);
         }
         toast({ title: `${selectedConversations.length} conversation(s) deleted` });
         setIsConvSelectionMode(false);
@@ -253,9 +254,9 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* Conversations List */}
-        <Card className="md:col-span-1 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
                 {!isConvSelectionMode ? (
                     <div className="flex justify-between items-center">
@@ -267,14 +268,17 @@ function MessagingPage() {
                     </div>
                 ) : (
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => setIsConvSelectionMode(false)}>
+                        <Button variant="ghost" size="icon" onClick={() => { setIsConvSelectionMode(false); setSelectedConversations([]); }}>
                             <X className="h-5 w-5" />
                         </Button>
                         <h3 className="font-semibold text-sm">{selectedConversations.length} selected</h3>
                         <div className="flex-grow" />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" disabled={selectedConversations.length === 0}>Actions</Button>
+                                <Button variant="outline" size="icon" disabled={selectedConversations.length === 0}>
+                                    <MoreVertical className="h-4 w-4"/>
+                                    <span className="sr-only">More actions</span>
+                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 {showPinAction ? (
@@ -359,7 +363,7 @@ function MessagingPage() {
         </Card>
 
         {/* Active Chat Window */}
-        <Card className="md:col-span-2 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-2 lg:col-span-3 shadow-xl flex flex-col h-full">
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
@@ -463,7 +467,7 @@ function MessagingPage() {
                                  id={`msg-select-${msg.id}`}
                                  checked={selectedMessages.includes(msg.id)}
                                  onCheckedChange={() => handleMessageSelection(msg.id)}
-                                 className={cn(msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
+                                 className={cn("self-center", msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
                                />
                             )}
                             {msg.sender === 'other' && (
@@ -516,3 +520,5 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
+
+    
