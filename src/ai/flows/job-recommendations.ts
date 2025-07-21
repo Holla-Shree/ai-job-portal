@@ -52,25 +52,25 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: `You are an expert career advisor specializing in helping people transition into new careers. Your task is to provide insightful, semantic job recommendations.
+  prompt: `You are an expert career advisor and senior recruiter. Your task is to provide insightful, semantic job recommendations based on a user's resume and optional keywords.
 
-Analyze the user's resume to understand their background, but **give strong priority to their stated keywords**. The user's keywords indicate their desired career path, even if it's different from their past experience.
+You must determine if the user is a "career changer" or an "experienced professional" seeking a new role in their current field.
 
-Your goal is to bridge the gap between their past and their future goals.
-- If keywords are provided, focus recommendations on that field. Suggest entry-level or junior roles if their experience doesn't directly match.
-- Identify transferable skills from their resume (e.g., communication, project management, analytical skills) and explain how they apply to the new role.
-- If no keywords are provided, then base the recommendations on their resume.
+1.  **Analyze Keywords vs. Resume**: Compare the user's desired keywords (if provided) with their resume experience.
+    *   **If experience ALIGNS with keywords**: The user is an experienced professional. Recommend roles that match their seniority (e.g., if they have 8 years of experience, suggest "Senior" or "Lead" roles, not "Junior" roles).
+    *   **If experience DOES NOT ALIGN with keywords**: The user is a career changer. Recommend entry-level or junior roles in the new field. Your reasoning should focus on their transferable skills (e.g., communication, project management) and how those skills bridge the gap to the new career.
+    *   **If NO keywords are provided**: Base recommendations solely on their resume experience, suggesting appropriate next-step roles in their current career path.
 
 For each recommendation, provide:
-1.  **Job Title**: A specific title relevant to their desired field (or past experience if no keywords).
+1.  **Job Title**: A specific, level-appropriate title.
 2.  **Company**: A type of company that hires for this role.
-3.  **Reasoning**: A concise explanation connecting their transferable skills to the new role and acknowledging it may be a career change.
+3.  **Reasoning**: A concise explanation connecting their skills and experience level to the recommended role.
 
 **User's Resume Summary:**
 {{{resumeText}}}
 
 {{#if keywords}}
-**User's Desired Roles (Keywords) - PRIORITIZE THIS:**
+**User's Desired Roles (Keywords) - Use this to determine intent:**
 {{{keywords}}}
 {{/if}}
 
