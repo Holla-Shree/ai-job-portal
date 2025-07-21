@@ -14,7 +14,6 @@ import * as z from "zod";
 import { analyzeResume, AnalyzeResumeOutput } from '@/ai/flows/resume-analyzer';
 import { recommendJobs, RecommendJobsOutput } from '@/ai/flows/job-recommendations';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import withAuth from '@/components/withAuth';
 
 const resumeUploadSchema = z.object({
@@ -87,13 +86,11 @@ function UserProfilePage() {
   };
 
   return (
-      <div className="container mx-auto py-8">
-        <h1 className="font-headline text-3xl font-bold mb-8 text-primary">My Profile & Job Recommendations</h1>
+      <div className="w-full">
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
             <TabsTrigger value="profile"><UserCircle className="mr-2" />My Profile & Resume</TabsTrigger>
             <TabsTrigger value="recommendations"><Search className="mr-2" />Job Recommendations</TabsTrigger>
-            <TabsTrigger value="applications" disabled><Briefcase className="mr-2" />My Applications (Soon)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -219,21 +216,6 @@ function UserProfilePage() {
                   )}
                 </CardContent>
               )}
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="applications">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 text-primary" />Application Tracker</CardTitle>
-                    <CardDescription>Keep track of all your job applications in one place.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col items-center justify-center h-48 text-center border-2 border-dashed rounded-lg">
-                        <p className="text-muted-foreground">This feature is coming soon!</p>
-                        <p className="text-sm text-muted-foreground mt-2">You'll be able to see the status of your applications here.</p>
-                    </div>
-                </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

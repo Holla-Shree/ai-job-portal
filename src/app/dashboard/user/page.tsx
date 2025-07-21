@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, UserCircle, Search, MessageSquare, MapPin } from "lucide-react";
+import { ArrowRight, UserCircle, Search, MessageSquare, Settings } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,29 +13,29 @@ const dashboardItems = [
     icon: <UserCircle className="h-10 w-10 text-primary" />,
     title: "My Profile & Resume",
     description: "Upload and analyze your resume to create a powerful, anonymized profile for recruiters.",
-    link: "/dashboard/user/profile",
+    link: "/dashboard/user/settings/profile",
     linkText: "Update Profile"
   },
   {
     icon: <Search className="h-10 w-10 text-primary" />,
     title: "AI Job Recommendations",
     description: "Discover jobs tailored to you. Let our AI find the best matches based on your skills and experience.",
-    link: "/dashboard/user/profile", // Link to the same page, but could be a separate one
+    link: "/dashboard/user/settings/profile", // Link to the profile page for recommendations
     linkText: "Get Recommendations"
   },
   {
     icon: <MessageSquare className="h-10 w-10 text-primary" />,
     title: "Interview Prep Chatbot",
-    description: "Practice makes perfect. Use our AI chatbot to sharpen your interview skills and get instant feedback.",
+    description: "Practice makes perfect. Use our AI chatbot to sharpen your skills and get instant feedback.",
     link: "/chatbot",
     linkText: "Start Practicing"
   },
   {
-    icon: <MapPin className="h-10 w-10 text-primary" />,
-    title: "Interactive Job Map",
-    description: "Explore job opportunities visually. Find roles in your preferred city or country with our interactive map.",
-    link: "/map",
-    linkText: "Explore Map"
+    icon: <Settings className="h-10 w-10 text-primary" />,
+    title: "Account Settings",
+    description: "Manage your profile, privacy, security, and communication preferences.",
+    link: "/dashboard/user/settings",
+    linkText: "Go to Settings"
   },
 ];
 
