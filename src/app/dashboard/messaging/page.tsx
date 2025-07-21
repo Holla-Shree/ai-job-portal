@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Message {
   id: string;
@@ -81,6 +81,21 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
         ],
         pinned: true,
+      },
+      {
+        id: 'conv4',
+        partnerName: 'Candidate Name',
+        partnerRole: 'Candidate',
+        jobTitle: 'Senior Backend Engineer',
+        lastMessage: 'Thanks for the opportunity!',
+        avatar: 'CN',
+        messages: [
+          { id: 'msg1', sender: 'me', text: 'Hi, we have an opening for a Senior Backend Engineer at TekSystems India. Are you interested?', timestamp: '3 days ago' },
+          { id: 'msg2', sender: 'other', text: 'Yes, I am interested. Could you please share more details?', timestamp: '3 days ago' },
+          { id: 'msg3', sender: 'me', text: 'Certainly. We are looking for someone with 5+ years of experience in backend development. The job description is attached.', timestamp: '3 days ago' },
+          { id: 'msg4', sender: 'other', text: 'Thanks for the opportunity!', timestamp: '2 days ago' },
+        ],
+        pinned: false,
       },
       {
         id: 'conv2',
@@ -520,5 +535,7 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
+
+    
 
     
