@@ -272,11 +272,11 @@ function MessagingPage() {
                             <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 text-muted-foreground/50 transition-colors hover:text-muted-foreground"
                                 onClick={(e) => togglePinConversation(convo.id, e)}
                                 aria-label={convo.pinned ? "Unpin" : "Pin"}
                             >
-                                {convo.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                                {convo.pinned ? <PinOff className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4" />}
                             </Button>
                         </div>
                     ))}
