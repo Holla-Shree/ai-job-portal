@@ -30,6 +30,7 @@ interface Conversation {
   messages: Message[];
 }
 
+// Corrected from Recruiter's perspective
 const MOCK_CONVERSATIONS: Conversation[] = [
   {
     id: 'conv1',
@@ -41,19 +42,20 @@ const MOCK_CONVERSATIONS: Conversation[] = [
     messages: [
       { id: 'msg1', sender: 'me', text: 'Hi Priya, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
       { id: 'msg2', sender: 'other', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
-      { id: 'msg3', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:32 AM' },
+      { id: 'msg3', sender: 'me', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
+      { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
     ]
   },
   {
     id: 'conv2',
-    partnerName: 'Recruiter Admin',
-    partnerRole: 'Recruiter',
+    partnerName: 'Rohan Sharma',
+    partnerRole: 'Candidate',
     jobTitle: 'Data Scientist',
     lastMessage: 'Yes, I have submitted my resume via the portal.',
-    avatar: 'RA',
+    avatar: 'RS',
      messages: [
-      { id: 'msg1', sender: 'other', text: 'Hi, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
-      { id: 'msg2', sender: 'me', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
+      { id: 'msg1', sender: 'me', text: 'Hi Rohan, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
+      { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
     ]
   },
    {
