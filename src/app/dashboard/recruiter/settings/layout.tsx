@@ -35,7 +35,7 @@ export default function RecruiterSettingsLayout({
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon">
+      <Sidebar collapsible="icon" className="bg-muted">
         <SidebarHeader>
           <div className="flex h-12 items-center justify-between px-2 group-data-[collapsible=icon]:justify-center">
             <div className="overflow-hidden whitespace-nowrap group-data-[collapsible=icon]:w-0">

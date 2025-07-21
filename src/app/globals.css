@@ -29,16 +29,6 @@
     --chart-4: 210 40% 30%;
     --chart-5: 165 50% 55%;
     --radius: 0.5rem;
-
-    /* Sidebar specific colors */
-    --sidebar-background: 220 25% 18%; /* Dark Blue-Gray */
-    --sidebar-foreground: 220 20% 85%; /* Light Grayish Blue */
-    --sidebar-primary: 210 40% 60%; /* Brighter Blue for active items */
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 25% 25%;
-    --sidebar-accent-foreground: 220 20% 95%;
-    --sidebar-border: 220 25% 22%;
-    --sidebar-ring: 210 40% 60%;
   }
 
   .dark {
@@ -61,16 +51,6 @@
     --border: 220 25% 25%;
     --input: 220 25% 22%;
     --ring: 210 40% 60%;
-
-    /* Sidebar specific colors for dark mode */
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 220 20% 85%;
-    --sidebar-primary: 210 40% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 220 25% 18%;
-    --sidebar-accent-foreground: 220 20% 95%;
-    --sidebar-border: 220 25% 15%;
-    --sidebar-ring: 210 40% 60%;
   }
 }
 
