@@ -235,7 +235,7 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter>
-                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => handleFindSimilar(job.title)}>
+                            <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
                                 Find Similar
                             </Button>
                           </CardFooter>

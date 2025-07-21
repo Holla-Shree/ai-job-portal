@@ -4,72 +4,73 @@
 
 @layer base {
   :root {
-    --background: 48 58% 93%; /* Warm Sand */
-    --foreground: 148 14% 16%; /* Charcoal Gray */
-    --card: 48 58% 93%; /* Warm Sand */
-    --card-foreground: 148 14% 16%;
-    --popover: 48 58% 93%; /* Warm Sand */
-    --popover-foreground: 148 14% 16%;
-    --primary: 158 39% 46%; /* Emerald Green */
-    --primary-foreground: 158 39% 96%;
-    --secondary: 88 17% 85%; /* Lighter Soft Sage for secondary bg */
-    --secondary-foreground: 148 14% 16%;
-    --muted: 88 17% 88%;
-    --muted-foreground: 148 14% 30%;
-    --accent: 43 44% 48%; /* Honey Bronze */
-    --accent-foreground: 43 44% 98%;
+    --background: 220 20% 96%; /* Light Grayish Blue */
+    --foreground: 220 15% 20%; /* Dark Slate Blue */
+    --card: 220 20% 96%;
+    --card-foreground: 220 15% 20%;
+    --popover: 220 20% 96%;
+    --popover-foreground: 220 15% 20%;
+    --primary: 210 40% 50%; /* Moderate Blue */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 15% 20%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 15% 45%;
+    --accent: 165 50% 75%; /* Soft Green */
+    --accent-foreground: 220 15% 15%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 88 17% 80%;
-    --input: 88 17% 87%; /* Soft Sage */
-    --ring: 158 39% 46%; /* Emerald Green */
-    --chart-1: 158 39% 46%;
-    --chart-2: 43 44% 48%;
-    --chart-3: 88 17% 64%;
-    --chart-4: 158 39% 30%;
-    --chart-5: 43 44% 68%;
+    --border: 220 15% 85%;
+    --input: 220 15% 88%;
+    --ring: 210 40% 50%;
+    --chart-1: 210 40% 50%;
+    --chart-2: 165 50% 75%;
+    --chart-3: 220 15% 60%;
+    --chart-4: 210 40% 30%;
+    --chart-5: 165 50% 55%;
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 148 14% 16%; /* Charcoal Gray */
-    --sidebar-foreground: 48 58% 93%; /* Warm Sand */
-    --sidebar-primary: 158 39% 46%; /* Emerald Green */
-    --sidebar-primary-foreground: 158 39% 96%;
-    --sidebar-accent: 148 14% 22%;
-    --sidebar-accent-foreground: 48 58% 93%;
-    --sidebar-border: 148 14% 22%;
-    --sidebar-ring: 158 39% 46%;
+    --sidebar-background: 220 25% 18%; /* Dark Blue-Gray */
+    --sidebar-foreground: 220 20% 85%; /* Light Grayish Blue */
+    --sidebar-primary: 210 40% 60%; /* Brighter Blue for active items */
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 25% 25%;
+    --sidebar-accent-foreground: 220 20% 95%;
+    --sidebar-border: 220 25% 22%;
+    --sidebar-ring: 210 40% 60%;
   }
 
   .dark {
-    --background: 148 14% 10%; /* Dark Charcoal Gray */
-    --foreground: 48 58% 93%; /* Warm Sand */
-    --card: 148 14% 13%;
-    --card-foreground: 48 58% 93%;
-    --popover: 148 14% 10%;
-    --popover-foreground: 48 58% 93%;
-    --primary: 158 39% 50%; /* Brighter Emerald Green */
-    --primary-foreground: 158 39% 98%;
-    --secondary: 148 14% 18%; /* Darker Soft Sage */
-    --secondary-foreground: 48 58% 93%;
-    --muted: 148 14% 20%;
-    --muted-foreground: 48 58% 70%;
-    --accent: 43 44% 52%; /* Brighter Honey Bronze */
-    --accent-foreground: 43 44% 98%;
+    --background: 220 25% 12%; /* Very Dark Blue-Gray */
+    --foreground: 220 20% 90%;
+    --card: 220 25% 15%;
+    --card-foreground: 220 20% 90%;
+    --popover: 220 25% 12%;
+    --popover-foreground: 220 20% 90%;
+    --primary: 210 40% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 25% 20%;
+    --secondary-foreground: 220 20% 90%;
+    --muted: 220 25% 22%;
+    --muted-foreground: 220 20% 60%;
+    --accent: 165 50% 65%;
+    --accent-foreground: 165 50% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 148 14% 22%;
-    --input: 148 14% 20%;
-    --ring: 158 39% 50%;
+    --border: 220 25% 25%;
+    --input: 220 25% 22%;
+    --ring: 210 40% 60%;
 
-    --sidebar-background: 148 14% 8%;
-    --sidebar-foreground: 48 58% 85%;
-    --sidebar-primary: 158 39% 50%;
-    --sidebar-primary-foreground: 158 39% 98%;
-    --sidebar-accent: 148 14% 15%;
-    --sidebar-accent-foreground: 48 58% 93%;
-    --sidebar-border: 148 14% 18%;
-    --sidebar-ring: 158 39% 50%;
+    /* Sidebar specific colors for dark mode */
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 220 20% 85%;
+    --sidebar-primary: 210 40% 60%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 25% 18%;
+    --sidebar-accent-foreground: 220 20% 95%;
+    --sidebar-border: 220 25% 15%;
+    --sidebar-ring: 210 40% 60%;
   }
 }
 
