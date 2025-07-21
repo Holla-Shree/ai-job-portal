@@ -223,14 +223,14 @@ export default function ChatbotPage() {
   }
 
   const renderMessageContent = (msg: ChatMessage) => {
-    switch (msg.type) {
-        case 'question':
+    if (typeof msg.content === 'string') {
+        if (msg.type === 'question') {
             return <div className="w-full text-center text-xs text-muted-foreground italic p-2">Question: "{msg.content}"</div>;
-        case 'analysis':
-            return msg.content; // This is already a JSX element
-        default:
-            return msg.content; // This handles 'answer', standard 'system' messages (like errors), and any other text content
+        }
+        return msg.content;
     }
+    // If content is not a string, it must be a ReactNode (JSX element), so return it directly.
+    return msg.content;
   };
   
   const sortedSessions = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
