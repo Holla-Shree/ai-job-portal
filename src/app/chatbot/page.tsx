@@ -6,16 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb } from "lucide-react";
+import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plus, Trash2, Edit, Save, X, PanelLeft } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { interviewPreparationChatbot, InterviewPreparationInput, InterviewPreparationOutput } from '@/ai/flows/interview-preparation';
+import { interviewPreparationChatbot, InterviewPreparationInput } from '@/ai/flows/interview-preparation';
 import { generateInterviewQuestions } from '@/ai/flows/question-generator';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const chatInputSchema = z.object({
   jobDescription: z.string().min(10, "Job description is required to get suggestions."),
@@ -31,6 +34,14 @@ interface ChatMessage {
   type?: 'question' | 'answer' | 'analysis';
 }
 
+interface ChatSession {
+    id: string;
+    title: string;
+    messages: ChatMessage[];
+    jobDescription: string;
+    timestamp: number;
+}
+
 export default function ChatbotPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -38,34 +49,115 @@ export default function ChatbotPage() {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<ChatInputFormValues>({
     resolver: zodResolver(chatInputSchema),
   });
-  
+
+  // Load sessions from localStorage on mount
   useEffect(() => {
     setIsClient(true);
+    try {
+        const storedSessions = localStorage.getItem('chatSessions');
+        if (storedSessions) {
+            const parsedSessions = JSON.parse(storedSessions);
+            setSessions(parsedSessions);
+            if (parsedSessions.length > 0) {
+                // Sort by most recent and activate
+                const sorted = [...parsedSessions].sort((a,b) => b.timestamp - a.timestamp);
+                setActiveSessionId(sorted[0].id);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to load sessions from localStorage", error);
+    }
   }, []);
 
+  // Save sessions to localStorage whenever they change
+  useEffect(() => {
+    if(isClient) {
+      localStorage.setItem('chatSessions', JSON.stringify(sessions));
+    }
+  }, [sessions, isClient]);
+  
+  // Scroll to bottom of messages on new message or loading
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory, isLoading]);
+  }, [activeSessionId, isLoading, sessions]);
+
+  // Update form when active session changes
+  useEffect(() => {
+    const activeSession = sessions.find(s => s.id === activeSessionId);
+    if (activeSession) {
+      form.setValue('jobDescription', activeSession.jobDescription);
+      const lastQuestion = activeSession.messages.filter(m => m.type === 'question').pop()?.content as string;
+      if (lastQuestion) {
+        form.setValue('interviewQuestion', lastQuestion);
+      }
+    } else {
+      form.reset({ jobDescription: '', interviewQuestion: '', userAnswer: '' });
+    }
+  }, [activeSessionId, sessions, form]);
+  
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const chatHistory = activeSession ? activeSession.messages : [];
+
+  const handleNewSession = () => {
+    const newSession: ChatSession = {
+      id: `session-${Date.now()}`,
+      title: `Practice Session ${sessions.length + 1}`,
+      messages: [],
+      jobDescription: '',
+      timestamp: Date.now(),
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+    form.reset({ jobDescription: '', interviewQuestion: '', userAnswer: '' });
+    toast({ title: "New Session Started", description: "Ready for a new interview practice."});
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (activeSessionId === sessionId) {
+        const remainingSessions = sessions.filter(s => s.id !== sessionId);
+        setActiveSessionId(remainingSessions.length > 0 ? remainingSessions[0].id : null);
+    }
+    toast({ title: "Session Deleted" });
+  };
+  
+  const handleRenameSession = () => {
+    if (!editingSessionId || !editingTitle.trim()) return;
+    setSessions(prev => prev.map(s => s.id === editingSessionId ? { ...s, title: editingTitle.trim() } : s));
+    setEditingSessionId(null);
+    setEditingTitle('');
+    toast({ title: "Session Renamed" });
+  };
 
   const handleChatSubmit: SubmitHandler<ChatInputFormValues> = async (data) => {
+    if (!activeSessionId) {
+      toast({ variant: "destructive", title: "No Active Session", description: "Please start a new session first." });
+      return;
+    }
     setIsLoading(true);
-    const userMessage: ChatMessage = { id: Date.now().toString(), sender: 'user', content: `My answer to "${data.interviewQuestion}": ${data.userAnswer}`, type: 'answer' };
-    setChatHistory(prev => [...prev, userMessage]);
+
+    const userQuestion: ChatMessage = { id: `q-${Date.now()}`, sender: 'system', content: data.interviewQuestion, type: 'question' };
+    const userAnswer: ChatMessage = { id: `a-${Date.now()}`, sender: 'user', content: data.userAnswer, type: 'answer' };
+
+    setSessions(prev => prev.map(s => {
+      if (s.id === activeSessionId) {
+        return { ...s, messages: [...s.messages, userQuestion, userAnswer], jobDescription: data.jobDescription };
+      }
+      return s;
+    }));
 
     try {
-      const aiInput: InterviewPreparationInput = {
-        jobDescription: data.jobDescription,
-        interviewQuestion: data.interviewQuestion,
-        userAnswer: data.userAnswer,
-      };
-      const result = await interviewPreparationChatbot(aiInput);
-      
+      const result = await interviewPreparationChatbot(data);
       const botResponseContent = (
         <div className="space-y-3">
           <div>
@@ -84,17 +176,14 @@ export default function ChatbotPage() {
           )}
         </div>
       );
-
-      const botMessage: ChatMessage = { id: (Date.now() + 1).toString(), sender: 'bot', content: botResponseContent, type: 'analysis' };
-      setChatHistory(prev => [...prev, botMessage]);
-      
+      const botMessage: ChatMessage = { id: `bot-${Date.now()}`, sender: 'bot', content: botResponseContent, type: 'analysis' };
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, botMessage] } : s));
       toast({ title: "Feedback Received", description: "AI has analyzed your answer." });
       form.setValue('userAnswer', '');
-
     } catch (error) {
       console.error("Chatbot error:", error);
-      const errorMessage: ChatMessage = { id: (Date.now() + 1).toString(), sender: 'system', content: "Sorry, I encountered an error. Please try again." };
-      setChatHistory(prev => [...prev, errorMessage]);
+      const errorMessage: ChatMessage = { id: `err-${Date.now()}`, sender: 'system', content: "Sorry, I encountered an error. Please try again." };
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, errorMessage] } : s));
       toast({ variant: "destructive", title: "Error", description: "Failed to get feedback." });
     } finally {
       setIsLoading(false);
@@ -128,143 +217,229 @@ export default function ChatbotPage() {
     setIsQuestionDialogOpen(false);
   };
   
-  const startNewSession = () => {
-    setChatHistory([]);
-    form.reset();
-    toast({ title: "New Session Started", description: "Ready for a new interview practice."});
-  };
-
   if (!isClient) {
-    return null; // Render nothing on the server
+    return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
-  return (
-    <div className="flex flex-col h-screen p-4 sm:p-6 md:p-8">
-      <Card className="container mx-auto w-full flex-1 flex flex-col shadow-xl">
-        <CardHeader className="border-b">
-          <CardTitle className="font-headline flex items-center"><MessageSquare className="mr-2 text-primary" />AI Interview Coach</CardTitle>
-          <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
-        </CardHeader>
-        
-        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-          {chatHistory.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center text-center py-2">
-              <MessageSquare className="w-16 h-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Enter job details and a question to start practicing.</p>
-            </div>
-          )}
-          {chatHistory.map((msg) => (
-            <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.sender === 'bot' && (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                  <AvatarFallback>AI</AvatarFallback>
-                </Avatar>
-              )}
-              <div className={`max-w-[70%] p-3 rounded-xl text-sm ${
-                msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 
-                msg.sender === 'bot' ? 'bg-muted text-muted-foreground rounded-bl-none' :
-                'bg-destructive/20 text-destructive-foreground border border-destructive rounded-md'
-              }`}>
-                {msg.content}
-              </div>
-               {msg.sender === 'user' && (
-                <Avatar className="h-8 w-8">
-                   <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              )}
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex items-end gap-2 justify-start">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                <AvatarFallback>AI</AvatarFallback>
-              </Avatar>
-              <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-          </div>
+  const renderMessageContent = (msg: ChatMessage) => {
+    if (msg.type === 'question') {
+      return <div className="w-full text-center text-xs text-muted-foreground italic p-2">Question: "{msg.content}"</div>
+    }
+    if (msg.type === 'answer') {
+      return <div>{msg.content}</div>
+    }
+    return msg.content;
+  };
+  
+  const sortedSessions = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
 
-        <CardFooter className="border-t p-0 mt-auto">
-          <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
-            <div className="p-4 space-y-3 bg-background/50">
-                <div>
-                    <Label htmlFor="jobDescription" className="text-xs font-medium">Job Description</Label>
-                    <Textarea id="jobDescription" {...form.register("jobDescription")} placeholder="Paste the job description here..." rows={2} className="mt-1 text-sm" />
-                    {form.formState.errors.jobDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.jobDescription.message}</p>}
-                </div>
-                <div>
-                    <div className="flex justify-between items-center">
-                        <Label htmlFor="interviewQuestion" className="text-xs font-medium">Interview Question</Label>
-                        <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto" onClick={handleSuggestQuestions} disabled={isGeneratingQuestions}>
-                                    <Lightbulb className="mr-1.5 h-3 w-3" /> Suggest Questions
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                <DialogTitle>Suggested Questions</DialogTitle>
-                                <DialogDescription>
-                                    Here are some questions tailored to the job description. Click one to start practicing.
-                                </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                {isGeneratingQuestions ? (
-                                    <div className="flex items-center justify-center h-24">
-                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                    </div>
+  return (
+    <div className="flex h-screen bg-muted/20">
+      {/* History Sidebar */}
+      <div className={cn("bg-background border-r transition-all duration-300", isSidebarOpen ? "w-64" : "w-0 overflow-hidden")}>
+        <div className="flex flex-col h-full">
+            <div className="p-4 border-b flex justify-between items-center">
+                <h2 className="font-headline text-lg font-semibold">Chat History</h2>
+            </div>
+            <div className="p-2">
+                 <Button variant="outline" className="w-full" onClick={handleNewSession}>
+                    <Plus className="h-4 w-4 mr-2" /> New Session
+                </Button>
+            </div>
+            <ScrollArea className="flex-1">
+                <div className="p-2 space-y-1">
+                    {sortedSessions.map(session => (
+                        <div key={session.id} 
+                             className={cn("group p-2 rounded-md cursor-pointer hover:bg-muted", activeSessionId === session.id && "bg-muted")}>
+                           <div className="flex items-center justify-between" onClick={() => setActiveSessionId(session.id)}>
+                             {editingSessionId === session.id ? (
+                                <Input 
+                                    value={editingTitle} 
+                                    onChange={(e) => setEditingTitle(e.target.value)} 
+                                    onKeyDown={(e) => { if(e.key === 'Enter') handleRenameSession(); if(e.key === 'Escape') setEditingSessionId(null);}}
+                                    autoFocus
+                                    className="h-7 text-sm"
+                                />
+                             ) : (
+                                <p className="text-sm font-medium truncate flex-1 pr-2">{session.title}</p>
+                             )}
+                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {editingSessionId === session.id ? (
+                                    <>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRenameSession}><Save className="h-4 w-4"/></Button>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingSessionId(null)}><X className="h-4 w-4"/></Button>
+                                    </>
                                 ) : (
-                                    <ul className="space-y-2">
-                                        {suggestedQuestions.map((q, i) => (
-                                        <li key={i}>
-                                            <Button variant="outline" className="w-full h-auto text-wrap text-left justify-start" onClick={() => handleSelectQuestion(q)}>
-                                                {q}
-                                            </Button>
-                                        </li>
-                                        ))}
-                                    </ul>
+                                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingSessionId(session.id); setEditingTitle(session.title); }}>
+                                    <Edit className="h-4 w-4"/>
+                                   </Button>
                                 )}
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                    <Input id="interviewQuestion" {...form.register("interviewQuestion")} placeholder="e.g., Tell me about yourself." className="mt-1 text-sm" />
-                    {form.formState.errors.interviewQuestion && <p className="text-xs text-destructive mt-1">{form.formState.errors.interviewQuestion.message}</p>}
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete session?</AlertDialogTitle>
+                                            <AlertDialogDescription>This action cannot be undone. "{session.title}" will be permanently deleted.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className="bg-destructive hover:bg-destructive/90">Confirm Delete</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                           </div>
+                        </div>
+                    ))}
                 </div>
-            </div>
-            <Separator />
-            <div className="p-4 flex items-center gap-2">
-              <Textarea
-                id="userAnswer"
-                {...form.register("userAnswer")}
-                placeholder="Type your answer here..."
-                rows={1}
-                className="flex-1 resize-none text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    form.handleSubmit(handleChatSubmit)();
-                  }
-                }}
-              />
-              <Button type="submit" size="icon" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                <span className="sr-only">Send Answer</span>
-              </Button>
-              <Button type="button" variant="outline" onClick={startNewSession} disabled={isLoading}>
-                New Session
-              </Button>
-            </div>
-             {form.formState.errors.userAnswer && <p className="px-4 pb-2 text-xs text-destructive">{form.formState.errors.userAnswer.message}</p>}
-          </form>
-        </CardFooter>
-      </Card>
+            </ScrollArea>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        <div className="p-2 sm:p-4 md:p-6 flex-grow flex flex-col h-full">
+            <Card className="w-full flex-1 flex flex-col shadow-xl bg-background">
+                <CardHeader className="border-b flex-row items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                          <PanelLeft className="h-5 w-5"/>
+                      </Button>
+                      <div>
+                          <CardTitle className="font-headline flex items-center"><MessageSquare className="mr-2 text-primary" />AI Interview Coach</CardTitle>
+                          <CardDescription>Practice your interview answers and get instant AI feedback.</CardDescription>
+                      </div>
+                    </div>
+                </CardHeader>
+                
+                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                {chatHistory.length === 0 && !isLoading && (
+                    <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground">
+                        <MessageSquare className="w-16 h-16 mb-4" />
+                        <p>Welcome to your AI Interview Coach!</p>
+                        <p className="text-sm">Start a new session or select one from the history.</p>
+                    </div>
+                )}
+                {chatHistory.map((msg) => (
+                    <div key={msg.id} className={cn("flex items-end gap-2", 
+                        msg.sender === 'user' ? 'justify-end' : 
+                        msg.sender === 'system' ? 'justify-center w-full' :
+                        'justify-start'
+                    )}>
+                    {msg.sender === 'bot' && (
+                        <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                        <AvatarFallback>AI</AvatarFallback>
+                        </Avatar>
+                    )}
+                    <div className={cn('max-w-[70%] p-3 rounded-xl text-sm', {
+                        'bg-primary text-primary-foreground rounded-br-none': msg.sender === 'user',
+                        'bg-muted text-muted-foreground rounded-bl-none': msg.sender === 'bot',
+                        'bg-transparent text-muted-foreground w-full': msg.sender === 'system',
+                    })}>
+                        {renderMessageContent(msg)}
+                    </div>
+                    {msg.sender === 'user' && (
+                        <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
+                        <AvatarFallback>U</AvatarFallback>
+                        </Avatar>
+                    )}
+                    </div>
+                ))}
+                {isLoading && (
+                    <div className="flex items-end gap-2 justify-start">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                        <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+                </div>
+
+                <CardFooter className="border-t p-0 mt-auto">
+                <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
+                    <div className="p-4 space-y-3 bg-muted/50">
+                        <div>
+                            <Label htmlFor="jobDescription" className="text-xs font-medium">Job Description</Label>
+                            <Textarea id="jobDescription" {...form.register("jobDescription")} placeholder="Paste the job description here..." rows={2} className="mt-1 text-sm bg-background" disabled={!activeSessionId} />
+                            {form.formState.errors.jobDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.jobDescription.message}</p>}
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="interviewQuestion" className="text-xs font-medium">Interview Question</Label>
+                                <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto" onClick={handleSuggestQuestions} disabled={isGeneratingQuestions || !activeSessionId}>
+                                            <Lightbulb className="mr-1.5 h-3 w-3" /> Suggest Questions
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                        <DialogTitle>Suggested Questions</DialogTitle>
+                                        <DialogDescription>
+                                            Here are some questions tailored to the job description. Click one to start practicing.
+                                        </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                        {isGeneratingQuestions ? (
+                                            <div className="flex items-center justify-center h-24">
+                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                            </div>
+                                        ) : (
+                                            <ul className="space-y-2 max-h-64 overflow-y-auto">
+                                                {suggestedQuestions.map((q, i) => (
+                                                <li key={i}>
+                                                    <Button variant="outline" className="w-full h-auto text-wrap text-left justify-start" onClick={() => handleSelectQuestion(q)}>
+                                                        {q}
+                                                    </Button>
+                                                </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                            <Input id="interviewQuestion" {...form.register("interviewQuestion")} placeholder="e.g., Tell me about yourself." className="mt-1 text-sm bg-background" disabled={!activeSessionId}/>
+                            {form.formState.errors.interviewQuestion && <p className="text-xs text-destructive mt-1">{form.formState.errors.interviewQuestion.message}</p>}
+                        </div>
+                    </div>
+                    <Separator />
+                    <div className="p-4 flex items-center gap-2">
+                    <Textarea
+                        id="userAnswer"
+                        {...form.register("userAnswer")}
+                        placeholder="Type your answer here..."
+                        rows={1}
+                        className="flex-1 resize-none text-sm bg-background"
+                        disabled={isLoading || !activeSessionId}
+                        onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            form.handleSubmit(handleChatSubmit)();
+                        }
+                        }}
+                    />
+                    <Button type="submit" size="icon" disabled={isLoading || !activeSessionId}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        <span className="sr-only">Send Answer</span>
+                    </Button>
+                    </div>
+                    {form.formState.errors.userAnswer && <p className="px-4 pb-2 text-xs text-destructive">{form.formState.errors.userAnswer.message}</p>}
+                </form>
+                </CardFooter>
+            </Card>
+        </div>
+      </div>
     </div>
   );
 }
