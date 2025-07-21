@@ -102,8 +102,14 @@ const recommendJobsFlow = ai.defineFlow(
     outputSchema: RecommendJobsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch (error) {
+      console.error('Error in recommendJobsFlow:', error);
+      throw new Error(
+        'The AI service is currently unavailable. Please try again later.'
+      );
+    }
   }
 );
-

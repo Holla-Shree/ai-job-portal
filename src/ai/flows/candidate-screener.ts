@@ -94,7 +94,14 @@ const screenCandidateFlow = ai.defineFlow(
     outputSchema: ScreenCandidateOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch (error) {
+      console.error('Error in screenCandidateFlow:', error);
+      throw new Error(
+        'The AI service is currently unavailable. Please try again later.'
+      );
+    }
   }
 );

@@ -60,7 +60,14 @@ const generateInterviewQuestionsFlow = ai.defineFlow(
     outputSchema: GenerateInterviewQuestionsOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
-    return output!;
+    try {
+      const {output} = await prompt(input);
+      return output!;
+    } catch (error) {
+      console.error('Error in generateInterviewQuestionsFlow:', error);
+      throw new Error(
+        'The AI service is currently unavailable. Please try again later.'
+      );
+    }
   }
 );

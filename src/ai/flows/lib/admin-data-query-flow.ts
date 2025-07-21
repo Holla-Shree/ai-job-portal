@@ -78,19 +78,26 @@ export const adminDataQueryFlow = ai.defineFlow(
     outputSchema: AdminDataQueryOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-      prompt: input.query,
-      model: 'googleai/gemini-2.0-flash',
-      tools: [getSystemMetrics],
-      system: `You are an AI assistant for the admin of the JobMatch AI platform.
-      Your role is to answer questions about the platform's usage and metrics.
-      Use the getSystemMetrics tool to find the data you need to answer the user's question.
-      Provide concise, clear answers. If the user asks for a comparison, calculate it.
-      For example, if asked for the most used AI service, find the service with the highest count and state it clearly.
-      Always present the data in a friendly, human-readable format.
-      If you don't have the data, say so politely.`,
-    });
+    try {
+        const llmResponse = await ai.generate({
+          prompt: input.query,
+          model: 'googleai/gemini-2.0-flash',
+          tools: [getSystemMetrics],
+          system: `You are an AI assistant for the admin of the JobMatch AI platform.
+          Your role is to answer questions about the platform's usage and metrics.
+          Use the getSystemMetrics tool to find the data you need to answer the user's question.
+          Provide concise, clear answers. If the user asks for a comparison, calculate it.
+          For example, if asked for the most used AI service, find the service with the highest count and state it clearly.
+          Always present the data in a friendly, human-readable format.
+          If you don't have the data, say so politely.`,
+        });
 
-    return { answer: llmResponse.text };
+        return { answer: llmResponse.text };
+    } catch (error) {
+        console.error('Error in adminDataQueryFlow:', error);
+        return {
+            answer: "I'm sorry, but I was unable to process your request at this time. The AI service may be temporarily unavailable. Please try again in a few moments."
+        };
+    }
   }
 );
