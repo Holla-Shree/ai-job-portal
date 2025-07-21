@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2 } from "lucide-react";
+import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Trash2 } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import withAuth from '@/components/withAuth';
@@ -110,6 +110,11 @@ function AdminPanelPage() {
             setIsChatLoading(false);
         }
     };
+    
+    const handleClearChat = () => {
+        setChatHistory([]);
+        toast({ title: 'Chat Cleared', description: 'You can start a new conversation now.' });
+    };
 
     const getActivityBadgeVariant = (type: string) => {
         switch (type) {
@@ -176,44 +181,46 @@ function AdminPanelPage() {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                {/* User Growth Chart */}
-                <Card className="shadow-lg lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
-                        <CardDescription>New users over the last 6 months.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
-                            <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                                <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
-                            </AreaChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* User Growth Chart */}
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
+                            <CardDescription>New users over the last 6 months.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
+                                <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                                    <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                    <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
+                                </AreaChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
 
-                {/* AI Usage Chart */}
-                <Card className="shadow-lg lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
-                        <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
-                            <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                                <CartesianGrid horizontal={false} />
-                                <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
-                                <XAxis type="number" hide />
-                                <Tooltip cursor={false} content={<ChartTooltipContent />} />
-                                <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-
+                    {/* AI Usage Chart */}
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
+                            <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
+                                <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                                    <CartesianGrid horizontal={false} />
+                                    <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
+                                    <XAxis type="number" hide />
+                                    <Tooltip cursor={false} content={<ChartTooltipContent />} />
+                                    <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
+                                </BarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                </div>
+                
                 {/* AI Assistant Chatbot */}
                 <Card className="shadow-xl lg:col-span-1 flex flex-col">
                     <CardHeader>
@@ -266,7 +273,7 @@ function AdminPanelPage() {
                             )}
                              <div ref={chatEndRef} />
                         </div>
-                        <form onSubmit={handleChatSubmit} className="border-t p-4 flex items-center gap-2 mt-auto">
+                        <form onSubmit={handleChatSubmit} className="border-t p-2 flex items-center gap-2 mt-auto">
                             <Input
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
@@ -274,6 +281,10 @@ function AdminPanelPage() {
                                 className="flex-1"
                                 disabled={isChatLoading}
                             />
+                             <Button type="button" variant="outline" size="icon" onClick={handleClearChat} disabled={isChatLoading || chatHistory.length === 0}>
+                                <Trash2 className="w-4 h-4" />
+                                <span className="sr-only">New Chat</span>
+                            </Button>
                             <Button type="submit" size="icon" disabled={isChatLoading}>
                                 {isChatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                             </Button>
