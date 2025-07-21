@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Trash2 } from "lucide-react";
+import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Eraser } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import withAuth from '@/components/withAuth';
@@ -40,12 +40,12 @@ const MOCK_AI_USAGE_DATA = [
 ];
 
 const MOCK_RECENT_ACTIVITY = [
-    { id: 1, user: 'Priya Patel', action: 'Applied for Senior Backend Engineer', type: 'application', timestamp: '2 minutes ago' },
-    { id: 2, user: 'Recruiter Admin', action: 'Posted new job: "Data Scientist"', type: 'job_posting', timestamp: '15 minutes ago' },
-    { id: 3, user: 'Rohan Sharma', action: 'Uploaded a new resume', type: 'resume_upload', timestamp: '1 hour ago' },
-    { id: 4, user: 'Anjali Menon', action: 'Started a new chatbot session', type: 'chatbot_session', timestamp: '3 hours ago' },
-    { id: 5, user: 'Recruiter Admin', action: 'Viewed screening results for "Data Scientist"', type: 'screening', timestamp: '5 hours ago' },
-    { id: 6, user: 'Vikram Singh', action: 'Registered a new account', type: 'registration', timestamp: '1 day ago' },
+    { id: 1, user: 'Priya Patel', action: 'Applied for Senior Backend Engineer', type: 'application', timestamp: '2 minutes ago', role: 'user' },
+    { id: 2, user: 'Recruiter Admin', action: 'Posted new job: "Data Scientist"', type: 'job_posting', timestamp: '15 minutes ago', role: 'recruiter' },
+    { id: 3, user: 'Rohan Sharma', action: 'Uploaded a new resume', type: 'resume_upload', timestamp: '1 hour ago', role: 'user' },
+    { id: 4, user: 'Anjali Menon', action: 'Started a new chatbot session', type: 'chatbot_session', timestamp: '3 hours ago', role: 'user' },
+    { id: 5, user: 'Recruiter Admin', action: 'Viewed screening results for "Data Scientist"', type: 'screening', timestamp: '5 hours ago', role: 'recruiter' },
+    { id: 6, user: 'Vikram Singh', action: 'Registered a new account', type: 'registration', timestamp: '1 day ago', role: 'user' },
 ];
 
 const userGrowthChartConfig = {
@@ -180,9 +180,9 @@ function AdminPanelPage() {
                 </Card>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* Charts Container */}
                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* User Growth Chart */}
                     <Card className="shadow-lg">
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
@@ -201,7 +201,6 @@ function AdminPanelPage() {
                         </CardContent>
                     </Card>
 
-                    {/* AI Usage Chart */}
                     <Card className="shadow-lg">
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
@@ -282,11 +281,12 @@ function AdminPanelPage() {
                                 disabled={isChatLoading}
                             />
                              <Button type="button" variant="outline" size="icon" onClick={handleClearChat} disabled={isChatLoading || chatHistory.length === 0}>
-                                <Trash2 className="w-4 h-4" />
-                                <span className="sr-only">New Chat</span>
+                                <Eraser className="w-4 h-4" />
+                                <span className="sr-only">Clear Chat</span>
                             </Button>
                             <Button type="submit" size="icon" disabled={isChatLoading}>
                                 {isChatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                <span className="sr-only">Send</span>
                             </Button>
                         </form>
                     </CardContent>
@@ -305,6 +305,7 @@ function AdminPanelPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>User</TableHead>
+                                <TableHead>Role</TableHead>
                                 <TableHead>Action</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead className="text-right">Timestamp</TableHead>
@@ -314,6 +315,7 @@ function AdminPanelPage() {
                             {MOCK_RECENT_ACTIVITY.map(activity => (
                                 <TableRow key={activity.id}>
                                     <TableCell className="font-medium">{activity.user}</TableCell>
+                                    <TableCell className="capitalize">{activity.role}</TableCell>
                                     <TableCell>{activity.action}</TableCell>
                                     <TableCell>
                                         <Badge variant={getActivityBadgeVariant(activity.type)}>{activity.type.replace('_', ' ')}</Badge>
