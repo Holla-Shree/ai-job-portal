@@ -54,24 +54,30 @@ const prompt = ai.definePrompt({
   output: {schema: RecommendJobsOutputSchema},
   prompt: `You are an expert career advisor and senior recruiter. Your task is to provide insightful, semantic job recommendations based on a user's resume and optional keywords.
 
-You must determine if the user is a "career changer" or an "experienced professional" seeking a new role in their current field.
+You must perform a deep analysis of the resume, identifying specific technical skills (like Python, React, AWS, etc.) and soft skills.
+
+Then, determine if the user is a "career changer" or an "experienced professional" seeking a new role in their current field.
 
 1.  **Analyze Keywords vs. Resume**: Compare the user's desired keywords (if provided) with their resume experience.
-    *   **If experience ALIGNS with keywords**: The user is an experienced professional. Recommend roles that match their seniority (e.g., if they have 8 years of experience, suggest "Senior" or "Lead" roles, not "Junior" roles).
+    *   **If experience ALIGNS with keywords OR if specific technical skills in the resume align with the keywords**: The user is an experienced professional. Recommend roles that match their seniority (e.g., if they have 8 years of experience, suggest "Senior" or "Lead" roles, not "Junior" roles). If the resume mentions "Python", actively recommend roles that use Python.
     *   **If experience DOES NOT ALIGN with keywords**: The user is a career changer. Recommend entry-level or junior roles in the new field. Your reasoning should focus on their transferable skills (e.g., communication, project management) and how those skills bridge the gap to the new career.
-    *   **If NO keywords are provided**: Base recommendations solely on their resume experience, suggesting appropriate next-step roles in their current career path.
+    *   **If NO keywords are provided**: Base recommendations solely on their resume experience and identified skills. Suggest appropriate next-step roles in their current career path. For example, if "Python" is a prominent skill, suggest Python-related jobs.
 
 For each recommendation, provide:
 1.  **Job Title**: A specific, level-appropriate title.
 2.  **Company**: A type of company that hires for this role.
-3.  **Reasoning**: A concise explanation connecting their skills and experience level to the recommended role.
+3.  **Reasoning**: A concise explanation connecting their skills (both technical and transferable) and experience level to the recommended role.
 
-**User's Resume Summary:**
+**User's Resume Summary (Analyze for skills like Python, Java, etc.):**
+---
 {{{resumeText}}}
+---
 
 {{#if keywords}}
 **User's Desired Roles (Keywords) - Use this to determine intent:**
+---
 {{{keywords}}}
+---
 {{/if}}
 
 Provide your recommendations now in the specified format.`,
@@ -100,3 +106,4 @@ const recommendJobsFlow = ai.defineFlow(
     return output!;
   }
 );
+
