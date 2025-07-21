@@ -228,11 +228,6 @@ function UserProfilePage() {
                           <CardContent className="flex-grow">
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
-                           <CardFooter>
-                              <Button variant="secondary" size="sm" className="w-full">
-                                  Find Similar
-                              </Button>
-                          </CardFooter>
                         </Card>
                       ))}
                     </div>
