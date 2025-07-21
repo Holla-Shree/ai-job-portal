@@ -39,9 +39,9 @@ const MOCK_CONVERSATIONS: Conversation[] = [
     lastMessage: 'That sounds great! I am available to chat tomorrow.',
     avatar: 'PP',
     messages: [
-      { id: 'msg1', sender: 'other', text: 'Hi, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
-      { id: 'msg2', sender: 'me', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
-      { id: 'msg3', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:32 AM' },
+      { id: 'msg1', sender: 'me', text: 'Hi Priya, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
+      { id: 'msg2', sender: 'other', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
+      { id: 'msg3', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:32 AM' },
     ]
   },
   {
@@ -52,8 +52,8 @@ const MOCK_CONVERSATIONS: Conversation[] = [
     lastMessage: 'Yes, I have submitted my resume via the portal.',
     avatar: 'RA',
      messages: [
-      { id: 'msg1', sender: 'me', text: 'Hi, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
-      { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
+      { id: 'msg1', sender: 'other', text: 'Hi, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
+      { id: 'msg2', sender: 'me', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
     ]
   },
    {
@@ -156,7 +156,7 @@ function MessagingPage() {
                                     <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
                                     <p className="text-xs text-muted-foreground">{convo.messages[convo.messages.length - 1].timestamp}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'user' ? convo.jobTitle : convo.partnerRole}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
                         </div>
@@ -181,26 +181,28 @@ function MessagingPage() {
                             <CardDescription>{user?.role === 'recruiter' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
                         </div>
                     </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" disabled={user?.role !== 'recruiter'}>
-                                <CalendarPlus className="mr-2 h-4 w-4" />
-                                Schedule Interview
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Schedule Interview with {selectedConversation.partnerName}?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                            This will send a calendar invitation to both parties to discuss the {selectedConversation.jobTitle} position.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleScheduleInterview}>Confirm & Send Invite</AlertDialogAction>
-                        </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                     {user?.role === 'recruiter' && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                    <CalendarPlus className="mr-2 h-4 w-4" />
+                                    Schedule Interview
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Schedule Interview with {selectedConversation.partnerName}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                This will send a calendar invitation to both parties to discuss the {selectedConversation.jobTitle} position.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleScheduleInterview}>Confirm & Send Invite</AlertDialogAction>
+                            </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                     )}
                 </CardHeader>
                 <CardContent className="flex-1 p-4 overflow-y-auto">
                     <div className="space-y-4">
