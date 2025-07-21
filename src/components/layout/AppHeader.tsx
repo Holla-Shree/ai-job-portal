@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings } from 'lucide-react';
+import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings, Map as MapIcon } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -19,11 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Separator } from '../ui/separator';
 
 
 const navItems = [
   { href: '/dashboard/user', label: 'Dashboard', icon: User, roles: ['user'] },
   { href: '/dashboard/user/settings/profile', label: 'My Profile', icon: UserCircle, roles: ['user'] },
+  { href: '/dashboard/map', label: 'Job Map', icon: MapIcon, roles: ['user', 'recruiter', 'admin'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter'] },
   { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter', 'admin'] },
   { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
@@ -45,7 +47,8 @@ export function AppHeader() {
     
     // Admin has a super-focused view, only sees the Admin Panel link.
     if (user.role === 'admin') {
-        return navItems.filter(item => item.href === '/dashboard/admin');
+        const adminItems = navItems.filter(item => item.href === '/dashboard/admin' || item.href === '/dashboard/map');
+        return adminItems;
     }
     
     // For other roles, filter by their role.
@@ -164,12 +167,21 @@ export function AppHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild variant="outline" size="sm">
+            <>
+             <Button asChild variant="ghost" size="sm">
+              <Link href="/map">
+                <MapIcon className="mr-2 h-4 w-4"/>
+                Job Map
+              </Link>
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <Button asChild size="sm">
               <Link href="/login">
                 <LogIn className="mr-2 h-4 w-4"/>
                 Sign In
               </Link>
             </Button>
+            </>
           )}
         </div>
       </div>
