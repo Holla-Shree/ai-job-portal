@@ -34,49 +34,51 @@ export default function RecruiterSettingsLayout({
   const pathname = usePathname();
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <div className="flex h-12 items-center justify-between px-2 group-data-[collapsible=icon]:justify-center">
-            <div className="overflow-hidden whitespace-nowrap group-data-[collapsible=icon]:w-0">
-                <AppLogo />
+    <div className="h-full">
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <SidebarHeader>
+            <div className="flex h-12 items-center justify-between px-2 group-data-[collapsible=icon]:justify-center">
+              <div className="overflow-hidden whitespace-nowrap group-data-[collapsible=icon]:w-0">
+                  <AppLogo />
+              </div>
+              <div className="md:hidden">
+                <SidebarTrigger />
+              </div>
             </div>
-            <div className="md:hidden">
-              <SidebarTrigger />
-            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+               <SidebarGroup>
+                  <SidebarGroupLabel>Settings</SidebarGroupLabel>
+                  {settingsNav.map((item) => (
+                      <SidebarMenuItem key={item.name}>
+                          <SidebarMenuButton
+                              asChild
+                              isActive={pathname === item.href}
+                              tooltip={item.name}
+                          >
+                              <Link href={item.href}>
+                                  <item.icon />
+                                  <span>{item.name}</span>
+                              </Link>
+                          </SidebarMenuButton>
+                      </SidebarMenuItem>
+                  ))}
+               </SidebarGroup>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          <div className="p-4 sm:p-6 md:p-8 flex items-center justify-between border-b">
+              <h1 className="text-2xl font-bold font-headline">Recruiter Settings</h1>
+              <SidebarTrigger className="hidden md:flex" />
           </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-             <SidebarGroup>
-                <SidebarGroupLabel>Settings</SidebarGroupLabel>
-                {settingsNav.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={pathname === item.href}
-                            tooltip={item.name}
-                        >
-                            <Link href={item.href}>
-                                <item.icon />
-                                <span>{item.name}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
-             </SidebarGroup>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <div className="p-4 sm:p-6 md:p-8 flex items-center justify-between border-b">
-            <h1 className="text-2xl font-bold font-headline">Recruiter Settings</h1>
-            <SidebarTrigger className="hidden md:flex" />
-        </div>
-        <div className="p-4 sm:p-6 md:p-8">
-            {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          <div className="p-4 sm:p-6 md:p-8">
+              {children}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
