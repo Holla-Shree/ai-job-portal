@@ -175,49 +175,47 @@ function AdminPanelPage() {
                 </Card>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 items-start">
-                <div className="lg:col-span-2 grid gap-8">
-                    {/* Charts */}
-                    <div className="grid gap-8 md:grid-cols-2">
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
-                                <CardDescription>New users over the last 6 months.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
-                                    <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                        <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
-                                    </AreaChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
-                                <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                            <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
-                                    <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                                        <CartesianGrid horizontal={false} />
-                                        <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
-                                        <XAxis type="number" hide />
-                                        <Tooltip cursor={false} content={<ChartTooltipContent />} />
-                                        <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
-                                    </BarChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                {/* User Growth Chart */}
+                <Card className="shadow-lg lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
+                        <CardDescription>New users over the last 6 months.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
+                            <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                                <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                                <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
+                            </AreaChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+                {/* AI Usage Chart */}
+                <Card className="shadow-lg lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
+                        <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
+                            <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                                <CartesianGrid horizontal={false} />
+                                <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
+                                <XAxis type="number" hide />
+                                <Tooltip cursor={false} content={<ChartTooltipContent />} />
+                                <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
 
                 {/* AI Assistant Chatbot */}
-                <Card className="shadow-xl lg:sticky lg:top-8 flex flex-col h-[605px]">
+                <Card className="shadow-xl lg:col-span-1 flex flex-col">
                     <CardHeader>
                         <CardTitle className="font-headline flex items-center"><Bot className="mr-2"/>AI Admin Assistant</CardTitle>
                         <CardDescription>Ask questions about platform metrics.</CardDescription>
@@ -268,7 +266,7 @@ function AdminPanelPage() {
                             )}
                              <div ref={chatEndRef} />
                         </div>
-                        <form onSubmit={handleChatSubmit} className="border-t p-4 flex items-center gap-2">
+                        <form onSubmit={handleChatSubmit} className="border-t p-4 flex items-center gap-2 mt-auto">
                             <Input
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
