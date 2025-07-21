@@ -5,7 +5,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { Briefcase, Users, Brain, MapPin, MessageCircle, FileText, UploadCloud, Search, ArrowRight, Loader2 } from "lucide-react";
+import { Briefcase, Users, Brain, MessageCircle, FileText, UploadCloud, Search, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -34,13 +34,6 @@ const features = [
     description: "Practice interview questions and get AI-powered feedback to ace your next interview.",
     link: "/dashboard/chatbot",
     linkText: "Start Practicing"
-  },
-  {
-    icon: <MapPin className="h-10 w-10 text-primary" />,
-    title: "Interactive Job Map",
-    description: "Visualize job opportunities in your desired locations with our interactive map search.",
-    link: "/dashboard/map",
-    linkText: "Explore Map"
   },
 ];
 
@@ -108,7 +101,7 @@ export default function HomePage() {
             <h2 className="font-headline text-3xl md:text-4xl font-bold text-center mb-16">
               Why Choose <span className="text-primary">JobMatch AI</span>?
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature) => (
                 <Card key={feature.title} className="text-center shadow-xl hover:shadow-2xl transition-shadow duration-300 transform hover:-translate-y-1 bg-card">
                   <CardHeader>
