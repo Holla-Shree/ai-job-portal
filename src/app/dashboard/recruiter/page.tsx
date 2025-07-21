@@ -418,3 +418,5 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
+
+    
