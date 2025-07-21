@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListTree } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -51,10 +51,22 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           ],
           pinned: true,
         },
-        // More conversations for the user...
+        {
+          id: 'conv2',
+          partnerName: 'HR @ Google',
+          partnerRole: 'Recruiter',
+          jobTitle: 'Data Scientist',
+          lastMessage: 'Sure, I will share it shortly.',
+          avatar: 'G',
+          messages: [
+            { id: 'msg1', sender: 'other', text: 'Hi there, we have received your application for the Data Scientist role. Can you please share your portfolio?', timestamp: 'Yesterday' },
+            { id: 'msg2', sender: 'me', text: 'Sure, I will share it shortly.', timestamp: 'Yesterday' },
+          ],
+          pinned: false,
+        },
       ];
     }
-    // Default to recruiter's perspective
+    // Recruiter's perspective
     return [
       {
         id: 'conv1',
@@ -175,7 +187,7 @@ function MessagingPage() {
         if (!selectedConversation) return;
         const updatedConversations = conversations.filter(c => c.id !== selectedConversation.id);
         setConversations(updatedConversations);
-        setSelectedConversation(null);
+        setSelectedConversation(updatedConversations[0] || null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
@@ -325,46 +337,46 @@ function MessagingPage() {
                             </AlertDialogContent>
                         </AlertDialog>
                      )}
-                     <AlertDialog>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-5 w-5" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {setIsSelectionMode(true); setSelectedMessages([]);}}>
-                                    <CheckSquare className="mr-2 h-4 w-4" />
-                                    Select Messages
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleClearMessages}>
-                                    <Eraser className="mr-2 h-4 w-4" />
-                                    Clear Messages
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {setIsSelectionMode(true); setSelectedMessages([]);}}>
+                                <CheckSquare className="mr-2 h-4 w-4" />
+                                Select Messages
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleClearMessages}>
+                                <Eraser className="mr-2 h-4 w-4" />
+                                Clear Messages
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Delete Conversation
                                     </DropdownMenuItem>
                                 </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
-                                    Yes, delete conversation
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                     </AlertDialog>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
+                                            Yes, delete conversation
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </DropdownMenuContent>
+                     </DropdownMenu>
                     </div>
                     </>
                     )}
@@ -431,5 +443,3 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
-
-    
