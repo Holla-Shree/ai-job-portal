@@ -1,18 +1,19 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListTree } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Message {
   id: string;
@@ -29,6 +30,7 @@ interface Conversation {
   lastMessage: string;
   avatar: string;
   messages: Message[];
+  pinned: boolean;
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -46,7 +48,8 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
             { id: 'msg2', sender: 'me', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
             { id: 'msg3', sender: 'other', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
             { id: 'msg4', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
-          ]
+          ],
+          pinned: true,
         },
         // More conversations for the user...
       ];
@@ -65,7 +68,8 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg2', sender: 'other', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
           { id: 'msg3', sender: 'me', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
           { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
-        ]
+        ],
+        pinned: true,
       },
       {
         id: 'conv2',
@@ -77,7 +81,8 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         messages: [
           { id: 'msg1', sender: 'me', text: 'Hi Rohan, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
           { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
-        ]
+        ],
+        pinned: false,
       },
       {
         id: 'conv3',
@@ -91,7 +96,8 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg2', sender: 'other', text: 'Thank you so much! I\'d love that. What time works for you?', timestamp: '2 days ago' },
           { id: 'msg3', sender: 'me', text: 'How about Friday at 2 PM?', timestamp: '2 days ago' },
           { id: 'msg4', sender: 'other', text: 'Perfect, looking forward to it.', timestamp: '2 days ago' },
-        ]
+        ],
+        pinned: false,
       }
     ];
 };
@@ -101,10 +107,24 @@ function MessagingPage() {
     const { user } = useAuth();
     const { toast } = useToast();
     const [conversations, setConversations] = useState<Conversation[]>(getMockConversations(user?.role || 'user'));
-    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations[0] || null);
+    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations.find(c => c.pinned) || conversations[0] || null);
     const [messageInput, setMessageInput] = useState('');
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
+
+    const sortedConversations = useMemo(() => {
+        return [...conversations].sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            return 0; // In a real app, you'd sort by last message timestamp here
+        });
+    }, [conversations]);
 
     const handleSelectConversation = (conversationId: string) => {
+        if (isSelectionMode) {
+            setIsSelectionMode(false);
+            setSelectedMessages([]);
+        }
         const conversation = conversations.find(c => c.id === conversationId);
         setSelectedConversation(conversation || null);
     };
@@ -123,11 +143,7 @@ function MessagingPage() {
         const updatedConversations = conversations.map(c => {
             if (c.id === selectedConversation.id) {
                 const updatedMessages = [...c.messages, newMessage];
-                return {
-                    ...c,
-                    messages: updatedMessages,
-                    lastMessage: newMessage.text,
-                };
+                return { ...c, messages: updatedMessages, lastMessage: newMessage.text };
             }
             return c;
         });
@@ -146,14 +162,10 @@ function MessagingPage() {
 
     const handleClearMessages = () => {
         if (!selectedConversation) return;
-
         const updatedConversations = conversations.map(c => {
-            if (c.id === selectedConversation.id) {
-                return { ...c, messages: [], lastMessage: "Chat cleared" };
-            }
+            if (c.id === selectedConversation.id) return { ...c, messages: [], lastMessage: "Chat cleared" };
             return c;
         });
-
         setConversations(updatedConversations);
         setSelectedConversation(prev => prev ? { ...prev, messages: [] } : null);
         toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
@@ -161,12 +173,50 @@ function MessagingPage() {
 
     const handleDeleteConversation = () => {
         if (!selectedConversation) return;
-
         const updatedConversations = conversations.filter(c => c.id !== selectedConversation.id);
         setConversations(updatedConversations);
         setSelectedConversation(null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
+    
+    const togglePinConversation = (convId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setConversations(
+          conversations.map(c =>
+            c.id === convId ? { ...c, pinned: !c.pinned } : c
+          )
+        );
+        toast({
+          title: conversations.find(c => c.id === convId)?.pinned ? 'Conversation Unpinned' : 'Conversation Pinned',
+        });
+      };
+
+    const handleMessageSelection = (messageId: string) => {
+        setSelectedMessages(prev => 
+            prev.includes(messageId) 
+            ? prev.filter(id => id !== messageId)
+            : [...prev, messageId]
+        );
+    };
+
+    const handleDeleteSelectedMessages = () => {
+        if (!selectedConversation) return;
+        const updatedMessages = selectedConversation.messages.filter(msg => !selectedMessages.includes(msg.id));
+        
+        const updatedConversations = conversations.map(c => {
+            if (c.id === selectedConversation.id) {
+                return { ...c, messages: updatedMessages, lastMessage: updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1].text : "Messages deleted" };
+            }
+            return c;
+        });
+        
+        setConversations(updatedConversations);
+        setSelectedConversation(prev => prev ? { ...prev, messages: updatedMessages } : null);
+        toast({ title: `${selectedMessages.length} Message(s) Deleted` });
+        setIsSelectionMode(false);
+        setSelectedMessages([]);
+    };
+
 
   return (
     <div className="container mx-auto py-8">
@@ -183,11 +233,11 @@ function MessagingPage() {
             <CardContent className="p-0 flex-1">
                 <ScrollArea className="h-full">
                     <div className="p-2 space-y-1">
-                    {conversations.map(convo => (
+                    {sortedConversations.map(convo => (
                         <div
                             key={convo.id}
                             className={cn(
-                                "flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
+                                "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
                                 selectedConversation?.id === convo.id ? "bg-primary/10" : "hover:bg-muted/50"
                             )}
                             onClick={() => handleSelectConversation(convo.id)}
@@ -202,11 +252,20 @@ function MessagingPage() {
                             <div className="flex-1 truncate">
                                 <div className="flex justify-between items-center">
                                     <p className="font-semibold text-sm truncate">{convo.partnerName}</p>
-                                    <p className="text-xs text-muted-foreground">{convo.messages.length > 0 ? convo.messages[convo.messages.length - 1].timestamp : ''}</p>
+                                    {convo.pinned && <Pin className="h-3.5 w-3.5 text-primary fill-current" />}
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'user' ? convo.jobTitle : convo.partnerRole}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => togglePinConversation(convo.id, e)}
+                                aria-label={convo.pinned ? "Unpin" : "Pin"}
+                            >
+                                {convo.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                            </Button>
                         </div>
                     ))}
                     </div>
@@ -219,6 +278,20 @@ function MessagingPage() {
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+                    {isSelectionMode ? (
+                        <div className="flex items-center gap-4 w-full">
+                            <Button variant="ghost" size="icon" onClick={() => { setIsSelectionMode(false); setSelectedMessages([]); }}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                            <h3 className="font-semibold">{selectedMessages.length} selected</h3>
+                            <div className="flex-grow" />
+                            <Button size="sm" variant="destructive" onClick={handleDeleteSelectedMessages} disabled={selectedMessages.length === 0}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </Button>
+                        </div>
+                    ) : (
+                    <>
                     <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border">
                             <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
@@ -226,7 +299,7 @@ function MessagingPage() {
                         </Avatar>
                         <div>
                             <CardTitle className="font-headline text-lg">{selectedConversation.partnerName}</CardTitle>
-                            <CardDescription>{user?.role === 'recruiter' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
+                            <CardDescription>{user?.role === 'user' ? selectedConversation.jobTitle : `Candidate for: ${selectedConversation.jobTitle}`}</CardDescription>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -260,6 +333,10 @@ function MessagingPage() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {setIsSelectionMode(true); setSelectedMessages([]);}}>
+                                    <CheckSquare className="mr-2 h-4 w-4" />
+                                    Select Messages
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={handleClearMessages}>
                                     <Eraser className="mr-2 h-4 w-4" />
                                     Clear Messages
@@ -289,11 +366,21 @@ function MessagingPage() {
                         </AlertDialogContent>
                      </AlertDialog>
                     </div>
+                    </>
+                    )}
                 </CardHeader>
                 <CardContent className="flex-1 p-4 overflow-y-auto">
                     <div className="space-y-4">
                     {selectedConversation.messages.map(msg => (
                         <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
+                            {isSelectionMode && (
+                               <Checkbox 
+                                 id={`msg-select-${msg.id}`}
+                                 checked={selectedMessages.includes(msg.id)}
+                                 onCheckedChange={() => handleMessageSelection(msg.id)}
+                                 className={cn(msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
+                               />
+                            )}
                             {msg.sender === 'other' && (
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
@@ -332,7 +419,7 @@ function MessagingPage() {
                 </>
             ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                    <Send className="w-16 h-16 mb-4" />
+                    <MessageSquare className="w-16 h-16 mb-4" />
                     <h3 className="text-xl font-semibold">Select a conversation</h3>
                     <p className="max-w-xs">Choose a conversation from the left panel to view messages and connect with candidates or recruiters.</p>
                 </div>
@@ -344,3 +431,5 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
+
+    
