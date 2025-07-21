@@ -226,9 +226,6 @@ export default function ChatbotPage() {
     if (msg.type === 'question') {
       return <div className="w-full text-center text-xs text-muted-foreground italic p-2">Question: "{msg.content}"</div>
     }
-    if (msg.type === 'answer') {
-      return <div>{msg.content}</div>
-    }
     return msg.content;
   };
   
