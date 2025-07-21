@@ -100,9 +100,9 @@ export default function JobMapPage() {
         <GoogleMapsProvider>
             <div className="flex flex-col h-screen">
                 <AppHeader />
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
                      {/* Job Search Panel */}
-                    <div className="md:col-span-1 lg:col-span-1 bg-background h-full flex flex-col">
+                    <div className="md:col-span-1 bg-background h-full flex flex-col">
                         {selectedJob ? (
                             <JobDetails job={selectedJob} onBack={() => setSelectedJob(null)} />
                         ) : (
@@ -172,7 +172,7 @@ export default function JobMapPage() {
                     </div>
 
                     {/* Map Area */}
-                    <div className="md:col-span-2 lg:col-span-3 h-[50vh] md:h-full relative">
+                    <div className="md:col-span-1 h-[50vh] md:h-full relative">
                          <Map
                             defaultCenter={defaultPosition}
                             defaultZoom={5}
