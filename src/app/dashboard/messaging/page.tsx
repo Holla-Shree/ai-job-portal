@@ -253,9 +253,9 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Conversations List */}
-        <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
                 {!isConvSelectionMode ? (
                     <div className="flex justify-between items-center">
@@ -344,7 +344,7 @@ function MessagingPage() {
                                 <AvatarFallback>{convo.avatar}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 truncate">
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-center">
                                     <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
                                     {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                 </div>
@@ -359,7 +359,7 @@ function MessagingPage() {
         </Card>
 
         {/* Active Chat Window */}
-        <Card className="md:col-span-2 lg:col-span-3 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-2 shadow-xl flex flex-col h-full">
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
