@@ -54,11 +54,6 @@ export default function HomePage() {
     }
   };
 
-  const getRoleName = () => {
-    if (!user) return '';
-    return user.role.charAt(0).toUpperCase() + user.role.slice(1);
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
       <AppHeader />
@@ -75,22 +70,12 @@ export default function HomePage() {
                 Your intelligent partner in navigating the job market. Discover opportunities, enhance your skills, and land your dream job with the power of AI.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                {user ? (
-                   <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
-                    <Link href={getDashboardLink()}>
-                      Go to Your {getRoleName()} Dashboard <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <>
-                    <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
-                      <Link href="/login">I'm a Job Seeker</Link>
-                    </Button>
-                    <Button asChild variant="outline" size="lg" className="shadow-lg hover:shadow-accent/50 transition-shadow">
-                      <Link href="/login">I'm a Recruiter</Link>
-                    </Button>
-                  </>
-                )}
+                <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
+                  <Link href="/login">I'm a Job Seeker</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="shadow-lg hover:shadow-accent/50 transition-shadow">
+                  <Link href="/login">I'm a Recruiter</Link>
+                </Button>
               </div>
             </div>
           </div>

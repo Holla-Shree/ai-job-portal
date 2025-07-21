@@ -52,53 +52,55 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="hidden md:flex">
+        <div className="flex items-center gap-4">
           <AppLogo />
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6">
+            {visibleNavItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={cn(
+                  "text-sm font-medium transition-colors hover:text-primary",
+                  pathname === item.href ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </div>
         
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="md:hidden">
-              <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle navigation menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[300px] bg-sidebar text-sidebar-foreground p-0">
-            <div className="p-4">
-             <AppLogo />
-            </div>
-            <nav className="flex flex-col gap-2 p-4">
-              {visibleNavItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    pathname === item.href ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </SheetContent>
-        </Sheet>
+        <div className="md:hidden">
+            <Sheet>
+            <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle navigation menu</span>
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[300px] bg-sidebar text-sidebar-foreground p-0">
+                <div className="p-4">
+                <AppLogo />
+                </div>
+                <nav className="flex flex-col gap-2 p-4">
+                {visibleNavItems.map((item) => (
+                    <Link
+                    key={item.label}
+                    href={item.href}
+                    className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        pathname === item.href ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground"
+                    )}
+                    >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                    </Link>
+                ))}
+                </nav>
+            </SheetContent>
+            </Sheet>
+        </div>
         
-        <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-          {visibleNavItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                pathname === item.href ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
         <div className="flex items-center gap-2">
            <ModeToggle />
           {user ? (
