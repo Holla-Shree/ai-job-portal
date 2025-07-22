@@ -20,7 +20,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import withAuth from '@/components/withAuth';
 import {
   Tooltip,
   TooltipContent,
@@ -93,7 +92,7 @@ const AnalysisComponent = ({ score, analysis, suggestedImprovements, relevantCou
 );
 
 
-function ChatbotPage() {
+export default function ChatbotPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,16 +122,11 @@ function ChatbotPage() {
                 // Sort by most recent and activate
                 const sorted = [...parsedSessions].sort((a,b) => b.timestamp - a.timestamp);
                 setActiveSessionId(sorted[0].id);
-            } else {
-                handleNewSession();
             }
-        } else {
-            handleNewSession();
         }
     } catch (error) {
         console.error("Failed to load sessions from localStorage", error);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save sessions to localStorage whenever they change
@@ -182,13 +176,7 @@ function ChatbotPage() {
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (activeSessionId === sessionId) {
         const remainingSessions = sessions.filter(s => s.id !== sessionId);
-        if (remainingSessions.length > 0) {
-            const sorted = [...remainingSessions].sort((a,b) => b.timestamp - a.timestamp);
-            setActiveSessionId(sorted[0].id);
-        } else {
-            setActiveSessionId(null);
-            handleNewSession();
-        }
+        setActiveSessionId(remainingSessions.length > 0 ? remainingSessions[0].id : null);
     }
     toast({ title: "Session Deleted" });
   };
@@ -270,7 +258,8 @@ function ChatbotPage() {
         case 'question':
             return <div className="w-full text-center text-xs text-muted-foreground italic p-2">Question: "{msg.content}"</div>;
         case 'analysis':
-            return <AnalysisComponent {...msg.content} />;
+            const { score, analysis, suggestedImprovements, relevantCourses } = msg.content;
+            return <AnalysisComponent score={score} analysis={analysis} suggestedImprovements={suggestedImprovements} relevantCourses={relevantCourses} />;
         case 'answer':
         case 'error':
         default:
@@ -281,7 +270,7 @@ function ChatbotPage() {
   const sortedSessions = [...sessions].sort((a,b) => b.timestamp - a.timestamp);
 
   return (
-    <div className="flex h-full bg-muted/20">
+    <div className="flex h-[calc(100vh-theme(spacing.16))] bg-muted/20">
       {/* History Sidebar */}
       <div className={cn("bg-background border-r transition-all duration-300", isSidebarOpen ? "w-64" : "w-0 overflow-hidden")}>
         <div className="flex flex-col h-full">
@@ -330,7 +319,7 @@ function ChatbotPage() {
                                 )}
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                         <TooltipProvider>
+                                        <TooltipProvider>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
@@ -377,56 +366,54 @@ function ChatbotPage() {
                     </div>
                 </CardHeader>
                 
-                <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-4">
-                    {chatHistory.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground">
-                            <MessageSquare className="w-16 h-16 mb-4" />
-                            <p>Welcome to your AI Interview Coach!</p>
-                            <p className="text-sm">Start a new session or select one from the history.</p>
-                        </div>
-                    )}
-                    {chatHistory.map((msg) => (
-                        <div key={msg.id} className={cn("flex items-end gap-2", 
-                            msg.sender === 'user' ? 'justify-end' : 
-                            msg.sender === 'system' ? 'justify-center w-full' :
-                            'justify-start'
-                        )}>
-                        {msg.sender === 'bot' && (
-                            <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                            <AvatarFallback>AI</AvatarFallback>
-                            </Avatar>
-                        )}
-                        <div className={cn('max-w-[70%] p-3 rounded-xl text-sm', {
-                            'bg-primary text-primary-foreground rounded-br-none': msg.sender === 'user',
-                            'bg-muted text-muted-foreground rounded-bl-none': msg.sender === 'bot',
-                            'bg-transparent text-muted-foreground w-full': msg.sender === 'system',
-                        })}>
-                            {renderMessageContent(msg)}
-                        </div>
-                        {msg.sender === 'user' && (
-                            <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                            <AvatarFallback>U</AvatarFallback>
-                            </Avatar>
-                        )}
-                        </div>
-                    ))}
-                    {isLoading && (
-                        <div className="flex items-end gap-2 justify-start">
-                        <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                            <AvatarFallback>AI</AvatarFallback>
-                        </Avatar>
-                        <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                        </div>
-                        </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                {chatHistory.length === 0 && !isLoading && (
+                    <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground">
+                        <MessageSquare className="w-16 h-16 mb-4" />
+                        <p>Welcome to your AI Interview Coach!</p>
+                        <p className="text-sm">Start a new session or select one from the history.</p>
                     </div>
-                </ScrollArea>
+                )}
+                {chatHistory.map((msg) => (
+                    <div key={msg.id} className={cn("flex items-end gap-2", 
+                        msg.sender === 'user' ? 'justify-end' : 
+                        msg.sender === 'system' ? 'justify-center w-full' :
+                        'justify-start'
+                    )}>
+                    {msg.sender === 'bot' && (
+                        <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                        <AvatarFallback>AI</AvatarFallback>
+                        </Avatar>
+                    )}
+                    <div className={cn('max-w-[70%] p-3 rounded-xl text-sm', {
+                        'bg-primary text-primary-foreground rounded-br-none': msg.sender === 'user',
+                        'bg-muted text-muted-foreground rounded-bl-none': msg.sender === 'bot',
+                        'bg-transparent text-muted-foreground w-full': msg.sender === 'system',
+                    })}>
+                        {renderMessageContent(msg)}
+                    </div>
+                    {msg.sender === 'user' && (
+                        <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
+                        <AvatarFallback>U</AvatarFallback>
+                        </Avatar>
+                    )}
+                    </div>
+                ))}
+                {isLoading && (
+                    <div className="flex items-end gap-2 justify-start">
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                        <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
+                    <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+                </div>
 
                 <CardFooter className="border-t p-0 mt-auto">
                 <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
@@ -506,5 +493,3 @@ function ChatbotPage() {
     </div>
   );
 }
-
-export default withAuth(ChatbotPage, ['user', 'recruiter', 'admin']);
