@@ -97,9 +97,11 @@ export default function LoginPage() {
               <LogIn className="mr-2 h-5 w-5" />
               Sign In
             </Button>
-            <p className="text-xs text-muted-foreground">
-              Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
-            </p>
+            <div className="text-center">
+                <p className="text-xs text-muted-foreground">
+                Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
+                </p>
+            </div>
             <Separator />
              <p className="text-sm text-center text-muted-foreground">
                 Don't have an account?{' '}
