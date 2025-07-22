@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
 
 const mockJobs = [
   { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
@@ -28,6 +29,15 @@ const mockJobs = [
 type Job = typeof mockJobs[0];
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
+    const { toast } = useToast();
+
+    const handleApply = () => {
+        toast({
+            title: "Application Submitted!",
+            description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
+        });
+    };
+    
     return (
         <div className="h-full flex flex-col">
             <div className="p-4 border-b">
@@ -75,7 +85,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                 </div>
             </ScrollArea>
              <div className="p-4 border-t mt-auto">
-                <Button className="w-full">Apply Now</Button>
+                <Button className="w-full" onClick={handleApply}>Apply Now</Button>
             </div>
         </div>
     )
@@ -88,7 +98,7 @@ export default function JobMapPage() {
     const jobListRef = useRef<Record<number, HTMLDivElement | null>>({});
 
     useEffect(() => {
-        if (selectedJob && jobListRef.current[selectedJob.id] && !selectedJob) {
+        if (selectedJob && jobListRef.current[selectedJob.id]) {
             jobListRef.current[selectedJob.id]?.scrollIntoView({
                 behavior: 'smooth',
                 block: 'center',
@@ -148,7 +158,8 @@ export default function JobMapPage() {
                                                 ref={el => jobListRef.current[job.id] = el}
                                                 className={cn(
                                                     "p-3 rounded-lg cursor-pointer transition-all duration-200 border-2",
-                                                    hoveredJobId === job.id ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50 border-transparent'
+                                                    hoveredJobId === job.id ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50 border-transparent',
+                                                    selectedJob?.id === job.id && 'bg-primary/10 border-primary'
                                                 )}
                                                 onClick={() => setSelectedJob(job)}
                                                 onMouseEnter={() => setHoveredJobId(job.id)}
