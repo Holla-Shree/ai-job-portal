@@ -70,7 +70,9 @@ const AnalysisComponent = ({ score, analysis, suggestedImprovements, relevantCou
         <div>
             <h4 className="font-semibold text-sm flex items-center justify-between">
                 <span className="flex items-center"><Star className="w-4 h-4 mr-1.5 text-primary" />Your Score:</span>
-                <span className={cn("font-bold text-lg", getScoreColor(score))}>{score.toFixed(1)}/10</span>
+                <span className={cn("font-bold text-lg", typeof score === 'number' && getScoreColor(score))}>
+                    {typeof score === 'number' ? `${score.toFixed(1)}/10` : 'N/A'}
+                </span>
             </h4>
         </div>
          <Separator />
