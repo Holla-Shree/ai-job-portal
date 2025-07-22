@@ -11,6 +11,7 @@ export interface ApplicationNotification {
   candidateName: string; // In a real app, this would be the user's name
   timestamp: number;
   read: boolean;
+  status: 'Applied' | 'Under Review' | 'Interview' | 'Rejected' | 'Offer';
 }
 
 interface ConversationStub {
@@ -24,15 +25,18 @@ interface NotificationContextType {
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
   initiateConversation: (stub: ConversationStub) => string;
+  applicationHistory: ApplicationNotification[];
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations'; // Using a different key for messaging
+const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
+  const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -41,8 +45,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (storedNotifications) {
         setNotifications(JSON.parse(storedNotifications));
       }
+      const storedHistory = localStorage.getItem(APPLICATION_HISTORY_KEY);
+       if (storedHistory) {
+        setApplicationHistory(JSON.parse(storedHistory));
+      }
     } catch (error) {
-      console.error("Failed to load notifications from localStorage", error);
+      console.error("Failed to load data from localStorage", error);
     }
   }, []);
 
@@ -50,16 +58,25 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
 
+  useEffect(() => {
+    localStorage.setItem(APPLICATION_HISTORY_KEY, JSON.stringify(applicationHistory));
+  }, [applicationHistory]);
+
   const addNotification = (jobTitle: string, company: string) => {
-    const newNotification: ApplicationNotification = {
-      id: `notif-${Date.now()}`,
+    const newApplication: ApplicationNotification = {
+      id: `app-${Date.now()}`,
       jobTitle,
       company,
       candidateName: 'Priya Patel', // Mock candidate name for demo
       timestamp: Date.now(),
       read: false,
+      status: 'Applied',
     };
-    setNotifications(prev => [newNotification, ...prev]);
+    
+    // Add to recruiter notifications
+    setNotifications(prev => [newApplication, ...prev]);
+    // Add to user's application history
+    setApplicationHistory(prev => [newApplication, ...prev]);
   };
 
   const markAsRead = (id: string) => {
@@ -101,7 +118,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation, applicationHistory }}>
       {children}
     </NotificationContext.Provider>
   );

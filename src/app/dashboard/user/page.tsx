@@ -1,11 +1,10 @@
 
-
 'use client';
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, UserCircle, Search, MessageSquare, Settings } from "lucide-react";
+import { ArrowRight, UserCircle, Search, MessageSquare, Settings, ListChecks } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -21,22 +20,22 @@ const dashboardItems = [
     icon: <Search className="h-10 w-10 text-primary" />,
     title: "AI Job Recommendations",
     description: "Discover jobs tailored to you. Let our AI find the best matches based on your skills and experience.",
-    link: "/dashboard/user/settings/profile", // Link to the profile page for recommendations
+    link: "/dashboard/user/settings/profile", 
     linkText: "Get Recommendations"
   },
+  {
+    icon: <ListChecks className="h-10 w-10 text-primary" />,
+    title: "My Applications",
+    description: "Track the status of all your job applications and manage your job-seeking journey in one place.",
+    link: "/dashboard/user/applications",
+    linkText: "View Applications"
+    },
   {
     icon: <MessageSquare className="h-10 w-10 text-primary" />,
     title: "Interview Prep Chatbot",
     description: "Practice makes perfect. Use our AI chatbot to sharpen your skills and get instant feedback.",
     link: "/dashboard/chatbot",
     linkText: "Start Practicing"
-  },
-  {
-    icon: <Settings className="h-10 w-10 text-primary" />,
-    title: "Account Settings",
-    description: "Manage your profile, privacy, security, and communication preferences.",
-    link: "/dashboard/user/settings",
-    linkText: "Go to Settings"
   },
 ];
 
@@ -81,5 +80,3 @@ function UserDashboardPage() {
 }
 
 export default withAuth(UserDashboardPage, ['user', 'admin']);
-
-    
