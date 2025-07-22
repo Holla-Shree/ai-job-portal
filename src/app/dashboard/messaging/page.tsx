@@ -33,6 +33,7 @@ interface Conversation {
   messages: Message[];
   pinned: boolean;
   favourited: boolean;
+  unread: boolean;
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -53,6 +54,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           ],
           pinned: true,
           favourited: true,
+          unread: false,
         },
         {
           id: 'conv2',
@@ -67,6 +69,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           ],
           pinned: false,
           favourited: false,
+          unread: true,
         },
       ];
     }
@@ -83,6 +86,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         ],
         pinned: true,
         favourited: false,
+        unread: true,
       },
       {
         id: 'conv1',
@@ -99,6 +103,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         ],
         pinned: false,
         favourited: true,
+        unread: false,
       },
       {
         id: 'conv4',
@@ -115,6 +120,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         ],
         pinned: false,
         favourited: false,
+        unread: false,
       },
       {
         id: 'conv2',
@@ -129,6 +135,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         ],
         pinned: false,
         favourited: false,
+        unread: true,
       },
       {
         id: 'conv3',
@@ -145,6 +152,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         ],
         pinned: false,
         favourited: false,
+        unread: false,
       }
     ];
 };
@@ -160,14 +168,22 @@ function MessagingPage() {
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
     const [isConvSelectionMode, setIsConvSelectionMode] = useState(false);
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
+    const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
 
-    const sortedConversations = useMemo(() => {
-        return [...conversations].sort((a, b) => {
+    const filteredConversations = useMemo(() => {
+        let convos = [...conversations];
+        if (filter === 'unread') {
+            convos = convos.filter(c => c.unread);
+        } else if (filter === 'favorites') {
+            convos = convos.filter(c => c.favourited);
+        }
+
+        return convos.sort((a, b) => {
             if (a.pinned && !b.pinned) return -1;
             if (!a.pinned && b.pinned) return 1;
             return 0; // In a real app, you'd sort by last message timestamp here
         });
-    }, [conversations]);
+    }, [conversations, filter]);
     
     const showPinAction = useMemo(() => {
         if (selectedConversations.length === 0) return false;
@@ -190,7 +206,12 @@ function MessagingPage() {
             setSelectedMessages([]);
         }
         const conversation = conversations.find(c => c.id === conversationId);
-        setSelectedConversation(conversation || null);
+        if (conversation) {
+            setSelectedConversation(conversation);
+            if (conversation.unread) {
+                 setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread: false } : c));
+            }
+        }
     };
 
     const handleSendMessage = (e: React.FormEvent) => {
@@ -349,7 +370,10 @@ function MessagingPage() {
                         <BellOff className="mr-2 h-4 w-4" />
                         <span>Mute Notifications</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleGenericAction('Marked as unread')}>
+                    <ContextMenuItem onClick={() => {
+                        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: true } : c));
+                        toast({ title: 'Marked as unread' });
+                    }}>
                         <Mail className="mr-2 h-4 w-4" />
                         <span>Mark as unread</span>
                     </ContextMenuItem>
@@ -465,16 +489,21 @@ function MessagingPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search..." className="pl-8" />
                 </div>
+                 <div className="flex items-center gap-2 mt-4">
+                    <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('all')}>All</Button>
+                    <Button variant={filter === 'unread' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('unread')}>Unread</Button>
+                    <Button variant={filter === 'favorites' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('favorites')}>Favorites</Button>
+                </div>
             </CardHeader>
             <CardContent className="p-0 flex-1">
                 <ScrollArea className="h-full">
                     <div className="p-2 space-y-1">
-                    {sortedConversations.map(convo => (
+                    {filteredConversations.map(convo => (
                         <ContextMenu key={convo.id}>
                             <ContextMenuTrigger>
                                 <div
                                     className={cn(
-                                        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
+                                        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
                                         selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
                                         isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
                                     )}
@@ -494,7 +523,7 @@ function MessagingPage() {
                                     {renderAvatar(convo)}
                                     <div className="flex-1 truncate">
                                         <div className="flex justify-between items-center">
-                                            <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
+                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "text-primary-foreground")}>{convo.partnerName}</p>
                                             <div className="flex items-center gap-1.5">
                                                 {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
                                                 {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
@@ -503,6 +532,9 @@ function MessagingPage() {
                                         <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                         <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                                     </div>
+                                    {convo.unread && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+                                    )}
                                 </div>
                             </ContextMenuTrigger>
                             <ConversationContextMenu convo={convo} />
@@ -583,7 +615,10 @@ function MessagingPage() {
                                         <BellOff className="mr-2 h-4 w-4" />
                                         <span>Mute Notifications</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenericAction('Marked as unread')}>
+                                    <DropdownMenuItem onClick={() => {
+                                         setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, unread: true } : c));
+                                         toast({ title: 'Marked as unread' });
+                                    }}>
                                         <Mail className="mr-2 h-4 w-4" />
                                         <span>Mark as unread</span>
                                     </DropdownMenuItem>
