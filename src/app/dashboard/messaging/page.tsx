@@ -582,10 +582,10 @@ function MessagingPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search..." className="pl-8" />
                 </div>
-                 <div className="grid grid-cols-3 items-center gap-2 mt-4 text-sm bg-muted p-1 rounded-md">
-                    <Button variant={filter === 'all' ? 'default' : 'ghost'} size="sm" className={cn("flex-1", filter === 'all' && 'shadow-sm')} onClick={() => setFilter('all')}>All</Button>
-                    <Button variant={filter === 'unread' ? 'default' : 'ghost'} size="sm" className={cn("flex-1", filter === 'unread' && 'shadow-sm')} onClick={() => setFilter('unread')}>Unread</Button>
-                    <Button variant={filter === 'favorites' ? 'default' : 'ghost'} size="sm" className={cn("flex-1", filter === 'favorites' && 'shadow-sm')} onClick={() => setFilter('favorites')}>Favorites</Button>
+                 <div className="flex items-center gap-2 mt-4 text-sm">
+                    <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('all')}>All</Button>
+                    <Button variant={filter === 'unread' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('unread')}>Unread</Button>
+                    <Button variant={filter === 'favorites' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('favorites')}>Favorites</Button>
                 </div>
             </CardHeader>
             <CardContent className="p-0 flex-1">
