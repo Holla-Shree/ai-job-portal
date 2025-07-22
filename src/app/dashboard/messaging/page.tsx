@@ -571,7 +571,7 @@ function MessagingPage() {
                             <CardDescription>{user?.role === 'recruiter' && selectedConversation.partnerRole !== 'System' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                      {user?.role === 'recruiter' && selectedConversation.partnerRole === 'Candidate' && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -666,6 +666,10 @@ function MessagingPage() {
                             </AlertDialog>
                         </DropdownMenuContent>
                      </DropdownMenu>
+                     <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">Close Chat</span>
+                    </Button>
                     </div>
                     </>
                     )}
