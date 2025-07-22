@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { Separator } from '@/components/ui/separator';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -79,38 +79,58 @@ export default function LoginPage() {
           <CardTitle className="font-headline text-3xl">Sign In</CardTitle>
           <CardDescription>Enter your credentials to access your account.</CardDescription>
         </CardHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="user@example.com" {...form.register('email')} />
-              {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...form.register('password')} />
-              {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" size="lg">
-              <LogIn className="mr-2 h-5 w-5" />
-              Sign In
-            </Button>
-            <div className="text-center">
-                <p className="text-xs text-muted-foreground">
-                Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
-                </p>
-            </div>
-            <Separator />
-             <p className="text-sm text-center text-muted-foreground">
-                Don't have an account?{' '}
-                <Link href="/signup" className="font-semibold text-primary hover:underline">
-                    Sign Up
-                </Link>
-            </p>
-          </CardFooter>
-        </form>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="user@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </CardContent>
+                <CardFooter className="flex flex-col gap-4">
+                    <Button type="submit" className="w-full" size="lg">
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Sign In
+                    </Button>
+                    <div className="text-center">
+                        <p className="text-xs text-muted-foreground">
+                        Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
+                        </p>
+                    </div>
+                    <Separator />
+                    <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                        Don't have an account?{' '}
+                        <Link href="/signup" className="font-semibold text-primary hover:underline">
+                            Sign Up
+                        </Link>
+                    </p>
+                    </div>
+              </CardFooter>
+            </form>
+        </Form>
       </Card>
     </div>
   );

@@ -8,7 +8,6 @@ import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,6 +16,7 @@ import { UserPlus } from 'lucide-react';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -71,55 +71,100 @@ export default function SignupPage() {
           <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
           <CardDescription>Join JobMatch AI to find your dream job or the perfect candidate.</CardDescription>
         </CardHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" placeholder="John Doe" {...form.register('fullName')} />
-              {form.formState.errors.fullName && <p className="text-xs text-destructive">{form.formState.errors.fullName.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="user@example.com" {...form.register('email')} />
-              {form.formState.errors.email && <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...form.register('password')} />
-              {form.formState.errors.password && <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>}
-            </div>
-            <div className="space-y-2">
-                 <Label>Account Type</Label>
-                 <RadioGroup
-                    onValueChange={(value) => form.setValue('role', value as 'user' | 'recruiter')}
-                    className="flex gap-4 pt-2"
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="user" id="role-user" />
-                        <Label htmlFor="role-user">Job Seeker</Label>
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="user@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Account Type</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="user" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Job Seeker
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="recruiter" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Recruiter
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                </CardContent>
+                <CardFooter className="flex flex-col gap-4">
+                    <Button type="submit" className="w-full" size="lg">
+                        <UserPlus className="mr-2 h-5 w-5" />
+                        Sign Up
+                    </Button>
+                    <Separator />
+                    <div className="text-center">
+                        <p className="text-sm text-muted-foreground">
+                            Already have an account?{' '}
+                            <Link href="/login" className="font-semibold text-primary hover:underline">
+                                Sign In
+                            </Link>
+                        </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="recruiter" id="role-recruiter" />
-                        <Label htmlFor="role-recruiter">Recruiter</Label>
-                    </div>
-                </RadioGroup>
-                {form.formState.errors.role && <p className="text-xs text-destructive pt-2">{form.formState.errors.role.message}</p>}
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" size="lg">
-              <UserPlus className="mr-2 h-5 w-5" />
-              Sign Up
-            </Button>
-            <Separator />
-             <p className="text-sm text-center text-muted-foreground">
-                Already have an account?{' '}
-                <Link href="/login" className="font-semibold text-primary hover:underline">
-                    Sign In
-                </Link>
-            </p>
-          </CardFooter>
-        </form>
+                </CardFooter>
+            </form>
+        </Form>
       </Card>
     </div>
   );
