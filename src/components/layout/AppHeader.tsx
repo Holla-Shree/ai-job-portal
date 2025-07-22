@@ -47,7 +47,7 @@ export function AppHeader() {
     
     // Admin has a super-focused view, only sees the Admin Panel link.
     if (user.role === 'admin') {
-        const adminItems = navItems.filter(item => item.href === '/dashboard/admin' || item.href === '/dashboard/map');
+        const adminItems = navItems.filter(item => item.href === '/dashboard/admin' || item.href === '/dashboard/map' || item.href === '/dashboard/messaging');
         return adminItems;
     }
     
@@ -157,7 +157,13 @@ export function AppHeader() {
                  <DropdownMenuItem asChild>
                   <Link href={getSettingsLink()}>
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                    <span>Profile Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/messaging/settings">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    <span>Message Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
