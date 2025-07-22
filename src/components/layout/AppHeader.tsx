@@ -39,7 +39,7 @@ export function AppHeader() {
 
   const handleLogout = () => {
     logout();
-    router.push('/');
+    window.location.href = '/';
   };
   
   const getVisibleNavItems = () => {
