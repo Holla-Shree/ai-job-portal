@@ -2,13 +2,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import withAuth from '@/components/withAuth';
 import { useNotifications, ApplicationNotification } from '@/contexts/NotificationContext';
 import { format } from 'date-fns';
-import { ArrowUpDown, ListChecks } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type SortKey = keyof ApplicationNotification;
@@ -62,6 +63,12 @@ function ApplicationHistoryPage() {
 
     return (
         <div className="container mx-auto py-8">
+            <Button asChild variant="ghost" className="mb-4">
+                <Link href="/dashboard/user">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Dashboard
+                </Link>
+            </Button>
             <Card className="shadow-xl">
                 <CardHeader>
                     <div className="flex items-center gap-3">
