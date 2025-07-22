@@ -226,11 +226,11 @@ function UserProfilePage() {
           </TabsList>
 
           <TabsContent value="profile">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
                    <UserProfileCard />
                 </div>
-                <div className="lg:col-span-2">
+                <div className="md:col-span-2">
                     <Card className="shadow-lg">
                         <CardHeader>
                           <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Upload & Analyze Resume</CardTitle>
