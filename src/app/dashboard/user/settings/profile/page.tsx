@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -18,6 +18,7 @@ import withAuth from '@/components/withAuth';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useRouter } from 'next/navigation';
 
 const resumeUploadSchema = z.object({
   resumeFile: z.custom<FileList>().refine(files => files && files.length > 0, "Resume file is required."),
@@ -34,7 +35,8 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0];
 
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification } = useNotifications();
+    const { addNotification, initiateConversation } = useNotifications();
+    const router = useRouter();
 
     const handleApply = () => {
         addNotification(job.title, job.company);
@@ -43,6 +45,15 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             description: `Your application for the ${job.title} role at ${job.company} has been sent. The recruiter will be notified.`,
         });
     };
+
+    const handleMessageRecruiter = () => {
+        const conversationId = initiateConversation({
+            jobTitle: job.title,
+            company: job.company,
+            partnerName: `Recruiter @ ${job.company}`
+        });
+        router.push(`/dashboard/messaging?open=${conversationId}`);
+    }
     
     return (
         <Card className="shadow-lg">
@@ -61,8 +72,11 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                     </div>
                 </ScrollArea>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
             </CardFooter>
         </Card>
     )
@@ -98,11 +112,11 @@ function UserProfilePage() {
             const result = await analyzeResume({ resumeDataUri });
             setResumeAnalysis(result);
             // Populate resume text for job recommendations with the anonymized summary and details
-            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n');
-            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n');
-            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n');
+            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n');
+            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n');
+            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n');
 
-            const fullText = `Summary: ${result.anonymizedSummary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience:\n${experienceText || 'N/A'}\n\nEducation:\n${educationText || 'N/A'}\n\nProjects:\n${projectsText || 'N/A'}\n\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
+            const fullText = `Summary: ${result.anonymizedSummary}\\n\\nSkills: ${result.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${experienceText || 'N/A'}\\n\\nEducation:\\n${educationText || 'N/A'}\\n\\nProjects:\\n${projectsText || 'N/A'}\\n\\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
             
             jobForm.setValue('resumeText', fullText);
             toast({ title: "Resume Analyzed", description: "Your anonymized profile has been created." });

@@ -1,6 +1,7 @@
 
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,20 @@ interface Conversation {
   timestamp: number;
 }
 
+const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
+
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
+    // Try to load from local storage first
+    try {
+        const stored = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("Could not parse conversations from local storage", e);
+    }
+    
+    // Fallback to default mock data if nothing in storage
     if (role === 'user') {
       return [
         {
@@ -159,6 +173,7 @@ function MessagingPage() {
     const { toast } = useToast();
     const { notifications, markAsRead } = useNotifications();
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    const searchParams = useSearchParams();
     
     useEffect(() => {
         const mockConvos = getMockConversations(user?.role || 'user');
@@ -202,6 +217,23 @@ function MessagingPage() {
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
     
+    useEffect(() => {
+        const openConversationId = searchParams.get('open');
+        if (openConversationId) {
+            const conversationToOpen = conversations.find(c => c.id === openConversationId);
+            if (conversationToOpen) {
+                setSelectedConversation(conversationToOpen);
+            }
+        }
+    }, [searchParams, conversations]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+        } catch (e) {
+            console.error("Could not save conversations to local storage", e);
+        }
+    }, [conversations]);
 
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
@@ -369,7 +401,7 @@ function MessagingPage() {
         const remainingConversations = conversations.filter(c => !selectedConversations.includes(c.id));
         setConversations(remainingConversations);
         if (selectedConversations.includes(selectedConversation?.id || '')) {
-            setSelectedConversation(remainingConversations[0] || null);
+            setSelectedConversation(null);
         }
         toast({ title: `${selectedConversations.length} conversation(s) deleted` });
         setIsConvSelectionMode(false);
@@ -807,4 +839,12 @@ function MessagingPage() {
   );
 }
 
-export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
+function MessagingPageWrapper() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <MessagingPage />
+        </React.Suspense>
+    )
+}
+
+export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);

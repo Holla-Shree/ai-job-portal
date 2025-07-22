@@ -13,15 +13,23 @@ export interface ApplicationNotification {
   read: boolean;
 }
 
+interface ConversationStub {
+    jobTitle: string;
+    company: string;
+    partnerName: string;
+}
+
 interface NotificationContextType {
   notifications: ApplicationNotification[];
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
+  initiateConversation: (stub: ConversationStub) => string;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
+const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations'; // Using a different key for messaging
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
@@ -60,8 +68,40 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     );
   };
 
+  const initiateConversation = (stub: ConversationStub): string => {
+    const existingConversationsStr = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+    const existingConversations = existingConversationsStr ? JSON.parse(existingConversationsStr) : [];
+    
+    // Check if a conversation for this job already exists
+    const existingConvo = existingConversations.find((c: any) => c.jobTitle === stub.jobTitle && c.partnerName === stub.partnerName);
+    if(existingConvo) {
+        return existingConvo.id;
+    }
+
+    const newConversation = {
+      id: `conv-${Date.now()}`,
+      partnerName: stub.partnerName,
+      partnerRole: 'Recruiter',
+      jobTitle: stub.jobTitle,
+      lastMessage: 'I have a question about this role.',
+      avatar: stub.partnerName.charAt(0).toUpperCase(),
+      messages: [
+        { id: `msg-${Date.now()}`, sender: 'me', text: `Hi, I'd like to ask a question about the ${stub.jobTitle} position.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+      ],
+      pinned: false,
+      favourited: false,
+      unread: false,
+      timestamp: Date.now(),
+    };
+
+    const updatedConversations = [newConversation, ...existingConversations];
+    localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(updatedConversations));
+
+    return newConversation.id;
+  }
+
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation }}>
       {children}
     </NotificationContext.Provider>
   );

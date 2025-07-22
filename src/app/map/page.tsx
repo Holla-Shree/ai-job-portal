@@ -5,7 +5,7 @@ import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft } from 'lucide-react';
+import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import GoogleMapsProvider from '@/components/GoogleMapsProvider';
@@ -35,7 +35,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
-    const { addNotification } = useNotifications();
+    const { addNotification, initiateConversation } = useNotifications();
 
 
     const handleApply = () => {
@@ -54,6 +54,24 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
         });
     };
+
+    const handleMessageRecruiter = () => {
+         if (!user) {
+            toast({
+                title: "Authentication Required",
+                description: "Please log in or sign up to message recruiters.",
+                variant: "destructive"
+            });
+            router.push('/login');
+            return;
+        }
+        const conversationId = initiateConversation({
+            jobTitle: job.title,
+            company: job.company,
+            partnerName: `Recruiter @ ${job.company}`
+        });
+        router.push(`/dashboard/messaging?open=${conversationId}`);
+    }
     
     return (
         <div className="h-full flex flex-col">
@@ -101,8 +119,11 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                     </div>
                 </div>
             </ScrollArea>
-             <div className="p-4 border-t mt-auto">
+             <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
             </div>
         </div>
     )

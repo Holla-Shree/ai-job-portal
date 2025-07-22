@@ -5,7 +5,7 @@ import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft } from 'lucide-react';
+import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import GoogleMapsProvider from '@/components/GoogleMapsProvider';
@@ -16,6 +16,9 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+
 
 const mockJobs = [
   { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
@@ -30,15 +33,36 @@ type Job = typeof mockJobs[0];
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification } = useNotifications();
+    const { addNotification, initiateConversation } = useNotifications();
+    const { user } = useAuth();
+    const router = useRouter();
 
     const handleApply = () => {
+        if (!user) {
+            router.push('/login?redirect=/dashboard/map');
+            toast({ title: 'Please log in to apply', variant: 'destructive' });
+            return;
+        }
         addNotification(job.title, job.company);
         toast({
             title: "Application Submitted!",
             description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
         });
     };
+
+    const handleMessageRecruiter = () => {
+         if (!user) {
+            router.push('/login?redirect=/dashboard/map');
+            toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
+            return;
+        }
+        const conversationId = initiateConversation({
+            jobTitle: job.title,
+            company: job.company,
+            partnerName: `Recruiter @ ${job.company}`
+        });
+        router.push(`/dashboard/messaging?open=${conversationId}`);
+    }
     
     return (
         <div className="h-full flex flex-col">
@@ -86,8 +110,11 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                     </div>
                 </div>
             </ScrollArea>
-             <div className="p-4 border-t mt-auto">
+             <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+                <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
             </div>
         </div>
     )
