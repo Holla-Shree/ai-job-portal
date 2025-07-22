@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import withAuth from '@/components/withAuth';
 
 const chatInputSchema = z.object({
   jobDescription: z.string().min(10, "Job description is required to get suggestions."),
@@ -94,7 +95,7 @@ const AnalysisComponent = ({ score, analysis, suggestedImprovements, relevantCou
 );
 
 
-export default function ChatbotPage() {
+function ChatbotPage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,9 +149,9 @@ export default function ChatbotPage() {
     const activeSession = sessions.find(s => s.id === activeSessionId);
     if (activeSession) {
       form.setValue('jobDescription', activeSession.jobDescription);
-      const lastQuestion = activeSession.messages.findLast(m => m.type === 'question')?.content as string;
-      if (lastQuestion) {
-        form.setValue('interviewQuestion', lastQuestion);
+      // Don't pre-fill the question unless we want to resume an interrupted question
+      if(activeSession.messages.length === 0) {
+        form.reset({ jobDescription: activeSession.jobDescription, interviewQuestion: '', userAnswer: '' });
       }
     } else {
       form.reset({ jobDescription: '', interviewQuestion: '', userAnswer: '' });
@@ -159,6 +160,8 @@ export default function ChatbotPage() {
   
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const chatHistory = activeSession ? activeSession.messages : [];
+  const isSessionActive = chatHistory.length > 0;
+
 
   const handleNewSession = () => {
     const newSession: ChatSession = {
@@ -178,7 +181,8 @@ export default function ChatbotPage() {
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (activeSessionId === sessionId) {
         const remainingSessions = sessions.filter(s => s.id !== sessionId);
-        setActiveSessionId(remainingSessions.length > 0 ? remainingSessions[0].id : null);
+        const sorted = remainingSessions.sort((a,b) => b.timestamp - a.timestamp);
+        setActiveSessionId(sorted.length > 0 ? sorted[0].id : null);
     }
     toast({ title: "Session Deleted" });
   };
@@ -213,7 +217,11 @@ export default function ChatbotPage() {
       const botMessage: AnalysisMessage = { id: `bot-${Date.now()}`, sender: 'bot', content: result, type: 'analysis' };
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: [...s.messages, botMessage] } : s));
       toast({ title: "Feedback Received", description: "AI has analyzed your answer." });
-      form.setValue('userAnswer', '');
+      form.reset({
+        ...form.getValues(),
+        interviewQuestion: '',
+        userAnswer: ''
+      });
     } catch (error) {
       console.error("Chatbot error:", error);
       const errorMessage: TextMessage = { id: `err-${Date.now()}`, sender: 'system', content: "Sorry, I encountered an error. Please try again.", type: 'error' };
@@ -368,61 +376,63 @@ export default function ChatbotPage() {
                     </div>
                 </CardHeader>
                 
-                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-                {chatHistory.length === 0 && !isLoading && (
-                    <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground">
-                        <MessageSquare className="w-16 h-16 mb-4" />
-                        <p>Welcome to your AI Interview Coach!</p>
-                        <p className="text-sm">Start a new session or select one from the history.</p>
+                <ScrollArea className="flex-1">
+                    <div className="p-6 space-y-4">
+                        {chatHistory.length === 0 && !isLoading && (
+                            <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground pt-16">
+                                <MessageSquare className="w-16 h-16 mb-4" />
+                                <p>Welcome to your AI Interview Coach!</p>
+                                <p className="text-sm">Start by entering a job description below to begin.</p>
+                            </div>
+                        )}
+                        {chatHistory.map((msg) => (
+                            <div key={msg.id} className={cn("flex items-end gap-2", 
+                                msg.sender === 'user' ? 'justify-end' : 
+                                msg.sender === 'system' ? 'justify-center w-full' :
+                                'justify-start'
+                            )}>
+                            {msg.sender === 'bot' && (
+                                <Avatar className="h-8 w-8">
+                                <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                                <AvatarFallback>AI</AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className={cn('max-w-[70%] p-3 rounded-xl text-sm', {
+                                'bg-primary text-primary-foreground rounded-br-none': msg.sender === 'user',
+                                'bg-muted text-muted-foreground rounded-bl-none': msg.sender === 'bot',
+                                'bg-transparent text-muted-foreground w-full': msg.sender === 'system',
+                            })}>
+                                {renderMessageContent(msg)}
+                            </div>
+                            {msg.sender === 'user' && (
+                                <Avatar className="h-8 w-8">
+                                <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
+                                <AvatarFallback>U</AvatarFallback>
+                                </Avatar>
+                            )}
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex items-end gap-2 justify-start">
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
+                                <AvatarFallback>AI</AvatarFallback>
+                            </Avatar>
+                            <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
                     </div>
-                )}
-                {chatHistory.map((msg) => (
-                    <div key={msg.id} className={cn("flex items-end gap-2", 
-                        msg.sender === 'user' ? 'justify-end' : 
-                        msg.sender === 'system' ? 'justify-center w-full' :
-                        'justify-start'
-                    )}>
-                    {msg.sender === 'bot' && (
-                        <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                        <AvatarFallback>AI</AvatarFallback>
-                        </Avatar>
-                    )}
-                    <div className={cn('max-w-[70%] p-3 rounded-xl text-sm', {
-                        'bg-primary text-primary-foreground rounded-br-none': msg.sender === 'user',
-                        'bg-muted text-muted-foreground rounded-bl-none': msg.sender === 'bot',
-                        'bg-transparent text-muted-foreground w-full': msg.sender === 'system',
-                    })}>
-                        {renderMessageContent(msg)}
-                    </div>
-                    {msg.sender === 'user' && (
-                        <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                        <AvatarFallback>U</AvatarFallback>
-                        </Avatar>
-                    )}
-                    </div>
-                ))}
-                {isLoading && (
-                    <div className="flex items-end gap-2 justify-start">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Coach" data-ai-hint="robot avatar" />
-                        <AvatarFallback>AI</AvatarFallback>
-                    </Avatar>
-                    <div className="max-w-[70%] p-3 rounded-lg bg-muted text-muted-foreground rounded-bl-none">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                    </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-                </div>
+                </ScrollArea>
 
                 <CardFooter className="border-t p-0 mt-auto">
                 <form onSubmit={form.handleSubmit(handleChatSubmit)} className="w-full">
                     <div className="p-4 space-y-3 bg-muted/50">
                         <div>
                             <Label htmlFor="jobDescription" className="text-xs font-medium">Job Description</Label>
-                            <Textarea id="jobDescription" {...form.register("jobDescription")} placeholder="Paste the job description here..." rows={2} className="mt-1 text-sm bg-background" disabled={!activeSessionId} />
+                            <Textarea id="jobDescription" {...form.register("jobDescription")} placeholder="Paste the job description here to start a session..." rows={2} className="mt-1 text-sm bg-background" disabled={!activeSessionId || isSessionActive} />
                             {form.formState.errors.jobDescription && <p className="text-xs text-destructive mt-1">{form.formState.errors.jobDescription.message}</p>}
                         </div>
                         <div>
@@ -470,14 +480,18 @@ export default function ChatbotPage() {
                     <Textarea
                         id="userAnswer"
                         {...form.register("userAnswer")}
-                        placeholder="Type your answer here..."
+                        placeholder={!isSessionActive ? "Enter a job description to begin..." : "Type your answer here..."}
                         rows={1}
                         className="flex-1 resize-none text-sm bg-background"
-                        disabled={isLoading || !activeSessionId}
+                        disabled={isLoading || !activeSessionId || !isSessionActive}
                         onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            form.handleSubmit(handleChatSubmit)();
+                            if(form.formState.isValid) {
+                                form.handleSubmit(handleChatSubmit)();
+                            } else {
+                                form.trigger();
+                            }
                         }
                         }}
                     />
@@ -495,3 +509,5 @@ export default function ChatbotPage() {
     </div>
   );
 }
+
+export default withAuth(ChatbotPage, ['user', 'admin']);
