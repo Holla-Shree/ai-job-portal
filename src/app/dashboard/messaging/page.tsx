@@ -38,6 +38,7 @@ interface Conversation {
   pinned: boolean;
   favourited: boolean;
   unread: boolean;
+  archived: boolean;
   timestamp: number;
 }
 
@@ -73,6 +74,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: true,
           favourited: true,
           unread: false,
+          archived: false,
           timestamp: Date.now() - 1000 * 60 * 5,
         },
         {
@@ -89,7 +91,24 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: false,
           favourited: false,
           unread: true,
+          archived: false,
           timestamp: Date.now() - 1000 * 60 * 60 * 24,
+        },
+         {
+          id: 'conv-archived',
+          partnerName: 'Old Recruiter',
+          partnerRole: 'Recruiter',
+          jobTitle: 'Job That Expired',
+          lastMessage: 'This position has been filled.',
+          avatar: 'OR',
+          messages: [
+            { id: 'msg1', sender: 'other', text: 'This position has been filled.', timestamp: '2 months ago' },
+          ],
+          pinned: false,
+          favourited: false,
+          unread: false,
+          archived: true,
+          timestamp: Date.now() - 1000 * 60 * 60 * 24 * 60,
         },
       ];
     }
@@ -110,6 +129,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: true,
         unread: false,
+        archived: false,
         timestamp: Date.now() - 1000 * 60 * 10,
       },
       {
@@ -128,6 +148,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        archived: false,
         timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
       },
       {
@@ -144,6 +165,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: true,
+        archived: false,
         timestamp: Date.now() - 1000 * 60 * 60 * 23,
       },
       {
@@ -162,7 +184,24 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        archived: false,
         timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
+      },
+      {
+        id: 'conv-archived-recruiter',
+        partnerName: 'Past Candidate',
+        partnerRole: 'Candidate',
+        jobTitle: 'Role from Last Quarter',
+        lastMessage: 'I have accepted another offer.',
+        avatar: 'PC',
+        messages: [
+            { id: 'msg1', sender: 'other', text: 'Thank you for the consideration, but I have accepted another offer.', timestamp: '3 months ago' },
+        ],
+        pinned: false,
+        favourited: false,
+        unread: false,
+        archived: true,
+        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 90,
       }
     ];
 };
@@ -192,6 +231,7 @@ function MessagingPage() {
                 pinned: true,
                 favourited: false,
                 unread: !notif.read,
+                archived: false,
                 timestamp: notif.timestamp,
             } as Conversation));
 
@@ -215,7 +255,7 @@ function MessagingPage() {
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
     const [isConvSelectionMode, setIsConvSelectionMode] = useState(false);
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
-    const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
+    const [filter, setFilter] = useState<'all' | 'unread' | 'favorites' | 'archived'>('all');
     
     useEffect(() => {
         const openConversationId = searchParams.get('open');
@@ -238,9 +278,13 @@ function MessagingPage() {
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
         if (filter === 'unread') {
-            convos = convos.filter(c => c.unread);
+            convos = convos.filter(c => c.unread && !c.archived);
         } else if (filter === 'favorites') {
-            convos = convos.filter(c => c.favourited);
+            convos = convos.filter(c => c.favourited && !c.archived);
+        } else if (filter === 'archived') {
+            convos = convos.filter(c => c.archived);
+        } else { // 'all'
+            convos = convos.filter(c => !c.archived);
         }
 
         return convos.sort((a, b) => {
@@ -359,6 +403,20 @@ function MessagingPage() {
         }
         toast({ title: `Conversation ${isFavourited ? 'removed from' : 'added to'} favourites`});
     };
+
+    const handleToggleArchive = (convo: Conversation | null) => {
+        if (!convo) return;
+        const isArchived = convo.archived;
+        const updatedConversations = conversations.map(c =>
+            c.id === convo.id ? { ...c, archived: !isArchived } : c
+        );
+        setConversations(updatedConversations);
+
+        if (selectedConversation?.id === convo.id) {
+            setSelectedConversation(null); // Deselect conversation when it's archived/unarchived
+        }
+        toast({ title: `Conversation ${isArchived ? 'unarchived' : 'archived'}` });
+    };
     
     const handleGenericAction = (action: string) => {
         toast({ title: `${action}!`, description: `This is a demo. The ${action.toLowerCase()} action has been simulated.` });
@@ -432,9 +490,9 @@ function MessagingPage() {
                         {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                         <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleGenericAction('Archived')}>
+                    <ContextMenuItem onClick={() => handleToggleArchive(convo)}>
                         <Archive className="mr-2 h-4 w-4" />
-                        <span>Archive Chat</span>
+                        <span>{convo.archived ? 'Unarchive Chat' : 'Archive Chat'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleGenericAction('Muted')}>
                         <BellOff className="mr-2 h-4 w-4" />
@@ -586,10 +644,11 @@ function MessagingPage() {
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search..." className="pl-8" />
                 </div>
-                 <div className="flex items-center gap-2 mt-4">
-                    <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('all')}>All</Button>
-                    <Button variant={filter === 'unread' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('unread')}>Unread</Button>
-                    <Button variant={filter === 'favorites' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('favorites')}>Favorites</Button>
+                 <div className="grid grid-cols-4 items-center gap-1 mt-4 text-sm">
+                    <Button variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" className="flex-1" onClick={() => setFilter('all')}>All</Button>
+                    <Button variant={filter === 'unread' ? 'secondary' : 'ghost'} size="sm" className="flex-1" onClick={() => setFilter('unread')}>Unread</Button>
+                    <Button variant={filter === 'favorites' ? 'secondary' : 'ghost'} size="sm" className="flex-1" onClick={() => setFilter('favorites')}>Favorites</Button>
+                    <Button variant={filter === 'archived' ? 'secondary' : 'ghost'} size="sm" className="flex-1" onClick={() => setFilter('archived')}>Archived</Button>
                 </div>
             </CardHeader>
             <CardContent className="p-0 flex-1">
@@ -704,9 +763,9 @@ function MessagingPage() {
                                         {selectedConversation.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                         <span>{selectedConversation.pinned ? 'Unpin' : 'Pin'} Chat</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenericAction('Archived')}>
+                                    <DropdownMenuItem onClick={() => handleToggleArchive(selectedConversation)}>
                                         <Archive className="mr-2 h-4 w-4" />
-                                        <span>Archive Chat</span>
+                                        <span>{selectedConversation.archived ? 'Unarchive Chat' : 'Archive Chat'}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleGenericAction('Muted')}>
                                         <BellOff className="mr-2 h-4 w-4" />
