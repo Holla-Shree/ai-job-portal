@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Archive, Ban, Heart, Mail } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Archive, Ban, Heart } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ interface Conversation {
   avatar: string;
   messages: Message[];
   pinned: boolean;
+  favourited: boolean;
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -51,6 +52,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
             { id: 'msg4', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
           ],
           pinned: true,
+          favourited: true,
         },
         {
           id: 'conv2',
@@ -64,6 +66,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
             { id: 'msg2', sender: 'me', text: 'Sure, I will share it shortly.', timestamp: 'Yesterday' },
           ],
           pinned: false,
+          favourited: false,
         },
       ];
     }
@@ -79,6 +82,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
             { id: 'msg1', sender: 'system', text: 'A new candidate, Priya Patel, has applied for the Senior Backend Engineer position. You can view their profile in the talent pool.', timestamp: 'Just now' },
         ],
         pinned: true,
+        favourited: false,
       },
       {
         id: 'conv1',
@@ -94,6 +98,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
         ],
         pinned: false,
+        favourited: true,
       },
       {
         id: 'conv4',
@@ -109,6 +114,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg4', sender: 'other', text: 'Thanks for the opportunity!', timestamp: '2 days ago' },
         ],
         pinned: false,
+        favourited: false,
       },
       {
         id: 'conv2',
@@ -122,6 +128,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
         ],
         pinned: false,
+        favourited: false,
       },
       {
         id: 'conv3',
@@ -137,6 +144,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg4', sender: 'other', text: 'Perfect, looking forward to it.', timestamp: '2 days ago' },
         ],
         pinned: false,
+        favourited: false,
       }
     ];
 };
@@ -247,6 +255,19 @@ function MessagingPage() {
         }
         toast({ title: `Conversation ${isPinned ? 'unpinned' : 'pinned'}`});
     };
+
+    const handleToggleFavourite = (convo: Conversation | null) => {
+        if (!convo) return;
+        const isFavourited = convo.favourited;
+        const updatedConversations = conversations.map(c => 
+            c.id === convo.id ? { ...c, favourited: !isFavourited } : c
+        );
+        setConversations(updatedConversations);
+        if (selectedConversation?.id === convo.id) {
+            setSelectedConversation(prev => prev ? { ...prev, favourited: !isFavourited } : null);
+        }
+        toast({ title: `Conversation ${isFavourited ? 'removed from' : 'added to'} favourites`});
+    };
     
     const handleGenericAction = (action: string) => {
         toast({ title: `${action}!`, description: `This is a demo. The ${action.toLowerCase()} action has been simulated.` });
@@ -318,7 +339,7 @@ function MessagingPage() {
                 <>
                     <ContextMenuItem onClick={() => handleTogglePin(convo)}>
                         {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
-                        <span>{convo.pinned ? 'Unpin' : 'Pin'} Chat</span>
+                        <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleGenericAction('Archived')}>
                         <Archive className="mr-2 h-4 w-4" />
@@ -332,9 +353,9 @@ function MessagingPage() {
                         <Mail className="mr-2 h-4 w-4" />
                         <span>Mark as unread</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleGenericAction('Favourited')}>
-                        <Heart className="mr-2 h-4 w-4" />
-                        <span>Add to favourites</span>
+                    <ContextMenuItem onClick={() => handleToggleFavourite(convo)}>
+                        <Heart className={cn("mr-2 h-4 w-4", convo.favourited && "fill-current text-red-500")} />
+                        <span>{convo.favourited ? 'Remove from Favourites' : 'Add to Favourites'}</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}}>
@@ -380,9 +401,9 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
         {/* Conversations List */}
-        <Card className="md:col-span-1 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
                 {!isConvSelectionMode ? (
                     <div className="flex justify-between items-center">
@@ -474,7 +495,10 @@ function MessagingPage() {
                                     <div className="flex-1 truncate">
                                         <div className="flex justify-between items-center">
                                             <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
-                                            {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                                            <div className="flex items-center gap-1.5">
+                                                {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
+                                                {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                                            </div>
                                         </div>
                                         <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                         <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
@@ -490,7 +514,7 @@ function MessagingPage() {
         </Card>
 
         {/* Active Chat Window */}
-        <Card className="md:col-span-2 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-2 lg:col-span-2 shadow-xl flex flex-col h-full">
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
@@ -563,9 +587,9 @@ function MessagingPage() {
                                         <Mail className="mr-2 h-4 w-4" />
                                         <span>Mark as unread</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenericAction('Favourited')}>
-                                        <Heart className="mr-2 h-4 w-4" />
-                                        <span>Add to favourites</span>
+                                    <DropdownMenuItem onClick={() => handleToggleFavourite(selectedConversation)}>
+                                        <Heart className={cn("mr-2 h-4 w-4", selectedConversation.favourited && "fill-current text-red-500")} />
+                                        <span>{selectedConversation.favourited ? 'Remove from Favourites' : 'Add to Favourites'}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]);}}>
@@ -683,3 +707,4 @@ export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
 
     
     
+
