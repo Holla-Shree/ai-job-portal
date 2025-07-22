@@ -460,6 +460,16 @@ function MessagingPage() {
         </ContextMenuContent>
     );
 
+    const getPlaceholderText = () => {
+        if (user?.role === 'user') {
+            return "Choose a conversation from the left panel to view messages and connect with recruiters.";
+        }
+        if (user?.role === 'recruiter') {
+            return "Choose a conversation from the left panel to view messages and connect with candidates.";
+        }
+        return "Choose a conversation from the left panel to view messages and connect with candidates or recruiters.";
+    }
+
 
   return (
     <div className="container mx-auto py-8">
@@ -788,7 +798,7 @@ function MessagingPage() {
                 <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground p-8">
                     <MessageSquare className="w-16 h-16 mb-4" />
                     <h3 className="text-xl font-semibold">Select a conversation</h3>
-                    <p className="max-w-xs">Choose a conversation from the left panel to view messages and connect with candidates or recruiters.</p>
+                    <p className="max-w-xs">{getPlaceholderText()}</p>
                 </div>
             )}
         </Card>
