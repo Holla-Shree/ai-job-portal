@@ -16,6 +16,9 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const mockJobs = [
   { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
@@ -30,8 +33,22 @@ type Job = typeof mockJobs[0];
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
+    const { user } = useAuth();
+    const router = useRouter();
+    const { addNotification } = useNotifications();
+
 
     const handleApply = () => {
+        if (!user) {
+            toast({
+                title: "Authentication Required",
+                description: "Please log in or sign up to apply for jobs.",
+                variant: "destructive"
+            });
+            router.push('/login');
+            return;
+        }
+        addNotification(job.title, job.company);
         toast({
             title: "Application Submitted!",
             description: `Your application for the ${job.title} role at ${job.company} has been sent.`,

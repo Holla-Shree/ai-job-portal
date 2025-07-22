@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import withAuth from '@/components/withAuth';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const resumeUploadSchema = z.object({
   resumeFile: z.custom<FileList>().refine(files => files && files.length > 0, "Resume file is required."),
@@ -33,11 +34,13 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0];
 
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
+    const { addNotification } = useNotifications();
 
     const handleApply = () => {
+        addNotification(job.title, job.company);
         toast({
             title: "Application Submitted!",
-            description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
+            description: `Your application for the ${job.title} role at ${job.company} has been sent. The recruiter will be notified.`,
         });
     };
     

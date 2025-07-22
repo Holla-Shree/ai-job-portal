@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Message {
   id: string;
@@ -35,6 +37,7 @@ interface Conversation {
   pinned: boolean;
   favourited: boolean;
   unread: boolean;
+  timestamp: number;
 }
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -56,6 +59,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: true,
           favourited: true,
           unread: false,
+          timestamp: Date.now() - 1000 * 60 * 5,
         },
         {
           id: 'conv2',
@@ -71,24 +75,11 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: false,
           favourited: false,
           unread: true,
+          timestamp: Date.now() - 1000 * 60 * 60 * 24,
         },
       ];
     }
     return [
-      {
-        id: 'conv-notif1',
-        partnerName: 'System Notification',
-        partnerRole: 'System',
-        jobTitle: 'Senior Backend Engineer',
-        lastMessage: 'A new candidate, Priya Patel, has applied for the Senior Backend Engineer position.',
-        avatar: 'Bell',
-        messages: [
-            { id: 'msg1', sender: 'system', text: 'A new candidate, Priya Patel, has applied for the Senior Backend Engineer position. You can view their profile in the talent pool.', timestamp: 'Just now' },
-        ],
-        pinned: true,
-        favourited: false,
-        unread: true,
-      },
       {
         id: 'conv1',
         partnerName: 'Priya Patel',
@@ -105,6 +96,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: true,
         unread: false,
+        timestamp: Date.now() - 1000 * 60 * 10,
       },
       {
         id: 'conv4',
@@ -122,6 +114,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
       },
       {
         id: 'conv2',
@@ -137,6 +130,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: true,
+        timestamp: Date.now() - 1000 * 60 * 60 * 23,
       },
       {
         id: 'conv3',
@@ -154,6 +148,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
       }
     ];
 };
@@ -162,14 +157,60 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
 function MessagingPage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [conversations, setConversations] = useState<Conversation[]>(getMockConversations(user?.role || 'user'));
-    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(conversations.find(c => c.pinned) || conversations[0] || null);
+    const { notifications, markAsRead } = useNotifications();
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    
+    useEffect(() => {
+        const mockConvos = getMockConversations(user?.role || 'user');
+
+        if (user?.role === 'recruiter' || user?.role === 'admin') {
+            const newNotifConvos = notifications.map(notif => ({
+                id: notif.id,
+                partnerName: 'System Notification',
+                partnerRole: 'System',
+                jobTitle: notif.jobTitle,
+                lastMessage: `New application from ${notif.candidateName}.`,
+                avatar: 'Bell',
+                messages: [
+                    { id: `msg-${notif.id}`, sender: 'system', text: `A new candidate, ${notif.candidateName}, has applied for the ${notif.jobTitle} position at ${notif.company}. You can view their profile in the talent pool.`, timestamp: formatDistanceToNow(notif.timestamp) + ' ago' },
+                ],
+                pinned: true,
+                favourited: false,
+                unread: !notif.read,
+                timestamp: notif.timestamp,
+            } as Conversation));
+
+            // Combine and remove duplicates
+            const combined = [...newNotifConvos, ...mockConvos];
+            const uniqueConvos = combined.filter((convo, index, self) =>
+                index === self.findIndex((c) => c.id === convo.id)
+            );
+
+            setConversations(uniqueConvos);
+        } else {
+            setConversations(mockConvos);
+        }
+
+    }, [notifications, user?.role]);
+
+
+    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
     const [isConvSelectionMode, setIsConvSelectionMode] = useState(false);
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
+    
+    useEffect(() => {
+        // Automatically select the first conversation if none is selected
+        if (!selectedConversation && conversations.length > 0) {
+            const sorted = [...conversations].sort((a,b) => b.timestamp - a.timestamp);
+            setSelectedConversation(sorted[0]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversations]);
+
 
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
@@ -182,7 +223,7 @@ function MessagingPage() {
         return convos.sort((a, b) => {
             if (a.pinned && !b.pinned) return -1;
             if (!a.pinned && b.pinned) return 1;
-            return 0; // In a real app, you'd sort by last message timestamp here
+            return b.timestamp - a.timestamp;
         });
     }, [conversations, filter]);
     
@@ -211,6 +252,9 @@ function MessagingPage() {
             setSelectedConversation(conversation);
             if (conversation.unread) {
                  setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread: false } : c));
+                 if (conversation.partnerRole === 'System') {
+                    markAsRead(conversation.id);
+                 }
             }
         }
     };
@@ -225,17 +269,19 @@ function MessagingPage() {
             text: messageInput,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
+        
+        const newTimestamp = Date.now();
 
         const updatedConversations = conversations.map(c => {
             if (c.id === selectedConversation.id) {
                 const updatedMessages = [...c.messages, newMessage];
-                return { ...c, messages: updatedMessages, lastMessage: newMessage.text };
+                return { ...c, messages: updatedMessages, lastMessage: newMessage.text, timestamp: newTimestamp };
             }
             return c;
         });
 
         setConversations(updatedConversations);
-        setSelectedConversation(prev => prev ? { ...prev, messages: [...prev.messages, newMessage] } : null);
+        setSelectedConversation(prev => prev ? { ...prev, messages: [...prev.messages, newMessage], timestamp: newTimestamp } : null);
         setMessageInput('');
     };
 
@@ -426,7 +472,7 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* Conversations List */}
         <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
@@ -541,7 +587,7 @@ function MessagingPage() {
                                     {renderAvatar(convo)}
                                     <div className="flex-1 truncate">
                                         <div className="flex justify-between items-center">
-                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "text-primary-foreground")}>{convo.partnerName}</p>
+                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
                                             <div className="flex items-center gap-1.5">
                                                 {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
                                                 {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
@@ -564,7 +610,7 @@ function MessagingPage() {
         </Card>
 
         {/* Active Chat Window */}
-        <Card className="md:col-span-2 lg:col-span-2 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-2 lg:col-span-3 shadow-xl flex flex-col h-full">
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
@@ -761,5 +807,3 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
-
-    
