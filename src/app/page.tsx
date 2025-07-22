@@ -26,8 +26,8 @@ const features = [
     icon: <UploadCloud className="h-10 w-10 text-primary" />,
     title: "Smart Resume Parsing",
     description: "Upload your resume and let our AI extract key information to build your profile instantly.",
-    link: "/login",
-    linkText: "Upload Resume"
+    link: "/signup",
+    linkText: "Sign Up & Upload"
   },
   {
     icon: <MessageCircle className="h-10 w-10 text-primary" />,
@@ -93,10 +93,10 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="shadow-lg hover:shadow-primary/50 transition-shadow">
-                  <Link href="/login">I'm a Job Seeker</Link>
+                  <Link href="/signup">Get Started</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="shadow-lg hover:shadow-accent/50 transition-shadow">
-                  <Link href="/login">I'm a Recruiter</Link>
+                  <Link href="/login">Sign In</Link>
                 </Button>
               </div>
             </div>

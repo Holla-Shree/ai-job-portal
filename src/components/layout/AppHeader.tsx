@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings, Map as MapIcon } from 'lucide-react';
+import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings, Map as MapIcon, UserPlus } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -174,19 +174,25 @@ export function AppHeader() {
             </DropdownMenu>
           ) : (
             <>
-             <Button asChild variant="ghost" size="sm">
-              <Link href="/map">
-                <MapIcon className="mr-2 h-4 w-4"/>
-                Job Map
-              </Link>
-            </Button>
-            <Separator orientation="vertical" className="h-6" />
-            <Button asChild size="sm">
-              <Link href="/login">
-                <LogIn className="mr-2 h-4 w-4"/>
-                Sign In
-              </Link>
-            </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/map">
+                  <MapIcon className="mr-2 h-4 w-4"/>
+                  Job Map
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4"/>
+                  Sign In
+                </Link>
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <Button asChild size="sm">
+                <Link href="/signup">
+                   <UserPlus className="mr-2 h-4 w-4"/>
+                   Sign Up
+                </Link>
+              </Button>
             </>
           )}
         </div>
