@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Message {
@@ -234,14 +235,16 @@ function MessagingPage() {
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
-    const handleTogglePin = () => {
-        if (!selectedConversation) return;
-        const isPinned = selectedConversation.pinned;
+    const handleTogglePin = (convo: Conversation | null) => {
+        if (!convo) return;
+        const isPinned = convo.pinned;
         const updatedConversations = conversations.map(c => 
-            c.id === selectedConversation.id ? { ...c, pinned: !isPinned } : c
+            c.id === convo.id ? { ...c, pinned: !isPinned } : c
         );
         setConversations(updatedConversations);
-        setSelectedConversation(prev => prev ? { ...prev, pinned: !isPinned } : null);
+        if (selectedConversation?.id === convo.id) {
+            setSelectedConversation(prev => prev ? { ...prev, pinned: !isPinned } : null);
+        }
         toast({ title: `Conversation ${isPinned ? 'unpinned' : 'pinned'}`});
     };
     
@@ -308,6 +311,71 @@ function MessagingPage() {
             </Avatar>
         );
     }
+    
+    const ConversationContextMenu = ({ convo }: { convo: Conversation }) => (
+        <ContextMenuContent>
+            {convo.partnerRole !== 'System' && (
+                <>
+                    <ContextMenuItem onClick={() => handleTogglePin(convo)}>
+                        {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                        <span>{convo.pinned ? 'Unpin' : 'Pin'} Chat</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleGenericAction('Archived')}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        <span>Archive Chat</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleGenericAction('Muted')}>
+                        <BellOff className="mr-2 h-4 w-4" />
+                        <span>Mute Notifications</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleGenericAction('Marked as unread')}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        <span>Mark as unread</span>
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleGenericAction('Favourited')}>
+                        <Heart className="mr-2 h-4 w-4" />
+                        <span>Add to favourites</span>
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}}>
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        Select Messages
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => { setSelectedConversation(convo); handleClearMessages()}}>
+                        <Eraser className="mr-2 h-4 w-4" />
+                        Clear Messages
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem className="text-destructive" onClick={() => handleGenericAction('Blocked')}>
+                        <Ban className="mr-2 h-4 w-4" />
+                        <span>Block</span>
+                    </ContextMenuItem>
+                </>
+            )}
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <ContextMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setSelectedConversation(convo)}}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Conversation
+                    </ContextMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
+                            Yes, delete conversation
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </ContextMenuContent>
+    );
 
 
   return (
@@ -381,36 +449,40 @@ function MessagingPage() {
                 <ScrollArea className="h-full">
                     <div className="p-2 space-y-1">
                     {sortedConversations.map(convo => (
-                        <div
-                            key={convo.id}
-                            className={cn(
-                                "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
-                                selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
-                                isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
-                            )}
-                            onClick={() => handleSelectConversation(convo.id)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
-                            tabIndex={0}
-                            role="button"
-                        >
-                            {isConvSelectionMode && (
-                                <Checkbox 
-                                    checked={selectedConversations.includes(convo.id)} 
-                                    onCheckedChange={() => handleSelectConversation(convo.id)}
-                                    className="mt-2"
-                                    aria-label={`Select conversation with ${convo.partnerName}`}
-                                />
-                            )}
-                            {renderAvatar(convo)}
-                            <div className="flex-1 truncate">
-                                <div className="flex justify-between items-center">
-                                    <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
-                                    {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                        <ContextMenu key={convo.id}>
+                            <ContextMenuTrigger>
+                                <div
+                                    className={cn(
+                                        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors",
+                                        selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
+                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
+                                    )}
+                                    onClick={() => handleSelectConversation(convo.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
+                                    tabIndex={0}
+                                    role="button"
+                                >
+                                    {isConvSelectionMode && (
+                                        <Checkbox 
+                                            checked={selectedConversations.includes(convo.id)} 
+                                            onCheckedChange={() => handleSelectConversation(convo.id)}
+                                            className="mt-2"
+                                            aria-label={`Select conversation with ${convo.partnerName}`}
+                                        />
+                                    )}
+                                    {renderAvatar(convo)}
+                                    <div className="flex-1 truncate">
+                                        <div className="flex justify-between items-center">
+                                            <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
+                                            {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                        <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
-                                <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
-                            </div>
-                        </div>
+                            </ContextMenuTrigger>
+                            <ConversationContextMenu convo={convo} />
+                        </ContextMenu>
                     ))}
                     </div>
                 </ScrollArea>
@@ -475,7 +547,7 @@ function MessagingPage() {
                         <DropdownMenuContent align="end">
                             {selectedConversation.partnerRole !== 'System' && (
                                 <>
-                                    <DropdownMenuItem onClick={handleTogglePin}>
+                                    <DropdownMenuItem onClick={() => handleTogglePin(selectedConversation)}>
                                         {selectedConversation.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                         <span>{selectedConversation.pinned ? 'Unpin' : 'Pin'} Chat</span>
                                     </DropdownMenuItem>
