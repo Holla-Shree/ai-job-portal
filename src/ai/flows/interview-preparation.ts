@@ -24,13 +24,29 @@ export type InterviewPreparationInput = z.infer<
 >;
 
 const InterviewPreparationOutputSchema = z.object({
-  analysis: z.string().describe("Analysis of the job seeker's answer."),
+  score: z
+    .number()
+    .min(0)
+    .max(10)
+    .describe(
+      "A score from 0 to 10 for the user's answer, where 10 is a perfect answer."
+    ),
+  analysis: z
+    .string()
+    .describe(
+      "A constructive critique of the user's answer, highlighting strengths and weaknesses."
+    ),
   suggestedImprovements: z
     .string()
-    .describe('Suggestions for improving the answer.'),
+    .describe(
+      'A more polished, improved version of their answer, explaining why it is better.'
+    ),
   relevantCourses: z
     .string()
-    .describe('Recommended courses to enhance skills for the job.'),
+    .optional()
+    .describe(
+      'Recommended courses to enhance skills for the job. Only include if gaps are identified.'
+    ),
 });
 export type InterviewPreparationOutput = z.infer<
   typeof InterviewPreparationOutputSchema
@@ -50,19 +66,26 @@ const prompt = ai.definePrompt({
 
 Based on the job description, the interview question asked, and the user's answer, you will provide a comprehensive analysis.
 
-Your analysis must include three parts:
-1.  **Analysis**: A constructive critique of the user's answer. Point out strengths and weaknesses.
-2.  **Suggested Improvements**: Provide a more polished, improved version of their answer. Explain why it's better.
-3.  **Relevant Courses**: Based on the job description and any gaps identified in the user's answer, suggest 2-3 specific types of online courses or certifications that would help them become a stronger candidate (e.g., "Advanced Python for Data Science on Coursera", "Certified ScrumMaster (CSM)").
+Your analysis must include four parts:
+1.  **Score**: A numerical score from 0-10 based on the quality, relevance, and structure of the user's answer.
+2.  **Analysis**: A constructive critique of the user's answer. Point out strengths (what they did well) and weaknesses (where they can improve). Be specific.
+3.  **Suggested Improvements**: Provide a more polished, improved version of their answer. Explain exactly why this version is better (e.g., "This version uses the STAR method to structure the story, which is highly effective...").
+4.  **Relevant Courses**: ONLY if you identify clear skill gaps based on the job description and the user's answer, suggest 1-2 specific types of online courses (e.g., "Advanced Python for Data Science on Coursera"). If no gaps are obvious, do not include this field.
 
 **Desired Job Description:**
+---
 {{{jobDescription}}}
+---
 
 **Interview Question:**
+---
 {{{interviewQuestion}}}
+---
 
 **User's Answer:**
+---
 {{{userAnswer}}}
+---
 `,
   config: {
     safetySettings: [

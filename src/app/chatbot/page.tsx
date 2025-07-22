@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plus, Trash2, Edit, Save, X, PanelLeft } from "lucide-react";
+import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plus, Trash2, Edit, Save, X, PanelLeft, Star } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +20,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const chatInputSchema = z.object({
   jobDescription: z.string().min(10, "Job description is required to get suggestions."),
@@ -53,8 +59,21 @@ interface ChatSession {
     timestamp: number;
 }
 
-const AnalysisComponent = ({ analysis, suggestedImprovements, relevantCourses }: InterviewPreparationOutput) => (
+const getScoreColor = (score: number) => {
+    if (score >= 8) return "text-green-500";
+    if (score >= 5) return "text-yellow-500";
+    return "text-red-500";
+};
+
+const AnalysisComponent = ({ score, analysis, suggestedImprovements, relevantCourses }: InterviewPreparationOutput) => (
     <div className="space-y-3">
+        <div>
+            <h4 className="font-semibold text-sm flex items-center justify-between">
+                <span className="flex items-center"><Star className="w-4 h-4 mr-1.5 text-primary" />Your Score:</span>
+                <span className={cn("font-bold text-lg", getScoreColor(score))}>{score.toFixed(1)}/10</span>
+            </h4>
+        </div>
+         <Separator />
         <div>
         <h4 className="font-semibold text-sm flex items-center"><Brain className="w-4 h-4 mr-1.5 text-primary" />Analysis:</h4>
         <p className="text-xs">{analysis}</p>
@@ -286,15 +305,29 @@ export default function ChatbotPage() {
                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingSessionId(null)}><X className="h-4 w-4"/></Button>
                                     </>
                                 ) : (
-                                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingSessionId(session.id); setEditingTitle(session.title); }}>
-                                    <Edit className="h-4 w-4"/>
-                                   </Button>
+                                   <TooltipProvider>
+                                     <Tooltip>
+                                       <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditingTitle(session.title); }}>
+                                          <Edit className="h-4 w-4"/>
+                                        </Button>
+                                       </TooltipTrigger>
+                                       <TooltipContent><p>Rename Session</p></TooltipContent>
+                                     </Tooltip>
+                                   </TooltipProvider>
                                 )}
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive">
-                                            <Trash2 className="h-4 w-4"/>
-                                        </Button>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                                                        <Trash2 className="h-4 w-4"/>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Delete Session</p></TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
