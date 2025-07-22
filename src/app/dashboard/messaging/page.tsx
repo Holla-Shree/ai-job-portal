@@ -380,9 +380,9 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Conversations List */}
-        <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
                 {!isConvSelectionMode ? (
                     <div className="flex justify-between items-center">
@@ -490,7 +490,7 @@ function MessagingPage() {
         </Card>
 
         {/* Active Chat Window */}
-        <Card className="md:col-span-2 lg:col-span-3 shadow-xl flex flex-col h-full">
+        <Card className="md:col-span-2 shadow-xl flex flex-col h-full">
             {selectedConversation ? (
                 <>
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
