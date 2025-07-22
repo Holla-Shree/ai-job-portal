@@ -202,15 +202,6 @@ function MessagingPage() {
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
     
-    useEffect(() => {
-        // Automatically select the first conversation if none is selected
-        if (!selectedConversation && conversations.length > 0) {
-            const sorted = [...conversations].sort((a,b) => b.timestamp - a.timestamp);
-            setSelectedConversation(sorted[0]);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [conversations]);
-
 
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
