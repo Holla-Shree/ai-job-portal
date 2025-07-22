@@ -7,6 +7,7 @@ export type UserRole = 'user' | 'recruiter' | 'admin';
 
 interface User {
   role: UserRole;
+  avatar?: string;
 }
 
 interface AuthContextType {
@@ -14,6 +15,7 @@ interface AuthContextType {
   loading: boolean;
   login: (role: UserRole) => void;
   logout: () => void;
+  updateAvatar: (avatar: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,10 +49,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    setLoading(false);
+    window.location.href = '/';
   };
+  
+  const updateAvatar = (avatar: string) => {
+    if (user) {
+        const updatedUser = { ...user, avatar };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  }
 
-  const value = { user, loading, login, logout };
+  const value = { user, loading, login, logout, updateAvatar };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

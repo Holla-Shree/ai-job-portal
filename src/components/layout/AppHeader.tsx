@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings, Map as MapIcon, UserPlus } from 'lucide-react';
 import { AppLogo } from './AppLogo';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,12 +34,10 @@ const navItems = [
 
 export function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
-    window.location.href = '/';
   };
   
   const getVisibleNavItems = () => {
@@ -141,7 +139,7 @@ export function AppHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-9 w-9">
-                     <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(user.role)}`} alt={user.role} data-ai-hint="person avatar"/>
+                     <AvatarImage src={user.avatar} alt={user.role} data-ai-hint="person avatar"/>
                      <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
                   </Avatar>
                 </Button>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,6 +19,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const resumeUploadSchema = z.object({
   resumeFile: z.custom<FileList>().refine(files => files && files.length > 0, "Resume file is required."),
@@ -77,6 +80,66 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+function UserProfileCard() {
+    const { user, updateAvatar } = useAuth();
+    const { toast } = useToast();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                updateAvatar(dataUrl);
+                toast({
+                    title: 'Profile Picture Updated',
+                    description: 'Your new profile picture has been saved.',
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader className="items-center text-center">
+                 <div className="relative">
+                    <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
+                        <AvatarImage src={user?.avatar} alt="User Avatar" data-ai-hint="person avatar" />
+                        <AvatarFallback>JS</AvatarFallback>
+                    </Avatar>
+                    <div 
+                        className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90"
+                        onClick={handleAvatarClick}
+                    >
+                        <Camera className="h-4 w-4" />
+                    </div>
+                    <Input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/png, image/jpeg"
+                    />
+                </div>
+                <CardTitle>Job Seeker</CardTitle>
+                <CardDescription>user@example.com</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Textarea placeholder="Add a short bio about yourself..." rows={3} />
+            </CardContent>
+             <CardFooter>
+                <Button className="w-full">Save Changes</Button>
             </CardFooter>
         </Card>
     )
@@ -163,92 +226,96 @@ function UserProfilePage() {
           </TabsList>
 
           <TabsContent value="profile">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Upload & Analyze Resume</CardTitle>
-                  <CardDescription>Let AI extract key information from your resume, removing personal details to ensure fair matching.</CardDescription>
-                </CardHeader>
-                <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="resumeFile">Upload Resume (PDF, DOCX)</Label>
-                        <Input id="resumeFile" type="file" accept=".pdf,.doc,.docx" {...resumeForm.register("resumeFile")} className="mt-1" />
-                        {resumeForm.formState.errors.resumeFile && <p className="text-sm text-destructive mt-1">{resumeForm.formState.errors.resumeFile.message}</p>}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button type="submit" disabled={isLoadingResume}>
-                      {isLoadingResume ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                      Analyze Resume
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
-
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><UserCircle className="mr-2 text-primary" />Anonymized Profile</CardTitle>
-                  <CardDescription>Information extracted from your resume for bias-free matching.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[400px]">
-                  {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                  {resumeAnalysis ? (
-                    <div className="space-y-4 pr-4">
-                       <div>
-                        <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
-                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.anonymizedSummary || 'Not available'}</p>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold flex items-center"><Sparkles className="mr-2 h-5 w-5 text-accent" />Skills</h4>
-                        <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h4>
-                        <ul className="pl-7 text-sm text-muted-foreground space-y-2">
-                          {resumeAnalysis.experience.map((exp, i) => (
-                            <li key={i}>
-                              <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
-                              <ul className="list-disc list-inside pl-4">
-                                {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
-                              </ul>
-                            </li>
-                          )).length > 0 ? resumeAnalysis.experience.map((exp, i) => (
-                            <li key={i}>
-                              <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
-                              <ul className="list-disc list-inside pl-4">
-                                {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
-                              </ul>
-                            </li>
-                          )) : <li>Not available</li>}
-                        </ul>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Education</h4>
-                         <ul className="pl-7 text-sm text-muted-foreground space-y-1">
-                          {resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>) : <li>Not available</li>}
-                        </ul>
-                      </div>
-                      <Separator />
-                      <div>
-                        <h4 className="font-semibold flex items-center"><Award className="mr-2 h-5 w-5 text-accent" />Certifications</h4>
-                         <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                          {resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>).length > 0 ? resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>) : <li>Not available</li>}
-                        </ul>
-                      </div>
-                    </div>
-                  ) : (
-                    !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your anonymized profile here.</p>
-                  )}
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1">
+                   <UserProfileCard />
+                </div>
+                <div className="lg:col-span-2">
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Upload & Analyze Resume</CardTitle>
+                          <CardDescription>Let AI extract key information from your resume, removing personal details to ensure fair matching.</CardDescription>
+                        </CardHeader>
+                        <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="resumeFile">Upload Resume (PDF, DOCX)</Label>
+                                <Input id="resumeFile" type="file" accept=".pdf,.doc,.docx" {...resumeForm.register("resumeFile")} className="mt-1" />
+                                {resumeForm.formState.errors.resumeFile && <p className="text-sm text-destructive mt-1">{resumeForm.formState.errors.resumeFile.message}</p>}
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter>
+                            <Button type="submit" disabled={isLoadingResume}>
+                              {isLoadingResume ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                              Analyze Resume
+                            </Button>
+                          </CardFooter>
+                        </form>
+                    </Card>
+                    <Card className="shadow-lg mt-6">
+                        <CardHeader>
+                          <CardTitle className="font-headline flex items-center"><UserCircle className="mr-2 text-primary" />Anonymized Profile</CardTitle>
+                          <CardDescription>Information extracted from your resume for bias-free matching.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ScrollArea className="h-[400px]">
+                          {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                          {resumeAnalysis ? (
+                            <div className="space-y-4 pr-4">
+                               <div>
+                                <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
+                                <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.anonymizedSummary || 'Not available'}</p>
+                              </div>
+                              <Separator />
+                              <div>
+                                <h4 className="font-semibold flex items-center"><Sparkles className="mr-2 h-5 w-5 text-accent" />Skills</h4>
+                                <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
+                              </div>
+                              <Separator />
+                              <div>
+                                <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h4>
+                                <ul className="pl-7 text-sm text-muted-foreground space-y-2">
+                                  {resumeAnalysis.experience.map((exp, i) => (
+                                    <li key={i}>
+                                      <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
+                                      <ul className="list-disc list-inside pl-4">
+                                        {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
+                                      </ul>
+                                    </li>
+                                  )).length > 0 ? resumeAnalysis.experience.map((exp, i) => (
+                                    <li key={i}>
+                                      <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
+                                      <ul className="list-disc list-inside pl-4">
+                                        {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
+                                      </ul>
+                                    </li>
+                                  )) : <li>Not available</li>}
+                                </ul>
+                              </div>
+                              <Separator />
+                              <div>
+                                <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Education</h4>
+                                 <ul className="pl-7 text-sm text-muted-foreground space-y-1">
+                                  {resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>) : <li>Not available</li>}
+                                </ul>
+                              </div>
+                              <Separator />
+                              <div>
+                                <h4 className="font-semibold flex items-center"><Award className="mr-2 h-5 w-5 text-accent" />Certifications</h4>
+                                 <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
+                                  {resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>).length > 0 ? resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>) : <li>Not available</li>}
+                                </ul>
+                              </div>
+                            </div>
+                          ) : (
+                            !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your anonymized profile here.</p>
+                          )}
+                          </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
           </TabsContent>
 
