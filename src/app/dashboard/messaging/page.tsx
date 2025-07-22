@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Archive, Ban, Heart, Mail } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -233,6 +233,21 @@ function MessagingPage() {
         setSelectedConversation(updatedConversations[0] || null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
+    
+    const handleTogglePin = () => {
+        if (!selectedConversation) return;
+        const isPinned = selectedConversation.pinned;
+        const updatedConversations = conversations.map(c => 
+            c.id === selectedConversation.id ? { ...c, pinned: !isPinned } : c
+        );
+        setConversations(updatedConversations);
+        setSelectedConversation(prev => prev ? { ...prev, pinned: !isPinned } : null);
+        toast({ title: `Conversation ${isPinned ? 'unpinned' : 'pinned'}`});
+    };
+    
+    const handleGenericAction = (action: string) => {
+        toast({ title: `${action}!`, description: `This is a demo. The ${action.toLowerCase()} action has been simulated.` });
+    };
 
     const handleMessageSelection = (messageId: string) => {
         setSelectedMessages(prev => 
@@ -458,15 +473,44 @@ function MessagingPage() {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]);}}>
-                                <CheckSquare className="mr-2 h-4 w-4" />
-                                Select Messages
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleClearMessages}>
-                                <Eraser className="mr-2 h-4 w-4" />
-                                Clear Messages
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            {selectedConversation.partnerRole !== 'System' && (
+                                <>
+                                    <DropdownMenuItem onClick={handleTogglePin}>
+                                        {selectedConversation.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                        <span>{selectedConversation.pinned ? 'Unpin' : 'Pin'} Chat</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenericAction('Archived')}>
+                                        <Archive className="mr-2 h-4 w-4" />
+                                        <span>Archive Chat</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenericAction('Muted')}>
+                                        <BellOff className="mr-2 h-4 w-4" />
+                                        <span>Mute Notifications</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenericAction('Marked as unread')}>
+                                        <Mail className="mr-2 h-4 w-4" />
+                                        <span>Mark as unread</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenericAction('Favourited')}>
+                                        <Heart className="mr-2 h-4 w-4" />
+                                        <span>Add to favourites</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]);}}>
+                                        <CheckSquare className="mr-2 h-4 w-4" />
+                                        Select Messages
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleClearMessages}>
+                                        <Eraser className="mr-2 h-4 w-4" />
+                                        Clear Messages
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive" onClick={() => handleGenericAction('Blocked')}>
+                                        <Ban className="mr-2 h-4 w-4" />
+                                        <span>Block</span>
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
@@ -565,4 +609,5 @@ function MessagingPage() {
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
 
+    
     
