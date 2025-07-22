@@ -161,7 +161,7 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/messaging/settings">
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    <span>Message Settings</span>
+                    <span>Messaging Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
