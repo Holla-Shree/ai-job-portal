@@ -15,6 +15,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import { AppLogo } from '@/components/layout/AppLogo';
+import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
