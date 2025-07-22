@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,6 +15,8 @@ import { analyzeResume, AnalyzeResumeOutput } from '@/ai/flows/resume-analyzer';
 import { recommendJobs, RecommendJobsOutput } from '@/ai/flows/job-recommendations';
 import { useToast } from '@/hooks/use-toast';
 import withAuth from '@/components/withAuth';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 const resumeUploadSchema = z.object({
   resumeFile: z.custom<FileList>().refine(files => files && files.length > 0, "Resume file is required."),
@@ -27,12 +29,50 @@ const jobRecommendationSchema = z.object({
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
+type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0];
+
+function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
+    const { toast } = useToast();
+
+    const handleApply = () => {
+        toast({
+            title: "Application Submitted!",
+            description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
+        });
+    };
+    
+    return (
+        <Card className="shadow-lg">
+            <CardHeader>
+                 <Button variant="ghost" size="sm" onClick={onBack} className="mb-2 justify-start p-0 h-auto w-fit">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to recommendations
+                </Button>
+                <CardTitle className="font-headline text-2xl">{job.title}</CardTitle>
+                <CardDescription>{job.company}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="h-[400px]">
+                    <div className="space-y-4 text-sm pr-4">
+                        <h3 className="font-semibold">Job Description</h3>
+                        <p className="text-muted-foreground whitespace-pre-wrap">{job.description}</p>
+                    </div>
+                </ScrollArea>
+            </CardContent>
+            <CardFooter>
+                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+
 function UserProfilePage() {
   const { toast } = useToast();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
   const [jobRecommendations, setJobRecommendations] = useState<RecommendJobsOutput | null>(null);
+  const [selectedJob, setSelectedJob] = useState<RecommendedJob | null>(null);
 
   const resumeForm = useForm<ResumeUploadFormValues>({
     resolver: zodResolver(resumeUploadSchema),
@@ -78,6 +118,7 @@ function UserProfilePage() {
   const handleJobRecommendation: SubmitHandler<JobRecommendationFormValues> = async (data) => {
     setIsLoadingJobs(true);
     setJobRecommendations(null);
+    setSelectedJob(null);
     try {
       const result = await recommendJobs(data);
       setJobRecommendations(result);
@@ -136,17 +177,20 @@ function UserProfilePage() {
                   <CardDescription>Information extracted from your resume for bias-free matching.</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <ScrollArea className="h-[400px]">
                   {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                   {resumeAnalysis ? (
-                    <div className="space-y-4">
+                    <div className="space-y-4 pr-4">
                        <div>
                         <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
                         <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.anonymizedSummary || 'Not available'}</p>
                       </div>
+                      <Separator />
                       <div>
                         <h4 className="font-semibold flex items-center"><Sparkles className="mr-2 h-5 w-5 text-accent" />Skills</h4>
                         <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
                       </div>
+                      <Separator />
                       <div>
                         <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h4>
                         <ul className="pl-7 text-sm text-muted-foreground space-y-2">
@@ -167,12 +211,14 @@ function UserProfilePage() {
                           )) : <li>Not available</li>}
                         </ul>
                       </div>
+                      <Separator />
                       <div>
                         <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Education</h4>
                          <ul className="pl-7 text-sm text-muted-foreground space-y-1">
                           {resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>) : <li>Not available</li>}
                         </ul>
                       </div>
+                      <Separator />
                       <div>
                         <h4 className="font-semibold flex items-center"><Award className="mr-2 h-5 w-5 text-accent" />Certifications</h4>
                          <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
@@ -183,12 +229,16 @@ function UserProfilePage() {
                   ) : (
                     !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your anonymized profile here.</p>
                   )}
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="recommendations">
+            {selectedJob ? (
+                <JobDetails job={selectedJob} onBack={() => setSelectedJob(null)} />
+            ) : (
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="font-headline flex items-center"><Search className="mr-2 text-primary" />AI Job Recommendations</CardTitle>
@@ -234,7 +284,10 @@ function UserProfilePage() {
                           <CardContent className="flex-grow">
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
-                          <CardFooter>
+                          <CardFooter className="gap-2">
+                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedJob(job)}>
+                                Know More
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
                                 Find Similar
                             </Button>
@@ -248,6 +301,7 @@ function UserProfilePage() {
                 </CardContent>
               )}
             </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
