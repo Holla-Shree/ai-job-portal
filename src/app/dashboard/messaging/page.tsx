@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface Message {
   id: string;
-  sender: 'me' | 'other';
+  sender: 'me' | 'other' | 'system';
   text: string;
   timestamp: string;
 }
@@ -25,7 +25,7 @@ interface Message {
 interface Conversation {
   id: string;
   partnerName: string;
-  partnerRole: 'Recruiter' | 'Candidate';
+  partnerRole: 'Recruiter' | 'Candidate' | 'System';
   jobTitle: string;
   lastMessage: string;
   avatar: string;
@@ -68,6 +68,18 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
     }
     return [
       {
+        id: 'conv-notif1',
+        partnerName: 'System Notification',
+        partnerRole: 'System',
+        jobTitle: 'Senior Backend Engineer',
+        lastMessage: 'A new candidate, Priya Patel, has applied for the Senior Backend Engineer position.',
+        avatar: 'Bell',
+        messages: [
+            { id: 'msg1', sender: 'system', text: 'A new candidate, Priya Patel, has applied for the Senior Backend Engineer position. You can view their profile in the talent pool.', timestamp: 'Just now' },
+        ],
+        pinned: true,
+      },
+      {
         id: 'conv1',
         partnerName: 'Priya Patel',
         partnerRole: 'Candidate',
@@ -80,7 +92,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           { id: 'msg3', sender: 'me', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
           { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
         ],
-        pinned: true,
+        pinned: false,
       },
       {
         id: 'conv4',
@@ -174,7 +186,7 @@ function MessagingPage() {
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageInput.trim() || !selectedConversation) return;
+        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
 
         const newMessage: Message = {
             id: `msg${Date.now()}`,
@@ -264,6 +276,22 @@ function MessagingPage() {
         toast({ title: `${selectedConversations.length} conversation(s) deleted` });
         setIsConvSelectionMode(false);
         setSelectedConversations([]);
+    }
+
+    const renderAvatar = (convo: Conversation) => {
+        if (convo.partnerRole === 'System') {
+            return (
+                <Avatar className="h-10 w-10 border bg-accent text-accent-foreground">
+                    <AvatarFallback><Bell className="h-5 w-5"/></AvatarFallback>
+                </Avatar>
+            );
+        }
+        return (
+            <Avatar className="h-10 w-10 border">
+                <AvatarImage src={`https://placehold.co/40x40.png?text=${convo.avatar}`} alt={convo.partnerName} data-ai-hint="person avatar" />
+                <AvatarFallback>{convo.avatar}</AvatarFallback>
+            </Avatar>
+        );
     }
 
 
@@ -358,16 +386,13 @@ function MessagingPage() {
                                     aria-label={`Select conversation with ${convo.partnerName}`}
                                 />
                             )}
-                            <Avatar className="h-10 w-10 border">
-                                 <AvatarImage src={`https://placehold.co/40x40.png?text=${convo.avatar}`} alt={convo.partnerName} data-ai-hint="person avatar" />
-                                <AvatarFallback>{convo.avatar}</AvatarFallback>
-                            </Avatar>
+                            {renderAvatar(convo)}
                             <div className="flex-1 truncate">
                                 <div className="flex justify-between items-center">
                                     <p className="font-semibold text-sm truncate pr-2">{convo.partnerName}</p>
                                     {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                 </div>
-                                <p className="text-xs text-muted-foreground truncate">{user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                 <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                             </div>
                         </div>
@@ -397,17 +422,14 @@ function MessagingPage() {
                     ) : (
                     <>
                     <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
-                            <AvatarFallback>{selectedConversation.avatar}</AvatarFallback>
-                        </Avatar>
+                        {renderAvatar(selectedConversation)}
                         <div>
                             <CardTitle className="font-headline text-lg">{selectedConversation.partnerName}</CardTitle>
-                            <CardDescription>{user?.role === 'recruiter' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
+                            <CardDescription>{user?.role === 'recruiter' && selectedConversation.partnerRole !== 'System' ? `Candidate for: ${selectedConversation.jobTitle}` : selectedConversation.jobTitle}</CardDescription>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                     {user?.role === 'recruiter' && (
+                     {user?.role === 'recruiter' && selectedConversation.partnerRole === 'Candidate' && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button size="sm" variant="outline">
@@ -476,8 +498,12 @@ function MessagingPage() {
                 <CardContent className="flex-1 p-4 overflow-y-auto">
                     <div className="space-y-4">
                     {selectedConversation.messages.map(msg => (
-                        <div key={msg.id} className={cn("flex items-end gap-2", msg.sender === 'me' ? 'justify-end' : 'justify-start')}>
-                            {isMessageSelectionMode && (
+                        <div key={msg.id} className={cn("flex items-end gap-2", 
+                            msg.sender === 'me' ? 'justify-end' : 
+                            msg.sender === 'system' ? 'justify-center' :
+                            'justify-start'
+                        )}>
+                            {isMessageSelectionMode && msg.sender !== 'system' && (
                                <Checkbox 
                                  id={`msg-select-${msg.id}`}
                                  checked={selectedMessages.includes(msg.id)}
@@ -493,7 +519,9 @@ function MessagingPage() {
                             )}
                              <div className={cn(
                                 'max-w-[70%] p-3 rounded-xl text-sm',
-                                msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-muted rounded-bl-none'
+                                msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 
+                                msg.sender === 'system' ? 'bg-accent/20 text-accent-foreground w-full text-center italic' :
+                                'bg-muted rounded-bl-none'
                              )}>
                                 <p>{msg.text}</p>
                                 <p className="text-xs opacity-70 mt-1 text-right">{msg.timestamp}</p>
@@ -511,11 +539,12 @@ function MessagingPage() {
                 <CardFooter className="p-4 border-t">
                     <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
                         <Input
-                            placeholder="Type your message..."
+                            placeholder={selectedConversation.partnerRole === 'System' ? 'This is a system notification.' : 'Type your message...'}
                             value={messageInput}
                             onChange={(e) => setMessageInput(e.target.value)}
+                            disabled={selectedConversation.partnerRole === 'System'}
                         />
-                        <Button type="submit" size="icon">
+                        <Button type="submit" size="icon" disabled={selectedConversation.partnerRole === 'System'}>
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>
@@ -535,7 +564,5 @@ function MessagingPage() {
 }
 
 export default withAuth(MessagingPage, ['user', 'recruiter', 'admin']);
-
-    
 
     
