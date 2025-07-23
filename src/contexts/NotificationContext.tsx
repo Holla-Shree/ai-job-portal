@@ -113,7 +113,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
   
   useEffect(() => {
-    if (!user?.id) {
+    if (!user || !user.id) {
         setJobs([]);
         setCandidates([]);
         setConversations([]);

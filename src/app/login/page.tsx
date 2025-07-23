@@ -52,7 +52,7 @@ export default function LoginPage() {
     });
     
     // Create a deterministic ID from the email for linking to profiles
-    const userId = role === 'user' ? `cand-${data.email.replace(/[^a-zA-Z0-9]/g, '')}` : undefined;
+    const userId = `user-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
 
     login(role, userId, data.email);
 

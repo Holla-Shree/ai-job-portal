@@ -19,7 +19,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (role: UserRole, id: string, email?: string) => void;
+  login: (role: UserRole, id: string | undefined, email?: string) => void;
   logout: () => void;
   updateAvatar: (avatar: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -59,14 +59,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeUser();
   }, []);
 
-  const login = async (role: UserRole, id: string, email?: string) => {
+  const login = async (role: UserRole, id: string | undefined, email?: string) => {
     setLoading(true);
+    const userId = id || `user-${Date.now()}`;
     const avatarText = role === 'user' ? (email || 'J').charAt(0).toUpperCase() : (email || role).charAt(0).toUpperCase();
     let savedJobs: string[] = [];
 
-    if (role === 'user' && id) {
+    if (role === 'user' && userId) {
         try {
-            const userDocRef = doc(db, 'candidates', id);
+            const userDocRef = doc(db, 'candidates', userId);
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
                 savedJobs = userDocSnap.data().savedJobs || [];
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }
 
-    const newUser: User = { role, id, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}`, savedJobs };
+    const newUser: User = { role, id: userId, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}`, savedJobs };
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     setLoading(false);
