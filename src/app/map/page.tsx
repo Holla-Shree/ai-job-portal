@@ -154,8 +154,8 @@ export default function JobMapPage() {
     const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchLocation, setSearchLocation] = useState('');
-    const [searchType, setSearchType] = useState('');
-    const [searchDomain, setSearchDomain] = useState('');
+    const [searchType, setSearchType] = useState('all');
+    const [searchDomain, setSearchDomain] = useState('all');
 
     useEffect(() => {
         // Initially, show all jobs that have a valid position
@@ -182,8 +182,8 @@ export default function JobMapPage() {
                 job.description.toLowerCase().includes(lowerCaseQuery) : true;
             
             const matchesLocation = lowerCaseLocation ? job.city.toLowerCase().includes(lowerCaseLocation) : true;
-            const matchesType = searchType ? job.type === searchType : true;
-            const matchesDomain = searchDomain ? job.domain === searchDomain : true;
+            const matchesType = searchType !== 'all' ? job.type === searchType : true;
+            const matchesDomain = searchDomain !== 'all' ? job.domain === searchDomain : true;
 
             return job.position?.lat && job.position?.lng && matchesQuery && matchesLocation && matchesType && matchesDomain;
         });
@@ -224,7 +224,7 @@ export default function JobMapPage() {
                                          <Select value={searchType} onValueChange={setSearchType}>
                                             <SelectTrigger className="bg-muted border-0"><SelectValue placeholder="Job Type" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All Types</SelectItem>
+                                                <SelectItem value="all">All Types</SelectItem>
                                                 <SelectItem value="Full-time">Full-time</SelectItem>
                                                 <SelectItem value="Part-time">Part-time</SelectItem>
                                                 <SelectItem value="Contract">Contract</SelectItem>
@@ -235,7 +235,7 @@ export default function JobMapPage() {
                                          <Select value={searchDomain} onValueChange={setSearchDomain}>
                                             <SelectTrigger className="bg-muted border-0"><SelectValue placeholder="Domain" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">All Domains</SelectItem>
+                                                <SelectItem value="all">All Domains</SelectItem>
                                                 <SelectItem value="Tech">Tech</SelectItem>
                                                 <SelectItem value="Fintech">Fintech</SelectItem>
                                                 <SelectItem value="Healthcare">Healthcare</SelectItem>
