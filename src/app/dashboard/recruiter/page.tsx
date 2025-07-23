@@ -133,6 +133,7 @@ function RecruiterPortalPage() {
   
   const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
+    // Fire and forget - the context will handle the optimistic update
     addJob({
         title: data.jobTitle,
         company: data.companyName,
@@ -141,16 +142,12 @@ function RecruiterPortalPage() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
-    }).then(() => {
-        toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
-        jobPostForm.reset();
-        setActiveTab("postings");
-    }).catch((error) => {
-        console.error("Error posting job:", error);
-        toast({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
-    }).finally(() => {
-        setIsPosting(false);
     });
+    
+    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+    jobPostForm.reset();
+    setActiveTab("postings");
+    setIsPosting(false);
   };
 
   const handleScreeningForJob = async (job: Job) => {
