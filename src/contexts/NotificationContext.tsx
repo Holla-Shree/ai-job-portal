@@ -106,10 +106,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { user, setUser } = useAuth();
 
   useEffect(() => {
+    // This effect runs only on the client
     if (typeof window !== 'undefined') {
       try {
         const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
         if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+
+        // Initial fetch from localStorage for faster UI response
+        // This will be overwritten by Firestore data once it loads.
+        // const storedConversations = localStorage.getItem('conversations');
+        // if (storedConversations) setConversations(JSON.parse(storedConversations));
+
+        // const storedHistory = localStorage.getItem('applicationHistory');
+        // if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
       } catch (error) {
         console.error("Failed to load data from localStorage", error);
       }
@@ -135,6 +144,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
+        // Sync saved jobs from Firestore to AuthContext state
         if(user && user.role === 'user') {
             const currentUserData = candidatesData.find(c => c.id === user.id);
             if(currentUserData && JSON.stringify(currentUserData.savedJobs || []) !== JSON.stringify(user.savedJobs)) {
@@ -143,25 +153,33 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
     });
 
+    // Firestore real-time listener for conversations
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
         const convosData = snapshot.docs.map(doc => {
             const data = doc.data();
             const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
-            const partnerIsRecruiter = user.role === 'user';
-            const partnerName = partnerIsRecruiter ? `Recruiter @ ${data.company || 'a company'}` : data.candidateName || 'A candidate';
+            
+            let partnerName = 'A partner';
+            if (user.role === 'user') {
+                partnerName = `Recruiter @ ${data.company || 'a company'}`;
+            } else if (user.role === 'recruiter') {
+                partnerName = data.candidateName || 'A candidate';
+            }
+
 
             return {
                 id: doc.id,
                 ...data,
                 partnerName: partnerName,
-                partnerRole: partnerRole,
+                partnerRole: data.partnerRole || partnerRole,
                 avatar: partnerRole.charAt(0),
             } as Conversation
         });
         setConversations(convosData);
     });
 
+    // Firestore real-time listener for applications
     const applicationsQuery = user.role === 'user' 
         ? query(collection(db, "applications"), where("candidateId", "==", user.id))
         : collection(db, "applications");
@@ -195,6 +213,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayUnion(jobId)
         });
+        // Optimistically update local state
+        setUser(prev => prev ? { ...prev, savedJobs: [...prev.savedJobs, jobId] } : null);
     } catch (e) {
         console.error("Error saving job: ", e);
     }
@@ -207,6 +227,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayRemove(jobId)
         });
+        // Optimistically update local state
+        setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
     } catch (e) {
         console.error("Error unsaving job: ", e);
     }
@@ -297,7 +319,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               participants: participants,
               jobTitle: stub.jobTitle,
               company: stub.company,
-              candidateName: user.name,
+              candidateName: user.name || 'A Job Seeker',
               lastMessage: "Conversation started.",
               messages: [],
               pinned: false,
@@ -315,7 +337,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
         await addDoc(collection(db, "jobs"), {
             ...job,
-            position: { lat: 20.5937, lng: 78.9629 },
+            position: { lat: 20.5937, lng: 78.9629 }, // Default position, can be updated later
         });
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -335,6 +357,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const updateCandidateProfile = async (candidateId: string, profileData: Partial<Candidate>) => {
     try {
       const docRef = doc(db, "candidates", candidateId);
+      // Using set with merge to create the doc if it doesn't exist, or update it if it does.
       await setDoc(docRef, profileData, { merge: true });
     } catch (e) {
       console.error("Error updating candidate profile: ", e);
