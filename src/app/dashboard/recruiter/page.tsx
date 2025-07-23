@@ -190,7 +190,7 @@ function RecruiterPortalPage() {
 
   const getScoreColor = (score: number) => {
     if (score > 85) return "text-primary";
-    if (score > 70) return "text-accent-foreground";
+    if (score > 70) return "text-amber-600";
     if (score > 50) return "text-muted-foreground";
     return "text-destructive";
   };
