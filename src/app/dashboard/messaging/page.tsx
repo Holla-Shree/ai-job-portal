@@ -278,36 +278,36 @@ function MessagingPage() {
         <ContextMenuContent>
             {convo.partnerRole !== 'System' && (
                 <>
-                    <ContextMenuItem onClick={() => handleTogglePin(convo)}>
+                    <ContextMenuItem onClick={() => handleTogglePin(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
                         {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                         <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleToggleMute(convo)}>
+                    <ContextMenuItem onClick={() => handleToggleMute(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
                         {convo.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
                         <span>{convo.muted ? 'Unmute Notifications' : 'Mute Notifications'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => {
                         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: true } : c));
                         toast({ title: 'Marked as unread' });
-                    }}>
+                    }} disabled={blockedUsers.includes(convo.partnerName)}>
                         <Mail className="mr-2 h-4 w-4" />
                         <span>Mark as unread</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleToggleFavourite(convo)}>
+                    <ContextMenuItem onClick={() => handleToggleFavourite(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
                         <Heart className={cn("mr-2 h-4 w-4", convo.favourited && "fill-current text-red-500")} />
                         <span>{convo.favourited ? 'Remove from Favourites' : 'Add to Favourites'}</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}}>
+                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}} disabled={blockedUsers.includes(convo.partnerName)}>
                         <CheckSquare className="mr-2 h-4 w-4" />
                         Select Messages
                     </ContextMenuItem>
-                    <ContextMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(convo); }}>
+                    <ContextMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(convo); }} disabled={blockedUsers.includes(convo.partnerName)}>
                         <Eraser className="mr-2 h-4 w-4" />
                         Clear Messages
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(convo); }}>
+                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(convo); }} disabled={blockedUsers.includes(convo.partnerName)}>
                         <Ban className="mr-2 h-4 w-4" />
                         <span>Block</span>
                     </ContextMenuItem>
@@ -416,10 +416,10 @@ function MessagingPage() {
                             <ContextMenuTrigger>
                                 <div
                                     className={cn(
-                                        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
+                                        "group flex items-start gap-3 p-3 rounded-lg transition-colors relative",
+                                        blockedUsers.includes(convo.partnerName) ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                                         selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
-                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted",
-                                        blockedUsers.includes(convo.partnerName) && "opacity-50 cursor-not-allowed"
+                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
                                     )}
                                     onClick={() => !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
                                     onKeyDown={(e) => e.key === 'Enter' && !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
