@@ -457,7 +457,7 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter className="gap-2 justify-center">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
+                            <Button variant="default" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
                                 Know More
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
@@ -481,5 +481,3 @@ function UserProfilePage() {
 }
 
 export default withAuth(UserProfilePage, ['user', 'admin']);
-
-    
