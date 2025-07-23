@@ -119,13 +119,15 @@ function UserProfileCard() {
 
     useEffect(() => {
         if (currentUserProfile) {
-            setName(currentUserProfile.name);
-            // A simple way to extract a bio if it exists.
+            setName(currentUserProfile.name || user?.email?.split('@')[0] || '');
             const profileParts = currentUserProfile.profile.split('Summary:');
-            const bioText = profileParts.length > 1 ? profileParts[0].trim() : '';
+            const bioText = profileParts.length > 1 ? profileParts[0].trim() : (currentUserProfile.profile.startsWith('Newly registered') ? '' : currentUserProfile.profile);
             setBio(bioText);
+        } else if (user) {
+            setName(user.email?.split('@')[0] || '');
+            setBio('');
         }
-    }, [currentUserProfile]);
+    }, [currentUserProfile, user]);
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();
