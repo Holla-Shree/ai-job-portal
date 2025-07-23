@@ -121,59 +121,6 @@ const MOCK_JOBS: Job[] = [
     { id: 'job-20', title: 'Sales Executive', company: 'DealMakers', city: 'Lucknow', position: { lat: 26.8467, lng: 80.9462 }, type: 'Full-time', domain: 'Sales', salary: '₹7-11 LPA', description: 'Drive sales growth by identifying new leads and closing deals.' },
 ];
 
-const MOCK_CANDIDATES: Candidate[] = [
-    { id: 'cand-1', name: 'Priya Patel', profile: 'A seasoned software engineer with 8 years of experience in backend development using Python, Django, and AWS. Proven track record of leading teams and delivering scalable microservices.' },
-    { id: 'cand-2', name: 'Rohan Sharma', profile: 'A data-driven Product Manager with 5 years of experience in SaaS products. Expertise in user research, roadmap planning, and agile methodologies. Passionate about creating user-centric solutions.' },
-    { id: 'cand-3', name: 'Anjali Menon', profile: 'A creative UI/UX Designer with a strong portfolio of mobile and web applications. Proficient in Figma, Sketch, and Adobe Creative Suite. Focuses on creating intuitive and visually appealing user experiences.' },
-    { id: 'cand-4', name: 'Vikram Singh', profile: 'A certified DevOps Engineer with expertise in CI/CD pipelines, Kubernetes, and Terraform. Experienced in automating and scaling cloud infrastructure on AWS and GCP.' },
-    { id: 'cand-5', name: 'Sneha Reddy', profile: 'A results-oriented Marketing Manager with a knack for digital marketing and growth hacking. Skilled in SEO, SEM, content marketing, and social media campaigns.' },
-    { id: 'cand-6', name: 'Amit Kumar', profile: 'A recent computer science graduate with a strong foundation in data structures, algorithms, and web development. Eager to learn and contribute to a challenging frontend role. Projects in React and Vue.js.' },
-    { id: 'cand-7', name: 'Neha Gupta', profile: 'A Data Scientist with 4 years of experience in building machine learning models for predictive analytics. Proficient in Python, scikit-learn, and TensorFlow.' },
-    { id: 'cand-8', name: 'Karan Malhotra', profile: 'A strategic Financial Analyst with experience in financial modeling, forecasting, and variance analysis. Strong analytical skills and proficiency in Excel and SQL.' },
-    { id: 'cand-9', name: 'Isha Desai', profile: 'An empathetic Customer Support Specialist with a talent for problem-solving and communication. Dedicated to providing excellent customer service.' },
-    { id: 'cand-10', name: 'Rajesh Nair', profile: 'A full-stack developer with 6 years of experience building applications with the MERN stack (MongoDB, Express, React, Node.js). Comfortable working on both frontend and backend.' },
-    { id: 'cand-11', name: 'Sunita Joshi', profile: 'A detail-oriented HR Generalist with experience in the complete employee lifecycle, from recruitment and onboarding to performance management and employee engagement.' },
-    { id: 'cand-12', name: 'Arjun Mehta', profile: 'A cybersecurity professional with CISSP certification and experience in threat detection, incident response, and vulnerability management.' },
-    { id: 'cand-13', name: 'Pooja Rao', profile: 'A Business Analyst with a strong ability to translate business requirements into technical specifications. Experienced in working with agile development teams.' },
-    { id: 'cand-14', name: 'Siddharth Verma', profile: 'A passionate Mobile App Developer with 3 years of experience in building native Android and iOS applications. Skilled in Kotlin, Swift, and React Native.' },
-    { id: 'cand-15', name: 'Divya Iyer', profile: 'A creative Content Writer with a portfolio of articles, blog posts, and website copy. Specializes in creating engaging content for the tech industry.' },
-    { id: 'cand-16', name: 'Aditya Prasad', profile: 'An AWS Certified Solutions Architect with a deep understanding of cloud computing principles and best practices. Experienced in designing and migrating complex systems to the cloud.' },
-    { id: 'cand-17', name: 'Meera Krishnan', profile: 'An experienced E-commerce Manager with a track record of growing online sales through Shopify and other platforms. Skilled in digital advertising and conversion rate optimization.' },
-    { id: 'cand-18', name: 'Vivek Iyer', profile: 'A Blockchain Developer with hands-on experience in smart contract development using Solidity and Web3.js. Contributed to several DeFi projects.' },
-    { id: 'cand-19', name: 'Fatima Khan', profile: 'An AI/ML Engineer specializing in Natural Language Processing (NLP). Experience with transformer models like BERT and GPT for text classification and generation tasks.' },
-    { id: 'cand-20', name: 'Gaurav Singhania', profile: 'A dynamic Sales Executive with a proven ability to exceed sales targets in the B2B SaaS space. Excellent negotiation and relationship-building skills.' },
-    { id: 'cand-21', name: 'Harish Chandra', profile: 'Junior Python Developer with a passion for automation and scripting. Interned at a startup where I built internal tools to improve developer productivity. Skills: Python, Flask, SQL.' },
-    { id: 'cand-22', name: 'Lakshmi Menon', profile: 'Experienced Quality Assurance Engineer with expertise in manual and automated testing. Proficient with Selenium, Cypress, and Jira for bug tracking.' },
-    { id: 'cand-23', name: 'Manoj Tiwari', profile: 'Senior Java Developer with 10+ years of experience in building enterprise-grade applications using Spring Boot and Microservices architecture. Strong knowledge of object-oriented design principles.' },
-    { id: 'cand-24', name: 'Nandini Das', profile: 'Graphic Designer with a flair for branding and illustration. Skilled in Adobe Illustrator and Photoshop. Created brand identities for several startups.' },
-    { id: 'cand-25', name: 'Omkar Nath', profile: 'Network Engineer with CCNA certification. Experienced in configuring and managing routers, switches, and firewalls in a corporate environment.' },
-    { id: 'cand-26', name: 'Parul Agrawal', profile: 'Digital Marketing Specialist with a focus on paid advertising. Manages large budgets on Google Ads and Facebook Ads to generate leads and ROI.' },
-    { id: 'cand-27', name: 'Qasim Ahmed', profile: 'Database Administrator (DBA) with experience in managing MySQL and PostgreSQL databases. Skilled in performance tuning, backup, and recovery.' },
-    { id: 'cand-28', name: 'Ritu Soni', profile: 'Technical Recruiter with 5 years of experience sourcing and hiring top talent for tech roles, from software engineers to product managers.' },
-    { id: 'cand-29', name: 'Sanjay Reddy', profile: 'Scrum Master with CSM certification, facilitating agile ceremonies and helping teams to improve their processes and deliver value faster.' },
-    { id: 'cand-30', name: 'Tanvi Shah', profile: 'Healthcare IT professional with experience in implementing Electronic Health Record (EHR) systems. Understands HIPAA compliance and clinical workflows.' },
-    { id: 'cand-31', name: 'Uday Kiran', profile: 'Game Developer with a passion for creating immersive experiences in Unity and C#. Developed and published two indie games on the App Store.' },
-    { id: 'cand-32', name: 'Varsha Patil', profile: 'IT Project Manager (PMP certified) with a history of successfully delivering complex software projects on time and within budget.' },
-    { id: 'cand-33', name: 'Wasim Khan', profile: 'Mechanical Engineer with experience in CAD modeling using SolidWorks and AutoCAD. Worked on product design for consumer electronics.' },
-    { id: 'cand-34', name: 'Yamini Sharma', profile: 'Legal Counsel specializing in corporate law and compliance. Advised companies on contract negotiations and intellectual property matters.' },
-    { id: 'cand-35', name: 'Zoya Akhtar', profile: 'Video Editor and Motion Graphics artist proficient in Adobe Premiere Pro and After Effects. Created promotional videos and animations for various brands.' },
-    { id: 'cand-36', name: 'Alok Nath', profile: 'A Ruby on Rails developer with 4 years of experience. Passionate about writing clean and maintainable code. Contributor to open-source projects.' },
-    { id: 'cand-37', name: 'Bhavna Chauhan', profile: 'An agronomist with a Master\'s degree in Soil Science. Research experience in sustainable agriculture and crop management techniques.' },
-    { id: 'cand-38', name: 'Chetan Bhagat', profile: 'Not the author, but an aspiring one. Currently working as a technical writer, creating clear and concise documentation for software products.' },
-    { id: 'cand-39', name: 'Deepika Singh', profile: 'A dedicated primary school teacher with a passion for making learning fun and engaging for young children. Experience with Montessori methods.' },
-    { id: 'cand-40', name: 'Eshaan Verma', profile: 'A civil engineer specializing in structural design and analysis. Proficient in STAAD.Pro and ETABS. Worked on commercial and residential building projects.' },
-    { id: 'cand-41', name: 'Feroz Shah', profile: 'An architect with a focus on sustainable and eco-friendly building design. Skilled in Revit and green building principles.' },
-    { id: 'cand-42', name: 'Gayatri Devi', profile: 'A classical dancer and instructor with over 15 years of experience in Bharatanatyam. Runs her own dance academy.' },
-    { id: 'cand-43', name: 'Hitesh Kumar', profile: 'A supply chain manager with expertise in logistics, inventory management, and vendor negotiations. Improved supply chain efficiency by 20% in the previous role.' },
-    { id: 'cand-44', name: 'Indrani Mukherjee', profile: 'A research scientist with a Ph.D. in Biotechnology. Published several papers on genetic engineering and its applications.' },
-    { id: 'cand-45', name: 'Jatin Mehta', profile: 'A hardware engineer with experience in PCB design and embedded systems programming using C and C++.' },
-    { id: 'cand-46', name: 'Kavita Singh', profile: 'A social media manager who excels at creating viral content and building online communities. Grew an Instagram account from 0 to 100k followers in one year.' },
-    { id: 'cand-47', name: 'Lalit Pandit', profile: 'A music composer and producer with a home studio setup. Skilled in Ableton Live and has composed music for short films and advertisements.' },
-    { id: 'cand-48', name: 'Madhuri Dixit', profile: 'Not the actress. A clinical psychologist providing counseling and therapy services for adults and adolescents.' },
-    { id: 'cand-49', name: 'Naveen Jindal', profile: 'An iOS developer proficient in Swift and SwiftUI. Has multiple apps published on the App Store with high ratings.' },
-    { id: 'cand-50', name: 'Ojas Rawal', profile: 'A stand-up comedian and actor known for his observational humor. Also a skilled corporate trainer for public speaking workshops.' },
-];
-
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
     if (role === 'user') {
       return [
@@ -328,9 +275,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             querySnapshot.forEach((doc) => {
                 candidatesData.push({ id: doc.id, ...doc.data() } as Candidate);
             });
-            const combinedCandidates = [...MOCK_CANDIDATES, ...candidatesData];
-            const uniqueCandidates = combinedCandidates.filter((candidate, index, self) => index === self.findIndex((c) => c.id === candidate.id));
-            setCandidates(uniqueCandidates);
+            setCandidates(candidatesData);
         });
 
         return () => {
