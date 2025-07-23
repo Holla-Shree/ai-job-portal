@@ -53,6 +53,14 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             description: `Your application for the ${job.title} role at ${job.company} has been sent. The recruiter will be notified.`,
         });
     };
+    
+    const handleMessageRecruiter = () => {
+        initiateConversation({ 
+            jobTitle: job.title, 
+            company: job.company, 
+            partnerName: `Recruiter @ ${job.company}` 
+        });
+    }
 
     const handleToggleSave = () => {
         if (isSaved) {
@@ -83,7 +91,7 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={() => initiateConversation({ jobTitle: job.title, company: job.company, partnerName: `Recruiter @ ${job.company}` })}>
+                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
@@ -181,7 +189,7 @@ function UserProfileCard() {
                     />
                 </div>
                  <Input 
-                    value={name}
+                    value={name || ''}
                     onChange={(e) => setName(e.target.value)}
                     className="text-xl font-bold text-center border-0 focus:ring-0 shadow-none"
                  />
@@ -193,7 +201,7 @@ function UserProfileCard() {
                     id="user-bio"
                     placeholder="Add a short bio about yourself..." 
                     rows={3} 
-                    value={bio}
+                    value={bio || ''}
                     onChange={(e) => setBio(e.target.value)}
                 />
             </CardContent>
