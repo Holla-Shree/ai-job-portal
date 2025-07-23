@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plus, Trash2, Edit, Save, X, PanelLeft, Star } from "lucide-react";
+import { Loader2, MessageSquare, Send, Sparkles, Brain, BookOpen, Lightbulb, Plus, Trash2, Edit, Save, X, PanelLeft, Star, Edit2 } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,15 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import withAuth from '@/components/withAuth';
 
 const chatInputSchema = z.object({
@@ -106,6 +101,7 @@ function ChatbotPage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -177,7 +173,9 @@ function ChatbotPage() {
     toast({ title: "New Session Started", description: "Ready for a new interview practice."});
   };
 
-  const handleDeleteSession = (sessionId: string) => {
+  const handleDeleteSession = () => {
+    if (!sessionToDelete) return;
+    const sessionId = sessionToDelete.id;
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     if (activeSessionId === sessionId) {
         const remainingSessions = sessions.filter(s => s.id !== sessionId);
@@ -185,6 +183,7 @@ function ChatbotPage() {
         setActiveSessionId(sorted.length > 0 ? sorted[0].id : null);
     }
     toast({ title: "Session Deleted" });
+    setSessionToDelete(null);
   };
   
   const handleRenameSession = () => {
@@ -295,65 +294,40 @@ function ChatbotPage() {
             <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                     {sortedSessions.map(session => (
-                        <div key={session.id} 
-                             className={cn("group p-2 rounded-md cursor-pointer hover:bg-muted", activeSessionId === session.id && "bg-muted")}>
-                           <div className="flex items-center justify-between" onClick={() => setActiveSessionId(session.id)}>
-                             {editingSessionId === session.id ? (
-                                <Input 
-                                    value={editingTitle} 
-                                    onChange={(e) => setEditingTitle(e.target.value)} 
-                                    onKeyDown={(e) => { if(e.key === 'Enter') handleRenameSession(); if(e.key === 'Escape') setEditingSessionId(null);}}
-                                    autoFocus
-                                    className="h-7 text-sm"
-                                />
-                             ) : (
-                                <p className="text-sm font-medium truncate flex-1 pr-2">{session.title}</p>
-                             )}
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                {editingSessionId === session.id ? (
-                                    <>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRenameSession}><Save className="h-4 w-4"/></Button>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingSessionId(null)}><X className="h-4 w-4"/></Button>
-                                    </>
-                                ) : (
-                                   <TooltipProvider>
-                                     <Tooltip>
-                                       <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setEditingSessionId(session.id); setEditingTitle(session.title); }}>
-                                          <Edit className="h-4 w-4"/>
-                                        </Button>
-                                       </TooltipTrigger>
-                                       <TooltipContent><p>Rename Session</p></TooltipContent>
-                                     </Tooltip>
-                                   </TooltipProvider>
-                                )}
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
-                                                        <Trash2 className="h-4 w-4"/>
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Delete Session</p></TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete session?</AlertDialogTitle>
-                                            <AlertDialogDescription>This action cannot be undone. "{session.title}" will be permanently deleted.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className="bg-destructive hover:bg-destructive/90">Confirm Delete</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                           </div>
-                        </div>
+                       <ContextMenu key={session.id}>
+                           <ContextMenuTrigger>
+                               <div 
+                                 className={cn("p-2 rounded-md cursor-pointer hover:bg-muted", activeSessionId === session.id && "bg-muted")}
+                                 onClick={() => setActiveSessionId(session.id)}
+                                >
+                                    {editingSessionId === session.id ? (
+                                        <div className="flex items-center gap-1">
+                                            <Input 
+                                                value={editingTitle} 
+                                                onChange={(e) => setEditingTitle(e.target.value)} 
+                                                onKeyDown={(e) => { if(e.key === 'Enter') handleRenameSession(); if(e.key === 'Escape') setEditingSessionId(null);}}
+                                                autoFocus
+                                                className="h-7 text-sm"
+                                            />
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRenameSession}><Save className="h-4 w-4"/></Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingSessionId(null)}><X className="h-4 w-4"/></Button>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm font-medium truncate">{session.title}</p>
+                                    )}
+                               </div>
+                           </ContextMenuTrigger>
+                           <ContextMenuContent>
+                                <ContextMenuItem onSelect={() => {setEditingSessionId(session.id); setEditingTitle(session.title);}}>
+                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    Rename Session
+                                </ContextMenuItem>
+                                <ContextMenuItem className="text-destructive" onSelect={() => setSessionToDelete(session)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Session
+                                </ContextMenuItem>
+                           </ContextMenuContent>
+                       </ContextMenu>
                     ))}
                 </div>
             </ScrollArea>
@@ -506,6 +480,22 @@ function ChatbotPage() {
             </Card>
         </div>
       </div>
+       <AlertDialog open={!!sessionToDelete} onOpenChange={(open) => !open && setSessionToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. The session "{sessionToDelete?.title}" will be permanently deleted.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteSession} className="bg-destructive hover:bg-destructive/90">
+                        Confirm Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
