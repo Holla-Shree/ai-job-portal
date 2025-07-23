@@ -24,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 
@@ -57,12 +57,15 @@ function RecruiterPortalPage() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [screeningProgress, setScreeningProgress] = useState(0);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
   const [talentSearchTerm, setTalentSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState("postJob");
+  const [activeScreeningJobTitle, setActiveScreeningJobTitle] = useState<string | null>(null);
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
@@ -127,45 +130,60 @@ function RecruiterPortalPage() {
     }
   };
   
-  const handleAutoScreen: SubmitHandler<JobPostingFormValues> = async (data) => {
-    setIsScreening(true);
-    setScreeningResults([]);
-    setScreeningProgress(0);
-
-    await addJob({
-        title: data.jobTitle,
-        company: data.companyName,
-        city: data.location,
-        type: data.type,
-        domain: data.domain,
-        salary: data.salary,
-        description: data.jobDescription,
-    });
-    
-    toast({ title: "Job Posted & Screening Started", description: "AI is now screening candidates against your job description." });
-    
-    const results: ScoredCandidate[] = [];
+  const handlePostJob: SubmitHandler<JobPostingFormValues> = async (data) => {
+    setIsPosting(true);
     try {
-      for (let i = 0; i < candidates.length; i++) {
-        const candidate = candidates[i];
-        const screeningResult = await screenCandidate({
-          jobDescription: data.jobDescription,
-          candidateProfile: candidate.profile,
+        await addJob({
+            title: data.jobTitle,
+            company: data.companyName,
+            city: data.location,
+            type: data.type,
+            domain: data.domain,
+            salary: data.salary,
+            description: data.jobDescription,
         });
-        results.push({ ...screeningResult, candidate });
-        setScreeningProgress(((i + 1) / candidates.length) * 100);
-      }
-      results.sort((a, b) => b.score - a.score); // Sort by score descending
-      setScreeningResults(results);
-      toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates.` });
-    } catch (error) {
-       console.error("Error during auto-screening:", error);
-       toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
+        toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+        jobPostForm.reset();
+        setActiveTab("postings");
+    } catch(error) {
+        console.error("Error posting job:", error);
+        toast({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
     } finally {
-       setIsScreening(false);
-       setScreeningProgress(100);
+        setIsPosting(false);
     }
   };
+
+  const handleScreeningForJob = async (job: Job) => {
+      setActiveTab('screeningResults');
+      setIsScreening(true);
+      setScreeningResults([]);
+      setScreeningProgress(0);
+      setActiveScreeningJobTitle(job.title);
+      
+      const results: ScoredCandidate[] = [];
+      try {
+        toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
+        for (let i = 0; i < candidates.length; i++) {
+          const candidate = candidates[i];
+          const screeningResult = await screenCandidate({
+            jobDescription: job.description,
+            candidateProfile: candidate.profile,
+          });
+          results.push({ ...screeningResult, candidate });
+          setScreeningProgress(((i + 1) / candidates.length) * 100);
+        }
+        results.sort((a, b) => b.score - a.score); // Sort by score descending
+        setScreeningResults(results);
+        toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
+      } catch (error) {
+         console.error("Error during auto-screening:", error);
+         toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
+      } finally {
+         setIsScreening(false);
+         setScreeningProgress(100);
+      }
+  }
+
 
   const handleShortlistCandidate = (candidateId: string) => {
     setShortlistedCandidates(prev => {
@@ -233,22 +251,22 @@ function RecruiterPortalPage() {
   return (
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
-        <Tabs defaultValue="screening">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="screening"><Sparkles className="mr-2" />Post Job & Screen</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="postJob"><PlusCircle className="mr-2" />Post a Job</TabsTrigger>
             <TabsTrigger value="postings"><Briefcase className="mr-2" />My Postings</TabsTrigger>
+            <TabsTrigger value="screeningResults"><Sparkles className="mr-2" />Screening Results</TabsTrigger>
             <TabsTrigger value="shortlisted"><Star className="mr-2" />Shortlisted</TabsTrigger>
             <TabsTrigger value="talent"><Users className="mr-2" />Talent Pool</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="screening">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              <Card className="shadow-xl">
+          <TabsContent value="postJob">
+              <Card className="shadow-xl max-w-2xl mx-auto">
                 <CardHeader>
                   <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a New Job</CardTitle>
-                  <CardDescription>Fill in the details to post a job and automatically screen candidates from the talent pool.</CardDescription>
+                  <CardDescription>Fill in the details to post a job. You can screen candidates from the "My Postings" tab.</CardDescription>
                 </CardHeader>
-                <form onSubmit={jobPostForm.handleSubmit(handleAutoScreen)}>
+                <form onSubmit={jobPostForm.handleSubmit(handlePostJob)}>
                   <CardContent className="space-y-6">
                     <div>
                       <Label htmlFor="jobTitle">Job Title</Label>
@@ -318,18 +336,93 @@ function RecruiterPortalPage() {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button type="submit" disabled={isScreening}>
-                      {isScreening ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
-                      {isScreening ? 'Screening Candidates...' : 'Post Job & Auto-Screen'}
+                    <Button type="submit" disabled={isPosting}>
+                      {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
+                      {isPosting ? 'Posting Job...' : 'Post Job'}
                     </Button>
                   </CardFooter>
                 </form>
               </Card>
+          </TabsContent>
 
-              <Card className="shadow-lg sticky top-8">
+          <TabsContent value="postings">
+             <Card className="shadow-xl">
+              <CardHeader>
+                  <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2" />My Job Postings</CardTitle>
+                  <CardDescription>Manage your active job listings and screen candidates.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Job Title</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobs.length > 0 ? (
+                        jobs.map((job) => (
+                            <TableRow key={job.id}>
+                            <TableCell className="font-medium">{job.title}</TableCell>
+                            <TableCell>{job.company}</TableCell>
+                            <TableCell>{job.city}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => handleScreeningForJob(job)} disabled={isScreening}>
+                                    <Sparkles className="mr-2 h-3 w-3" />
+                                    Screen
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
+                                      <Trash2 className="mr-2 h-3 w-3" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the job posting for "{job.title}".
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className="bg-destructive hover:bg-destructive/90">
+                                            Confirm Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                You haven't posted any jobs yet.
+                            </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+           <TabsContent value="screeningResults">
+                <Card className="shadow-lg">
                   <CardHeader>
                     <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
-                    <CardDescription>Top candidates for your job will appear here, ranked by match score.</CardDescription>
+                    <CardDescription>
+                        {activeScreeningJobTitle 
+                            ? `Top candidates for "${activeScreeningJobTitle}", ranked by match score.`
+                            : "Select a job to screen from the 'My Postings' tab to see results here."
+                        }
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {isScreening && (
@@ -338,7 +431,12 @@ function RecruiterPortalPage() {
                          <p className="text-sm text-muted-foreground text-center">Screening {candidates.length} candidates... ({Math.round(screeningProgress)}%)</p>
                       </div>
                     )}
-                    {!isScreening && screeningResults.length === 0 && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Post a job to see screened candidates.</div>}
+                    {!isScreening && screeningResults.length === 0 && (
+                        <div className="text-center text-sm text-muted-foreground h-48 flex flex-col items-center justify-center">
+                            <p>No screening results to display.</p>
+                            <Button variant="link" onClick={() => setActiveTab('postings')}>Go to My Postings to start screening</Button>
+                        </div>
+                    )}
                     {screeningResults.length > 0 && (
                       <ScrollArea className="h-[500px]">
                         <Accordion type="single" collapsible className="w-full">
@@ -416,74 +514,9 @@ function RecruiterPortalPage() {
                       </ScrollArea>
                     )}
                   </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                </Card>
+           </TabsContent>
 
-          <TabsContent value="postings">
-             <Card className="shadow-xl">
-              <CardHeader>
-                  <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2" />My Job Postings</CardTitle>
-                  <CardDescription>Manage your active job listings.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Job Title</TableHead>
-                        <TableHead>Company</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {jobs.length > 0 ? (
-                        jobs.map((job) => (
-                            <TableRow key={job.id}>
-                            <TableCell className="font-medium">{job.title}</TableCell>
-                            <TableCell>{job.company}</TableCell>
-                            <TableCell>{job.city}</TableCell>
-                            <TableCell className="text-right">
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="sm">
-                                      <Trash2 className="mr-2 h-3 w-3" />
-                                      Delete
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the job posting for "{job.title}".
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className="bg-destructive hover:bg-destructive/90">
-                                            Confirm Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                            </TableCell>
-                            </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                You haven't posted any jobs yet.
-                            </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
           <TabsContent value="shortlisted">
              <Card className="shadow-xl">
               <CardHeader>
