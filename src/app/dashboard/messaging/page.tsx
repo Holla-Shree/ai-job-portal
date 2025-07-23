@@ -1,7 +1,7 @@
 
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import { formatDistanceToNow } from 'date-fns';
 function MessagingPage() {
     const { user } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
     const { 
         conversations, 
         setConversations,
@@ -40,16 +41,26 @@ function MessagingPage() {
     
     useEffect(() => {
         const openConversationId = searchParams.get('open');
+        const suggestedMessage = searchParams.get('message');
+
         if (openConversationId) {
             const conversationToOpen = conversations.find(c => c.id === openConversationId);
             if (conversationToOpen) {
                 setSelectedConversation(conversationToOpen);
+                if (suggestedMessage) {
+                    setMessageInput(decodeURIComponent(suggestedMessage));
+                }
                 if (conversationToOpen.unread) {
                     markAsRead(conversationToOpen.id);
                 }
+                // Clean up URL params
+                const newParams = new URLSearchParams(window.location.search);
+                newParams.delete('open');
+                newParams.delete('message');
+                router.replace(`${window.location.pathname}?${newParams.toString()}`);
             }
         }
-    }, [searchParams, conversations, markAsRead]);
+    }, [searchParams, conversations, markAsRead, router]);
 
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
@@ -89,6 +100,7 @@ function MessagingPage() {
         const conversation = conversations.find(c => c.id === conversationId);
         if (conversation) {
             setSelectedConversation(conversation);
+            setMessageInput(''); // Clear input when switching conversations
             if (conversation.unread) {
                  markAsRead(conversation.id);
             }

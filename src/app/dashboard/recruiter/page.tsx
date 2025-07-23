@@ -203,9 +203,12 @@ function RecruiterPortalPage() {
     const conversationId = initiateConversation({
         jobTitle: jobTitle,
         company: 'Your Company', // Or get from form
-        partnerName: candidateName
+        partnerName: candidateName,
+        createEmpty: true,
     });
-    router.push(`/dashboard/messaging?open=${conversationId}`);
+    
+    const message = `Hi ${candidateName}, I'm reaching out regarding the ${jobTitle} position. I was impressed by your profile and would like to discuss this opportunity further.`;
+    router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
   };
 
   const getBadgeVariant = (strength: ScreenCandidateOutput['matchStrength']) => {
@@ -360,6 +363,10 @@ function RecruiterPortalPage() {
                                      </div>
                                    )}
                                    <div className="flex items-center gap-2 pt-2 border-t">
+                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle") || "the open position")}>
+                                            <MessageSquare className="mr-2 h-4 w-4" />
+                                            Message
+                                        </Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
                                             <Button variant="default" size="sm">

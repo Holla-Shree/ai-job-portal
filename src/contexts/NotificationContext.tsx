@@ -42,6 +42,7 @@ interface ConversationStub {
     jobTitle: string;
     company: string;
     partnerName: string;
+    createEmpty?: boolean;
 }
 
 interface NotificationContextType {
@@ -256,16 +257,21 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return existingConvo.id;
     }
 
+    const messages = stub.createEmpty ? [] : [
+        { id: `msg-${Date.now()}`, sender: 'me' as const, text: `Hi, I'd like to ask a question about the ${stub.jobTitle} position.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+    ];
+
+    const lastMessage = stub.createEmpty ? 'Conversation started.' : messages[0].text;
+
+
     const newConversation: Conversation = {
       id: `conv-${Date.now()}`,
       partnerName: stub.partnerName,
       partnerRole: user?.role === 'user' ? 'Recruiter' : 'Candidate',
       jobTitle: stub.jobTitle,
-      lastMessage: 'I have a question about this role.',
-      avatar: stub.partnerName.charAt(0).toUpperCase(),
-      messages: [
-        { id: `msg-${Date.now()}`, sender: 'me', text: `Hi, I'd like to ask a question about the ${stub.jobTitle} position.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-      ],
+      lastMessage: lastMessage,
+      avatar: stub.partnerName.split(' ').map(n => n[0]).join(''),
+      messages: messages,
       pinned: false,
       favourited: false,
       unread: false,

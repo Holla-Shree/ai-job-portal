@@ -70,7 +70,8 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             company: job.company,
             partnerName: `Recruiter @ ${job.company}`
         });
-        router.push(`/dashboard/messaging?open=${conversationId}`);
+        const message = `Hi, I'm interested in the ${job.title} position at ${job.company} and had a few questions.`;
+        router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
     }
     
     return (
