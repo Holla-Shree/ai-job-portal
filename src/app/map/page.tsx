@@ -16,20 +16,9 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-
-const mockJobs = [
-  { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
-  { id: 2, title: "Data Scientist", company: "Google", city: "Bengaluru", position: { lat: 12.9716, lng: 77.5946 }, type: "Full-time", domain: "Tech", salary: "₹22-28 LPA", description: "Apply your expertise in quantitative analysis, data mining, and the presentation of data to see beyond the numbers and understand how our users interact with our products. You will work on projects that have a direct impact on our business and users. Proficiency in Python, R, and SQL is required." },
-  { id: 3, title: "Junior Frontend Developer", company: "Freshworks", city: "Chennai", position: { lat: 13.0827, lng: 80.2707 }, type: "Full-time", domain: "Tech", salary: "₹8-12 LPA", description: "We are looking for a passionate Junior Frontend Developer to join our team. You will be responsible for building and maintaining our web applications using modern technologies like React and TypeScript. This is a great opportunity to learn and grow in a fast-paced environment." },
-  { id: 4, title: "Product Manager", company: "PhonePe", city: "Bengaluru", position: { lat: 12.9268, lng: 77.6262 }, type: "Full-time", domain: "Fintech", salary: "₹30-35 LPA", description: "As a Product Manager, you will be responsible for the product planning and execution throughout the Product Lifecycle, including: gathering and prioritizing product and customer requirements, defining the product vision, and working closely with engineering, sales, marketing and support to ensure revenue and customer satisfaction goals are met." },
-  { id: 5, title: "Marketing Manager", company: "Zomato", city: "Gurugram", position: { lat: 28.4595, lng: 77.0266 }, type: "Full-time", domain: "Food Tech", salary: "₹15-20 LPA", description: "We're looking for an experienced and creative Marketing Manager to lead our marketing campaigns. You'll be responsible for developing, implementing and executing strategic marketing plans for an entire organization in order to attract potential customers and retain existing ones." },
-  { id: 6, title: "Remote React Developer", company: "Toptal", city: "Remote", position: { lat: 28.6139, lng: 77.2090 }, type: "Remote", domain: "Tech", salary: "$70-90k USD", description: "Join a network of the world's top talent in design, business, and technology. As a React Developer, you will work on challenging projects for leading companies. This is a remote position, so you can work from anywhere. Strong proficiency in React.js and its core principles is a must." },
-];
-
-type Job = typeof mockJobs[0];
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
@@ -132,6 +121,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
 
 export default function JobMapPage() {
     const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // Centered on India
+    const { jobs } = useNotifications();
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [hoveredJobId, setHoveredJobId] = useState<number | null>(null);
     const jobListRef = useRef<Record<number, HTMLDivElement | null>>({});
@@ -191,7 +181,7 @@ export default function JobMapPage() {
                                 <Separator />
                                 <ScrollArea className="flex-1">
                                     <div className="p-2 space-y-2">
-                                        {mockJobs.map(job => (
+                                        {jobs.map(job => (
                                             <div
                                                 key={job.id}
                                                 ref={el => jobListRef.current[job.id] = el}
@@ -231,7 +221,7 @@ export default function JobMapPage() {
                             disableDefaultUI={true}
                             className="h-full w-full"
                         >
-                            {mockJobs.map((job) => (
+                            {jobs.map((job) => (
                                  <AdvancedMarker
                                     key={job.id}
                                     position={job.position}

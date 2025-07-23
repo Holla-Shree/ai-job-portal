@@ -17,6 +17,7 @@ import { AppLogo } from '@/components/layout/AppLogo';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -31,6 +32,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
   const { login } = useAuth();
+  const { addCandidate } = useNotifications();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -39,8 +41,16 @@ export default function SignupPage() {
   });
 
   const onSubmit = (data: SignupFormValues) => {
-    const { role } = data;
+    const { role, fullName } = data;
     
+    // Add to talent pool if the role is 'user'
+    if (role === 'user') {
+        addCandidate({
+            name: fullName,
+            profile: `Newly registered user. Add your resume to create a full profile.`
+        });
+    }
+
     toast({
       title: 'Account Created!',
       description: "You have been successfully signed up.",

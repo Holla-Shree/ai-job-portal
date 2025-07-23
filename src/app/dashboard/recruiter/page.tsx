@@ -27,34 +27,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 
-// Mock Candidate Data
-const MOCK_CANDIDATES = [
-    { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science from IIT Bombay.' },
-    { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering from BITS Pilani.' },
-    { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp from UpGrad.' },
-    { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code. Based in Pune.' },
-    { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau. From Hyderabad.' },
-    { id: 'cand6', name: 'Amit Kumar', profile: 'Product Manager with 6 years of experience in the SaaS industry. Proven track record of launching successful B2B products. Strong analytical skills and experience with Agile methodologies. MBA from IIM Ahmedabad.' },
-    { id: 'cand7', name: 'Neha Gupta', profile: 'UX/UI Designer with a focus on mobile applications. 5 years of experience creating intuitive and user-friendly designs for iOS and Android. Proficient in Figma, Sketch, and Adobe Creative Suite. Portfolio available upon request.' },
-    { id: 'cand8', name: 'Karan Malhotra', profile: 'Cybersecurity Analyst with 7 years of experience in threat detection and incident response. Certified Information Systems Security Professional (CISSP). Experience with SIEM tools like Splunk. Based in Delhi.' },
-    { id: 'cand9', name: 'Isha Nair', profile: 'Digital Marketing Manager with a decade of experience in SEO, SEM, and social media marketing. Successfully managed multi-million dollar ad budgets. Google Ads certified. Currently located in Mumbai.' },
-    { id: 'cand10', name: 'Rajesh Kumar', profile: 'Mobile App Developer with expertise in Flutter. 4 years of experience building cross-platform applications for startups. Published several apps on the Play Store and App Store.' },
-    { id: 'cand11', name: 'Deepika Rao', profile: 'QA Automation Engineer with 5 years of experience. Expertise in building testing frameworks from scratch using Selenium and Cypress. Strong understanding of software development life cycle. From Bengaluru.' },
-    { id: 'cand12', name: 'Arjun Desai', profile: 'Cloud Solutions Architect with 9 years of experience. AWS Certified Solutions Architect – Professional. Specializes in designing and implementing scalable and cost-effective cloud infrastructure for enterprises.' },
-    { id: 'cand13', name: 'Sunita Joshi', profile: 'HR Business Partner with 8 years of experience in the tech industry. Expertise in talent acquisition, employee relations, and performance management. SHRM-CP certified.' },
-    { id: 'cand14', name: 'Manish Verma', profile: 'Data Engineer with 4 years of experience building and maintaining ETL pipelines. Proficient in Apache Spark, Kafka, and Airflow. Experience with big data technologies on AWS.' },
-    { id: 'cand15', name: 'Pooja Agarwal', profile: 'Business Analyst with a background in finance. 6 years of experience translating business requirements into technical specifications for fintech products. Based in Gurugram.' },
-    { id: 'cand16', name: 'Siddharth Chatterjee', profile: 'Content Strategist and Writer with 7 years of experience creating engaging content for B2B tech companies. Expertise in long-form blog posts, white papers, and case studies. From Kolkata.' },
-    { id: 'cand17', name: 'Aditi Sharma', profile: 'Salesforce Developer with 3 years of experience. Certified Salesforce Platform Developer I. Experience in Apex, Visualforce, and Lightning Web Components. Based in Noida.' },
-    { id: 'cand18', name: 'Vivek Iyer', profile: 'Senior Java Developer with 10 years of experience in building enterprise-grade applications using Spring Boot and Hibernate. Strong understanding of microservices and RESTful APIs. From Chennai.' },
-    { id: 'cand19', name: 'Fatima Khan', profile: 'Scrum Master with 5 years of experience facilitating agile ceremonies for multiple development teams. Certified ScrumMaster (CSM). Passionate about improving team velocity and productivity.' },
-    { id: 'cand20', name: 'Nikhil Reddy', profile: 'AI/ML Engineer with 2 years of experience post-Master\'s. Researched and implemented computer vision models using PyTorch. Strong mathematical and statistical background. Graduated from IISc Bangalore.' },
-    { id: 'fresher1', name: 'Aarav Sharma', profile: 'Recent B.Tech Computer Science graduate from VIT Vellore (CGPA: 8.5/10). No professional experience. Skilled in Java, Python, and SQL. Developed a "Library Management System" as a final year project using Java Swing and MySQL. Seeking an entry-level software developer role.' },
-    { id: 'fresher2', name: 'Meera Desai', profile: 'Fresh MBA graduate with a specialization in Marketing from NMIMS, Mumbai. Completed a 3-month marketing internship at a local startup, where I assisted with social media campaigns and market research. Proficient in Google Analytics and Mailchimp. Eager to start a career as a Marketing Associate.' },
-    { id: 'fresher3', name: 'Rohan Gupta', profile: 'B.Com (Honours) graduate from Delhi University. No work experience. Strong understanding of accounting principles, financial statements, and taxation. Certified in Tally ERP 9 and advanced MS Excel. Looking for a trainee position in an accounting or finance department.' },
-    { id: 'fresher4', name: 'Sunita Krishnan', profile: 'Just graduated with a Bachelor of Design (B.Des) in Graphic Design from NID Ahmedabad. No industry experience. Portfolio includes branding projects, illustration, and UI mockups for mobile apps created for academic assignments. Skilled in Adobe Creative Suite (Photoshop, Illustrator, InDesign). Seeking a Junior Graphic Designer role.' },
-];
-
 interface ScoredCandidate extends ScreenCandidateOutput {
   candidate: { id: string; name: string; profile: string; };
 }
@@ -64,6 +36,9 @@ const jobPostingSchema = z.object({
   jobTitle: z.string().min(3, "Job title must be at least 3 characters."),
   companyName: z.string().min(2, "Company name must be at least 2 characters."),
   location: z.string().min(2, "Location is required."),
+  type: z.string().min(1, "Job type is required"),
+  domain: z.string().min(1, "Job domain is required"),
+  salary: z.string().min(1, "Salary is required"),
   jobDescription: z.string().min(50, "Job description must be at least 50 characters."),
 });
 type JobPostingFormValues = z.infer<typeof jobPostingSchema>;
@@ -77,7 +52,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalPage() {
   const { toast } = useToast();
-  const { updateApplicationStatus, initiateConversation } = useNotifications();
+  const { updateApplicationStatus, initiateConversation, candidates, addJob } = useNotifications();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -108,18 +83,18 @@ function RecruiterPortalPage() {
   }, [shortlistedCandidates, isClient]);
 
   const filteredTalentPool = useMemo(() => {
-    if (!talentSearchTerm) return MOCK_CANDIDATES;
+    if (!talentSearchTerm) return candidates;
     const lowercasedTerm = talentSearchTerm.toLowerCase();
-    return MOCK_CANDIDATES.filter(
+    return candidates.filter(
       (candidate) =>
         candidate.name.toLowerCase().includes(lowercasedTerm) ||
         candidate.profile.toLowerCase().includes(lowercasedTerm)
     );
-  }, [talentSearchTerm]);
+  }, [talentSearchTerm, candidates]);
 
   const getShortlistedCandidatesDetails = useMemo(() => {
-    return MOCK_CANDIDATES.filter(candidate => shortlistedCandidates.includes(candidate.id));
-  }, [shortlistedCandidates]);
+    return candidates.filter(candidate => shortlistedCandidates.includes(candidate.id));
+  }, [shortlistedCandidates, candidates]);
 
 
   React.useEffect(() => {
@@ -155,18 +130,30 @@ function RecruiterPortalPage() {
     setIsScreening(true);
     setScreeningResults([]);
     setScreeningProgress(0);
-    toast({ title: "Screening Started", description: "AI is now screening candidates against your job description." });
+
+    // Add job to global state
+    addJob({
+        title: data.jobTitle,
+        company: data.companyName,
+        city: data.location,
+        type: data.type,
+        domain: data.domain,
+        salary: data.salary,
+        description: data.jobDescription,
+    });
+    
+    toast({ title: "Job Posted & Screening Started", description: "AI is now screening candidates against your job description." });
     
     const results: ScoredCandidate[] = [];
     try {
-      for (let i = 0; i < MOCK_CANDIDATES.length; i++) {
-        const candidate = MOCK_CANDIDATES[i];
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
         const screeningResult = await screenCandidate({
           jobDescription: data.jobDescription,
           candidateProfile: candidate.profile,
         });
         results.push({ ...screeningResult, candidate });
-        setScreeningProgress(((i + 1) / MOCK_CANDIDATES.length) * 100);
+        setScreeningProgress(((i + 1) / candidates.length) * 100);
       }
       results.sort((a, b) => b.score - a.score); // Sort by score descending
       setScreeningResults(results);
@@ -257,16 +244,35 @@ function RecruiterPortalPage() {
                       <Input id="jobTitle" {...jobPostForm.register("jobTitle")} placeholder="e.g., Senior Software Engineer" />
                       {jobPostForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobTitle.message}</p>}
                     </div>
-                    <div>
-                      <Label htmlFor="companyName">Company Name</Label>
-                      <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
-                       {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="location">Location</Label>
-                      <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
-                       {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
-                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="companyName">Company Name</Label>
+                            <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
+                            {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="location">Location</Label>
+                            <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
+                            {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="type">Job Type</Label>
+                            <Input id="type" {...jobPostForm.register("type")} placeholder="e.g., Full-time" />
+                            {jobPostForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.type.message}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="domain">Domain</Label>
+                            <Input id="domain" {...jobPostForm.register("domain")} placeholder="e.g., Tech" />
+                            {jobPostForm.formState.errors.domain && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.domain.message}</p>}
+                        </div>
+                     </div>
+                      <div>
+                            <Label htmlFor="salary">Salary / Compensation</Label>
+                            <Input id="salary" {...jobPostForm.register("salary")} placeholder="e.g., ₹20-25 LPA" />
+                            {jobPostForm.formState.errors.salary && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.salary.message}</p>}
+                        </div>
                     <div>
                       <div className="flex items-center justify-between">
                         <Label htmlFor="jobDescription">Job Description</Label>
@@ -318,7 +324,7 @@ function RecruiterPortalPage() {
                     {isScreening && (
                       <div className="space-y-2">
                          <Progress value={screeningProgress} className="w-full" />
-                         <p className="text-sm text-muted-foreground text-center">Screening {MOCK_CANDIDATES.length} candidates... ({Math.round(screeningProgress)}%)</p>
+                         <p className="text-sm text-muted-foreground text-center">Screening {candidates.length} candidates... ({Math.round(screeningProgress)}%)</p>
                       </div>
                     )}
                     {!isScreening && screeningResults.length === 0 && <div className="text-center text-sm text-muted-foreground h-48 flex items-center justify-center">Post a job to see screened candidates.</div>}

@@ -47,6 +47,24 @@ interface ConversationStub {
     createEmpty?: boolean;
 }
 
+export type Job = { 
+    id: number; 
+    title: string; 
+    company: string; 
+    city: string; 
+    position: { lat: number; lng: number; }; 
+    type: string; 
+    domain: string; 
+    salary: string; 
+    description: string; 
+};
+
+export type Candidate = {
+    id: string;
+    name: string;
+    profile: string;
+};
+
 interface NotificationContextType {
   notifications: ApplicationNotification[];
   addNotification: (jobTitle: string, company: string) => void;
@@ -57,6 +75,10 @@ interface NotificationContextType {
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  jobs: Job[];
+  addJob: (job: Omit<Job, 'id' | 'position'>) => void;
+  candidates: Candidate[];
+  addCandidate: (candidate: Omit<Candidate, 'id'>) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -64,6 +86,44 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
+const JOBS_STORAGE_KEY = 'jobMatchJobs';
+const CANDIDATES_STORAGE_KEY = 'jobMatchCandidates';
+
+const mockJobs = [
+  { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
+  { id: 2, title: "Data Scientist", company: "Google", city: "Bengaluru", position: { lat: 12.9716, lng: 77.5946 }, type: "Full-time", domain: "Tech", salary: "₹22-28 LPA", description: "Apply your expertise in quantitative analysis, data mining, and the presentation of data to see beyond the numbers and understand how our users interact with our products. You will work on projects that have a direct impact on our business and users. Proficiency in Python, R, and SQL is required." },
+  { id: 3, title: "Junior Frontend Developer", company: "Freshworks", city: "Chennai", position: { lat: 13.0827, lng: 80.2707 }, type: "Full-time", domain: "Tech", salary: "₹8-12 LPA", description: "We are looking for a passionate Junior Frontend Developer to join our team. You will be responsible for building and maintaining our web applications using modern technologies like React and TypeScript. This is a great opportunity to learn and grow in a fast-paced environment." },
+  { id: 4, title: "Product Manager", company: "PhonePe", city: "Bengaluru", position: { lat: 12.9268, lng: 77.6262 }, type: "Full-time", domain: "Fintech", salary: "₹30-35 LPA", description: "As a Product Manager, you will be responsible for the product planning and execution throughout the Product Lifecycle, including: gathering and prioritizing product and customer requirements, defining the product vision, and working closely with engineering, sales, marketing and support to ensure revenue and customer satisfaction goals are met." },
+  { id: 5, title: "Marketing Manager", company: "Zomato", city: "Gurugram", position: { lat: 28.4595, lng: 77.0266 }, type: "Full-time", domain: "Food Tech", salary: "₹15-20 LPA", description: "We're looking for an experienced and creative Marketing Manager to lead our marketing campaigns. You'll be responsible for developing, implementing and executing strategic marketing plans for an entire organization in order to attract potential customers and retain existing ones." },
+  { id: 6, title: "Remote React Developer", company: "Toptal", city: "Remote", position: { lat: 28.6139, lng: 77.2090 }, type: "Remote", domain: "Tech", salary: "$70-90k USD", description: "Join a network of the world's top talent in design, business, and technology. As a React Developer, you will work on challenging projects for leading companies. This is a remote position, so you can work from anywhere. Strong proficiency in React.js and its core principles is a must." },
+];
+
+const MOCK_CANDIDATES = [
+    { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science from IIT Bombay.' },
+    { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering from BITS Pilani.' },
+    { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp from UpGrad.' },
+    { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code. Based in Pune.' },
+    { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau. From Hyderabad.' },
+    { id: 'cand6', name: 'Amit Kumar', profile: 'Product Manager with 6 years of experience in the SaaS industry. Proven track record of launching successful B2B products. Strong analytical skills and experience with Agile methodologies. MBA from IIM Ahmedabad.' },
+    { id: 'cand7', name: 'Neha Gupta', profile: 'UX/UI Designer with a focus on mobile applications. 5 years of experience creating intuitive and user-friendly designs for iOS and Android. Proficient in Figma, Sketch, and Adobe Creative Suite. Portfolio available upon request.' },
+    { id: 'cand8', name: 'Karan Malhotra', profile: 'Cybersecurity Analyst with 7 years of experience in threat detection and incident response. Certified Information Systems Security Professional (CISSP). Experience with SIEM tools like Splunk. Based in Delhi.' },
+    { id: 'cand9', name: 'Isha Nair', profile: 'Digital Marketing Manager with a decade of experience in SEO, SEM, and social media marketing. Successfully managed multi-million dollar ad budgets. Google Ads certified. Currently located in Mumbai.' },
+    { id: 'cand10', name: 'Rajesh Kumar', profile: 'Mobile App Developer with expertise in Flutter. 4 years of experience building cross-platform applications for startups. Published several apps on the Play Store and App Store.' },
+    { id: 'cand11', name: 'Deepika Rao', profile: 'QA Automation Engineer with 5 years of experience. Expertise in building testing frameworks from scratch using Selenium and Cypress. Strong understanding of software development life cycle. From Bengaluru.' },
+    { id: 'cand12', name: 'Arjun Desai', profile: 'Cloud Solutions Architect with 9 years of experience. AWS Certified Solutions Architect – Professional. Specializes in designing and implementing scalable and cost-effective cloud infrastructure for enterprises.' },
+    { id: 'cand13', name: 'Sunita Joshi', profile: 'HR Business Partner with 8 years of experience in the tech industry. Expertise in talent acquisition, employee relations, and performance management. SHRM-CP certified.' },
+    { id: 'cand14', name: 'Manish Verma', profile: 'Data Engineer with 4 years of experience building and maintaining ETL pipelines. Proficient in Apache Spark, Kafka, and Airflow. Experience with big data technologies on AWS.' },
+    { id: 'cand15', name: 'Pooja Agarwal', profile: 'Business Analyst with a background in finance. 6 years of experience translating business requirements into technical specifications for fintech products. Based in Gurugram.' },
+    { id: 'cand16', name: 'Siddharth Chatterjee', profile: 'Content Strategist and Writer with 7 years of experience creating engaging content for B2B tech companies. Expertise in long-form blog posts, white papers, and case studies. From Kolkata.' },
+    { id: 'cand17', name: 'Aditi Sharma', profile: 'Salesforce Developer with 3 years of experience. Certified Salesforce Platform Developer I. Experience in Apex, Visualforce, and Lightning Web Components. Based in Noida.' },
+    { id: 'cand18', name: 'Vivek Iyer', profile: 'Senior Java Developer with 10 years of experience in building enterprise-grade applications using Spring Boot and Hibernate. Strong understanding of microservices and RESTful APIs. From Chennai.' },
+    { id: 'cand19', name: 'Fatima Khan', profile: 'Scrum Master with 5 years of experience facilitating agile ceremonies for multiple development teams. Certified ScrumMaster (CSM). Passionate about improving team velocity and productivity.' },
+    { id: 'cand20', name: 'Nikhil Reddy', profile: 'AI/ML Engineer with 2 years of experience post-Master\'s. Researched and implemented computer vision models using PyTorch. Strong mathematical and statistical background. Graduated from IISc Bangalore.' },
+    { id: 'fresher1', name: 'Aarav Sharma', profile: 'Recent B.Tech Computer Science graduate from VIT Vellore (CGPA: 8.5/10). No professional experience. Skilled in Java, Python, and SQL. Developed a "Library Management System" as a final year project using Java Swing and MySQL. Seeking an entry-level software developer role.' },
+    { id: 'fresher2', name: 'Meera Desai', profile: 'Fresh MBA graduate with a specialization in Marketing from NMIMS, Mumbai. Completed a 3-month marketing internship at a local startup, where I assisted with social media campaigns and market research. Proficient in Google Analytics and Mailchimp. Eager to start a career as a Marketing Associate.' },
+    { id: 'fresher3', name: 'Rohan Gupta', profile: 'B.Com (Honours) graduate from Delhi University. No work experience. Strong understanding of accounting principles, financial statements, and taxation. Certified in Tally ERP 9 and advanced MS Excel. Looking for a trainee position in an accounting or finance department.' },
+    { id: 'fresher4', name: 'Sunita Krishnan', profile: 'Just graduated with a Bachelor of Design (B.Des) in Graphic Design from NID Ahmedabad. No industry experience. Portfolio includes branding projects, illustration, and UI mockups for mobile apps created for academic assignments. Skilled in Adobe Creative Suite (Photoshop, Illustrator, InDesign). Seeking a Junior Graphic Designer role.' },
+];
 
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -189,6 +249,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -197,7 +259,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
 
       const storedHistory = localStorage.getItem(APPLICATION_HISTORY_KEY);
-       if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
+      if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
        
       const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
       if (storedConversations) {
@@ -205,6 +267,21 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       } else if (user) {
         setConversations(getMockConversations(user.role));
       }
+
+      const storedJobs = localStorage.getItem(JOBS_STORAGE_KEY);
+      if (storedJobs) {
+        setJobs(JSON.parse(storedJobs));
+      } else {
+        setJobs(mockJobs);
+      }
+
+      const storedCandidates = localStorage.getItem(CANDIDATES_STORAGE_KEY);
+      if (storedCandidates) {
+        setCandidates(JSON.parse(storedCandidates));
+      } else {
+        setCandidates(MOCK_CANDIDATES);
+      }
+
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     }
@@ -221,6 +298,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations]);
+
+  useEffect(() => {
+    localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
+  }, [jobs]);
+
+  useEffect(() => {
+    localStorage.setItem(CANDIDATES_STORAGE_KEY, JSON.stringify(candidates));
+  }, [candidates]);
+
 
   const addNotification = (jobTitle: string, company: string) => {
     // In a real app, you'd get the user's ID. Here we'll mock one.
@@ -298,6 +384,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return newConversation.id;
   }
 
+  const addJob = (job: Omit<Job, 'id' | 'position'>) => {
+    // A real implementation would geocode the city to get lat/lng
+    const newJob: Job = {
+        ...job,
+        id: Date.now(),
+        position: { lat: 20.5937, lng: 78.9629 }, // Default to India center
+    };
+    setJobs(prev => [newJob, ...prev]);
+  };
+
+  const addCandidate = (candidate: Omit<Candidate, 'id'>) => {
+      const newCandidate: Candidate = {
+          ...candidate,
+          id: `cand-${Date.now()}`,
+      };
+      setCandidates(prev => [newCandidate, ...prev]);
+  };
+
   useEffect(() => {
     if (!user) return;
      const mockConvos = getMockConversations(user?.role || 'user');
@@ -337,7 +441,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, candidates, addCandidate }}>
       {children}
     </NotificationContext.Provider>
   );
