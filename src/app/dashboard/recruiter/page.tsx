@@ -409,7 +409,7 @@ function RecruiterPortalPage() {
                                 <span>{candidate.name}</span>
                                 </div>
                             </TableCell>
-                            <TableCell className="text-muted-foreground text-xs max-w-md truncate">{candidate.profile}</TableCell>
+                            <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="ghost" size="sm" onClick={() => handleShortlistCandidate(candidate.id)}>
                                     Remove
