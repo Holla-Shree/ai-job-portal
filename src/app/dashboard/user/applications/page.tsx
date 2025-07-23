@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import withAuth from '@/components/withAuth';
 import { useNotifications, ApplicationNotification, Job } from '@/contexts/NotificationContext';
-import { ArrowLeft, Star, Briefcase, Building, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Star, Briefcase, Building, Clock, MapPin, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -73,7 +73,9 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive w-full">Remove</Button>
+                                <Button size="sm" variant="destructive" className="w-full">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Remove
+                                </Button>
                             </AlertDialogTrigger>
                              <AlertDialogContent>
                                 <AlertDialogHeader>
