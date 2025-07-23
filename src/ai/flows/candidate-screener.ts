@@ -77,11 +77,11 @@ Perform the semantic evaluation now.`,
     safetySettings: [
       {
         category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
     ],
   },
@@ -99,9 +99,13 @@ const screenCandidateFlow = ai.defineFlow(
       return output!;
     } catch (error) {
       console.error('Error in screenCandidateFlow:', error);
-      throw new Error(
-        'The AI service is currently unavailable. Please try again later.'
-      );
+      // Fallback for when the AI fails, to avoid breaking the whole loop
+      return {
+        matchStrength: 'Not a Fit',
+        score: 0,
+        rationale: 'The AI was unable to process this candidate profile. This may be due to formatting issues or network errors.',
+        missingQualifications: ['Unable to determine due to processing error.'],
+      };
     }
   }
 );
