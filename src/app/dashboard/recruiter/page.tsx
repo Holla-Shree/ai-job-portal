@@ -25,6 +25,7 @@ import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useRouter } from 'next/navigation';
 
 // Mock Candidate Data
 const MOCK_CANDIDATES = [
@@ -76,7 +77,8 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalPage() {
   const { toast } = useToast();
-  const { updateApplicationStatus } = useNotifications();
+  const { updateApplicationStatus, initiateConversation } = useNotifications();
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
@@ -195,6 +197,15 @@ function RecruiterPortalPage() {
         title: "Interview Scheduled",
         description: `An invitation has been sent to ${candidateName} and their application status has been updated.`,
      });
+  };
+  
+  const handleMessageCandidate = (candidateName: string, jobTitle: string) => {
+    const conversationId = initiateConversation({
+        jobTitle: jobTitle,
+        company: 'Your Company', // Or get from form
+        partnerName: candidateName
+    });
+    router.push(`/dashboard/messaging?open=${conversationId}`);
   };
 
   const getBadgeVariant = (strength: ScreenCandidateOutput['matchStrength']) => {
@@ -415,11 +426,9 @@ function RecruiterPortalPage() {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
                             <TableCell className="text-right space-x-2">
-                                <Button asChild variant="outline" size="sm">
-                                    <Link href="/dashboard/messaging">
-                                        <MessageSquare className="mr-2 h-3 w-3" />
-                                        Message
-                                    </Link>
+                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name, "the open position")}>
+                                    <MessageSquare className="mr-2 h-3 w-3" />
+                                    Message
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>

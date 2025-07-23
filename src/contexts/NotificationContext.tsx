@@ -111,7 +111,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const newConversation = {
       id: `conv-${Date.now()}`,
       partnerName: stub.partnerName,
-      partnerRole: 'Recruiter',
+      partnerRole: user?.role === 'user' ? 'Recruiter' : 'Candidate',
       jobTitle: stub.jobTitle,
       lastMessage: 'I have a question about this role.',
       avatar: stub.partnerName.charAt(0).toUpperCase(),
