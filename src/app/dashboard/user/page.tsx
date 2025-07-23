@@ -26,17 +26,10 @@ const dashboardItems = [
   },
   {
     icon: <ListChecks className="h-10 w-10 text-primary" />,
-    title: "My Applications",
-    description: "Track the status of all your job applications and manage your job-seeking journey in one place.",
+    title: "My Application Pipeline",
+    description: "Track your job prospects from interest to offer using a visual Kanban board.",
     link: "/dashboard/user/applications",
-    linkText: "View Applications"
-  },
-  {
-    icon: <Bookmark className="h-10 w-10 text-primary" />,
-    title: "Saved Jobs",
-    description: "Review and manage the jobs you've saved for later consideration.",
-    link: "/dashboard/user/saved-jobs",
-    linkText: "View Saved Jobs"
+    linkText: "View My Pipeline"
   },
   {
     icon: <MessageSquare className="h-10 w-10 text-primary" />,

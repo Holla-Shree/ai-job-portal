@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -11,7 +12,6 @@ export interface User {
   role: UserRole;
   avatar?: string;
   email?: string; 
-  savedJobs: string[];
 }
 
 interface AuthContextType {
@@ -35,10 +35,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
             const parsedUser: User = JSON.parse(storedUser);
-             // Ensure savedJobs is always an array
-            if (!Array.isArray(parsedUser.savedJobs)) {
-              parsedUser.savedJobs = [];
-            }
             setUser(parsedUser);
           }
         } catch (error) {
@@ -55,15 +51,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     const avatarText = name.charAt(0).toUpperCase();
     
-    // Create a base user object without savedJobs. 
-    // savedJobs will be populated by NotificationContext after fetching from DB.
     const newUser: User = { 
       role, 
       id, 
       email, 
       name,
       avatar: `https://placehold.co/40x40.png?text=${avatarText}`, 
-      savedJobs: [] // Start with an empty array, to be hydrated by NotificationContext
     };
     
     setUser(newUser);

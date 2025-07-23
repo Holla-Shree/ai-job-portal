@@ -17,19 +17,16 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications, Job } from '@/contexts/NotificationContext';
+import { useNotifications, Job, ApplicationNotification } from '@/contexts/NotificationContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
-function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
+function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => void; isInterested: boolean; }) {
     const { toast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
-    const { addNotification, expressInterest, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, saveJob, unsaveJob } = useNotifications();
     
-    const isSaved = user?.savedJobs.includes(job.id);
-
-
     const handleApply = () => {
         if (!user) {
             toast({
@@ -47,24 +44,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
         });
     };
 
-    const handleExpressInterest = () => {
-         if (!user) {
-            toast({
-                title: "Authentication Required",
-                description: "Please log in or sign up to express interest.",
-                variant: "destructive"
-            });
-            router.push('/login');
-            return;
-        }
-        expressInterest(job.title, job.company);
-        toast({
-            title: "Interest Expressed!",
-            description: `The recruiter for the ${job.title} role has been notified.`,
-        });
-    }
-
-    const handleToggleSave = () => {
+    const handleToggleInterest = () => {
         if (!user) {
             toast({
                 title: "Authentication Required",
@@ -74,12 +54,12 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             router.push('/login');
             return;
         }
-        if (isSaved) {
+        if (isInterested) {
             unsaveJob(job.id);
-            toast({ title: 'Job Unsaved' });
+            toast({ title: 'Job Removed From Shortlist' });
         } else {
-            saveJob(job.id);
-            toast({ title: 'Job Saved!' });
+            saveJob(job);
+            toast({ title: 'Job Shortlisted!' });
         }
     };
     
@@ -131,11 +111,9 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             </ScrollArea>
              <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={handleExpressInterest}>
-                    <Star className="mr-2 h-4 w-4" /> Express Interest
-                </Button>
-                <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
-                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
+                <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
+                    <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
+                    {isInterested ? 'Remove from Shortlist' : 'Add to Shortlist'}
                 </Button>
             </div>
         </div>
@@ -144,7 +122,8 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
 
 export default function JobMapPage() {
     const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // Centered on India
-    const { jobs } = useNotifications();
+    const { jobs, applicationHistory } = useNotifications();
+    const { user } = useAuth();
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
     const jobListRef = useRef<Record<string, HTMLDivElement | null>>({});
@@ -154,6 +133,16 @@ export default function JobMapPage() {
     const [searchLocation, setSearchLocation] = useState('');
     const [searchType, setSearchType] = useState('all');
     const [searchDomain, setSearchDomain] = useState('all');
+
+    const interestedJobIds = useMemo(() => {
+        if (!user) return new Set();
+        return new Set(
+            applicationHistory
+                .filter(app => app.candidateId === user.id && app.status === 'Interested')
+                .map(app => jobs.find(j => j.title === app.jobTitle && j.company === app.company)?.id)
+                .filter(Boolean)
+        );
+    }, [applicationHistory, user, jobs]);
 
     useEffect(() => {
         // Initially, show all jobs that have a valid position
@@ -198,7 +187,11 @@ export default function JobMapPage() {
                      {/* Job Search Panel */}
                     <div className="md:col-span-1 bg-background h-full flex flex-col">
                         {selectedJob ? (
-                            <JobDetails job={selectedJob} onBack={() => setSelectedJob(null)} />
+                            <JobDetails 
+                                job={selectedJob} 
+                                onBack={() => setSelectedJob(null)}
+                                isInterested={interestedJobIds.has(selectedJob.id)}
+                             />
                         ) : (
                             <>
                                 <div className="p-4 border-b">
@@ -262,7 +255,7 @@ export default function JobMapPage() {
                                                 key={job.id}
                                                 ref={el => jobListRef.current[job.id] = el}
                                                 className={cn(
-                                                    "p-3 rounded-lg cursor-pointer transition-all duration-200 border-2",
+                                                    "p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 relative",
                                                     hoveredJobId === job.id ? 'bg-primary/10 border-primary' : 'bg-card hover:bg-muted/50 border-transparent',
                                                     selectedJob?.id === job.id && 'bg-primary/10 border-primary'
                                                 )}
@@ -270,7 +263,8 @@ export default function JobMapPage() {
                                                 onMouseEnter={() => setHoveredJobId(job.id)}
                                                 onMouseLeave={() => setHoveredJobId(null)}
                                             >
-                                                <h3 className="font-bold text-sm">{job.title}</h3>
+                                                {interestedJobIds.has(job.id) && <Star className="h-4 w-4 absolute top-3 right-3 text-amber-400 fill-amber-400" />}
+                                                <h3 className="font-bold text-sm pr-6">{job.title}</h3>
                                                 <p className="text-xs text-muted-foreground">{job.company}</p>
                                                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                                                     <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.city}</div>
@@ -315,7 +309,7 @@ export default function JobMapPage() {
                                             "rounded-full h-8 w-8 flex items-center justify-center shadow-lg",
                                             selectedJob?.id === job.id ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'
                                         )}>
-                                           <Briefcase className="h-4 w-4"/>
+                                            {interestedJobIds.has(job.id) ? <Star className="h-4 w-4 text-amber-400 fill-amber-400" /> : <Briefcase className="h-4 w-4"/>}
                                         </div>
                                         <div className="bg-background w-2 h-2 transform rotate-45 -mt-1 mx-auto shadow-lg"></div>
                                    </div>

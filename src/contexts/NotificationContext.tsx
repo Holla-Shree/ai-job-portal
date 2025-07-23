@@ -56,7 +56,6 @@ interface NotificationContextType {
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  initiateConversation: (params: { jobTitle: string; company: string; partnerName: string; createEmpty?: boolean }) => string;
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
@@ -66,7 +65,7 @@ interface NotificationContextType {
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
-  saveJob: (jobId: string) => void;
+  saveJob: (job: Job) => void;
   unsaveJob: (jobId: string) => void;
 }
 
@@ -90,7 +89,6 @@ export type Candidate = {
     id: string;
     name: string;
     profile: string;
-    savedJobs?: string[];
     resumeFilename?: string | null;
 };
 
@@ -144,7 +142,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     const updatedUser = {
                         ...prevUser,
                         name: currentUserData.name,
-                        savedJobs: currentUserData.savedJobs || []
                     };
                      if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
                         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -158,7 +155,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
-        const convosData = querySnapshot.docs.map(doc => {
+        const convosData: Conversation[] = [];
+         querySnapshot.forEach(doc => {
             const data = doc.data();
             const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
             
@@ -170,14 +168,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             }
 
 
-            return {
+            convosData.push({
                 id: doc.id,
                 ...data,
                 partnerName: partnerName,
                 partnerRole: data.partnerRole || partnerRole,
                 avatar: partnerRole.charAt(0),
-            } as Conversation
+            } as Conversation);
         });
+
+        // This replaces the entire state, ensuring deleted items are removed
         setConversations(convosData);
     });
 
@@ -197,7 +197,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, setUser]);
+  }, [user, setUser]);
 
 
   useEffect(() => {
@@ -207,37 +207,51 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [blockedUsers]);
   
 
-  const saveJob = async (jobId: string) => {
-    if (!user || user.role !== 'user') return;
-    const userDocRef = doc(db, 'candidates', user.id);
-    
-    const newSavedJobs = [...(user.savedJobs || []), jobId];
-    setUser(prev => prev ? { ...prev, savedJobs: newSavedJobs } : null);
+  const saveJob = async (job: Job) => {
+      if (!user?.id) return;
+      const candidateId = user.id;
+      const existingApp = applicationHistory.find(app => app.candidateId === candidateId && app.jobTitle === job.title && app.company === job.company);
 
-    try {
-        await updateDoc(userDocRef, {
-            savedJobs: arrayUnion(jobId)
-        });
-    } catch (e) {
-        console.error("Error saving job: ", e);
-         setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
-    }
+      if (existingApp) {
+          // It's already in the pipeline, maybe just saved. Don't do anything.
+          return;
+      }
+      
+      const newApplication = {
+        jobTitle: job.title,
+        company: job.company,
+        candidateName: user.name || 'A Job Seeker',
+        timestamp: Date.now(),
+        read: false,
+        status: 'Interested' as const,
+        candidateId: candidateId,
+      };
+    
+      try {
+          await addDoc(collection(db, 'applications'), newApplication);
+      } catch (error) {
+          console.error("Error adding 'Interested' application: ", error);
+      }
   };
   
   const unsaveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
-     const userDocRef = doc(db, 'candidates', user.id);
+     const jobDetails = jobs.find(j => j.id === jobId);
+     if (!jobDetails) return;
 
-    const oldSavedJobs = user.savedJobs || [];
-    setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
+     const appToDelete = applicationHistory.find(app => 
+        app.candidateId === user.id &&
+        app.jobTitle === jobDetails.title &&
+        app.company === jobDetails.company &&
+        app.status === 'Interested'
+     );
 
-    try {
-        await updateDoc(userDocRef, {
-            savedJobs: arrayRemove(jobId)
-        });
-    } catch (e) {
-        console.error("Error unsaving job: ", e);
-        setUser(prev => prev ? { ...prev, savedJobs: oldSavedJobs } : null);
+    if (appToDelete) {
+        try {
+            await deleteDoc(doc(db, "applications", appToDelete.id));
+        } catch (e) {
+            console.error("Error removing 'Interested' application: ", e);
+        }
     }
   };
 
@@ -245,43 +259,38 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const addNotification = async (jobTitle: string, company: string) => {
     if (!user?.id) return;
     const candidateId = user.id;
-    const candidate = candidates.find(c => c.id === candidateId);
-    const newApplication = {
-      jobTitle,
-      company,
-      candidateName: candidate?.name || user.name || 'A Job Seeker',
-      timestamp: Date.now(),
-      read: false,
-      status: 'Applied' as const,
-      candidateId: candidateId,
-    };
-    
-    try {
+
+    // Check if an application for this job already exists
+    const q = query(
+        collection(db, 'applications'), 
+        where("candidateId", "==", candidateId),
+        where("jobTitle", "==", jobTitle),
+        where("company", "==", company),
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        // Application exists, update its status to 'Applied'
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, { status: 'Applied', timestamp: Date.now() });
+    } else {
+        // No application exists, create a new one with 'Applied' status
+        const candidate = candidates.find(c => c.id === candidateId);
+        const newApplication = {
+          jobTitle,
+          company,
+          candidateName: candidate?.name || user.name || 'A Job Seeker',
+          timestamp: Date.now(),
+          read: false,
+          status: 'Applied' as const,
+          candidateId: candidateId,
+        };
         await addDoc(collection(db, 'applications'), newApplication);
-    } catch (error) {
-        console.error("Error adding application: ", error);
     }
   };
 
   const expressInterest = async (jobTitle: string, company: string) => {
-    if (!user?.id) return;
-    const candidateId = user.id;
-    const candidate = candidates.find(c => c.id === candidateId);
-    const newApplication = {
-      jobTitle,
-      company,
-      candidateName: candidate?.name || user.name || 'A Job Seeker',
-      timestamp: Date.now(),
-      read: false,
-      status: 'Interested' as const,
-      candidateId: candidateId,
-    };
-    
-    try {
-        await addDoc(collection(db, 'applications'), newApplication);
-    } catch (error) {
-        console.error("Error adding application: ", error);
-    }
+     await addNotification(jobTitle, company);
   };
 
   const markAsRead = async (id: string) => {
@@ -326,39 +335,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
   
-  const initiateConversation = (params: { jobTitle: string; company: string; partnerName: string, createEmpty?: boolean }) => {
-        if (!user || !user.id || !user.role) {
-            console.error("User not logged in, cannot initiate conversation.");
-            return '';
-        }
-
-        const { jobTitle, company, partnerName, createEmpty = false } = params;
-        const newConversationId = `conv-${Date.now()}`;
-        const lastMessage = createEmpty ? "Conversation started." : `Hello! I'm interested in the ${jobTitle} position.`;
-
-        const newConversation: Omit<Conversation, 'id'> = {
-            participants: [user.id, 'recruiter-placeholder'], // Will be replaced by recruiter id
-            jobTitle,
-            company,
-            candidateName: user.name || "A Job Seeker",
-            lastMessage: lastMessage,
-            messages: [],
-            pinned: false,
-            favourited: false,
-            unreadBy: ['recruiter-placeholder'],
-            mutedBy: [],
-            timestamp: Date.now(),
-            partnerName: partnerName,
-            partnerRole: 'Recruiter',
-            avatar: partnerName.charAt(0).toUpperCase()
-        };
-
-        // In a real app, we would find the actual recruiter ID.
-        // For now, we simulate adding a new conversation.
-        setConversations(prev => [{...newConversation, id: newConversationId}, ...prev]);
-
-        return newConversationId;
-    };
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
     try {
@@ -393,7 +369,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const clearConversationMessages = async (conversationId: string) => {
     try {
         const convoRef = doc(db, "conversations", conversationId);
-        await updateDoc(convoRef, { messages: [] });
+        await updateDoc(convoRef, { messages: [], lastMessage: "Chat cleared." });
     } catch (e) {
         console.error("Error clearing messages: ", e);
         throw e;
@@ -417,7 +393,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, initiateConversation, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );

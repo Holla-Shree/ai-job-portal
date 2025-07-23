@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import withAuth from '@/components/withAuth';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,14 +40,11 @@ type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
 type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string };
 
-function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
+function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack: () => void; isInterested: boolean; }) {
     const { toast } = useToast();
     const router = useRouter();
-    const { addNotification, saveJob, unsaveJob, expressInterest } = useNotifications();
-    const { user } = useAuth();
+    const { addNotification, saveJob, unsaveJob } = useNotifications();
     
-    const isSaved = user?.savedJobs.includes(job.id);
-
     const handleApply = () => {
         addNotification(job.title, job.company);
         toast({
@@ -56,21 +53,15 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         });
     };
     
-    const handleExpressInterest = () => {
-        expressInterest(job.title, job.company);
-        toast({
-            title: "Interest Expressed!",
-            description: `The recruiter for the ${job.title} role has been notified of your interest.`,
-        });
-    }
-
-    const handleToggleSave = () => {
-        if (isSaved) {
+    const handleToggleInterest = () => {
+        if (isInterested) {
             unsaveJob(job.id);
-            toast({ title: 'Job Unsaved' });
+            toast({ title: 'Job Removed From Shortlist' });
         } else {
-            saveJob(job.id);
-            toast({ title: 'Job Saved!' });
+            // A bit of a hack since we don't have the full job object here
+            const partialJob = {id: job.id, title: job.title, company: job.company} as Job;
+            saveJob(partialJob);
+            toast({ title: 'Job Shortlisted!' });
         }
     };
     
@@ -93,12 +84,9 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={handleExpressInterest}>
-                    <Star className="mr-2 h-4 w-4" />
-                     Express Interest
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
-                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
+                <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
+                    <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
+                    {isInterested ? 'Remove from Shortlist' : 'Add to Shortlist'}
                 </Button>
             </CardFooter>
         </Card>
@@ -219,7 +207,7 @@ function UserProfileCard() {
 function UserProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { updateCandidateProfile, candidates } = useNotifications();
+  const { updateCandidateProfile, candidates, applicationHistory, jobs } = useNotifications();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
@@ -239,6 +227,16 @@ function UserProfilePage() {
   const currentUserProfile = React.useMemo(() => {
     return candidates.find(c => c.id === user?.id);
   }, [candidates, user]);
+
+  const interestedJobIds = useMemo(() => {
+    if (!user) return new Set();
+    return new Set(
+        applicationHistory
+            .filter(app => app.candidateId === user.id && app.status === 'Interested')
+            .map(app => jobs.find(j => j.title === app.jobTitle && j.company === app.company)?.id)
+            .filter(Boolean)
+    );
+}, [applicationHistory, user, jobs]);
 
   useEffect(() => {
     if (currentUserProfile) {
@@ -436,7 +434,11 @@ function UserProfilePage() {
 
           <TabsContent value="recommendations">
             {selectedJob ? (
-                <JobDetails job={selectedJob} onBack={() => setSelectedJob(null)} />
+                <JobDetails 
+                    job={selectedJob} 
+                    onBack={() => setSelectedJob(null)}
+                    isInterested={interestedJobIds.has(selectedJob.id.toString())}
+                />
             ) : (
             <Card className="shadow-lg">
               <CardHeader>
