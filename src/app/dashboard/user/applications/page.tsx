@@ -56,7 +56,6 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
             <CardHeader className="p-4">
                 <div className="flex justify-between items-start">
                     <CardTitle className="text-base font-bold">{application.jobTitle}</CardTitle>
-                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                 </div>
                 <CardDescription className="text-xs">{application.company}</CardDescription>
                  {jobDetails && (
