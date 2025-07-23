@@ -60,6 +60,8 @@ export function AppHeader() {
     
     return items;
   }
+  
+  const visibleNavItems = getVisibleNavItems();
 
   const getInitials = (role: string) => {
     if (role === 'user') return 'JB';
