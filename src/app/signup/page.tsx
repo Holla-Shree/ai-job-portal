@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React from 'react';
@@ -18,7 +17,6 @@ import { AppLogo } from '@/components/layout/AppLogo';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -51,8 +49,7 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     const { role, fullName, email } = data;
     
-    // Create a deterministic but unique-enough ID from the email
-    const candidateId = `cand-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const candidateId = `user-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
 
     if (role === 'user') {
         try {
@@ -77,9 +74,8 @@ export default function SignupPage() {
       description: "You have been successfully signed up.",
     });
 
-    login(role as UserRole, role === 'user' ? candidateId : undefined, email);
+    login(role as UserRole, candidateId, email, fullName);
 
-    // Redirect based on role
     switch (role) {
       case 'user':
         router.push('/dashboard/user/settings/profile');

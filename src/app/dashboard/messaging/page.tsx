@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -53,7 +52,7 @@ function MessagingPage() {
         const openConversationId = searchParams.get('open');
         const suggestedMessage = searchParams.get('message');
 
-        if (openConversationId) {
+        if (openConversationId && openConversationId !== selectedConversationId) {
             const conversationToOpen = conversations.find(c => c.id === openConversationId);
             if (conversationToOpen) {
                 setSelectedConversationId(conversationToOpen.id);
@@ -70,7 +69,7 @@ function MessagingPage() {
                 router.replace(`${window.location.pathname}?${newParams.toString()}`);
             }
         }
-    }, [searchParams, conversations, markAsRead, router, user]);
+    }, [searchParams, conversations, markAsRead, router, user, selectedConversationId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,7 +94,6 @@ function MessagingPage() {
     
     const showPinAction = useMemo(() => {
         if (selectedConversations.length === 0) return false;
-        // If any selected conversation is not pinned, show the Pin action
         return selectedConversations.some(id => !conversations.find(c => c.id === id)?.pinned);
     }, [selectedConversations, conversations]);
 
@@ -115,7 +113,7 @@ function MessagingPage() {
         }
         
         setSelectedConversationId(conversationId);
-        setMessageInput(''); // Clear input when switching conversations
+        setMessageInput(''); 
         
         const conversation = conversations.find(c => c.id === conversationId);
         if (user && conversation && conversation.unreadBy.includes(user.id)) {
@@ -134,9 +132,16 @@ function MessagingPage() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        const updatedMessages = [...selectedConversation.messages, newMessage];
-        // TODO: Update Firestore document for this conversation
-        console.log("Would update Firestore here.");
+        // This part needs to be wired up to a real backend (e.g., Firestore update)
+        // For now, it will only update local state
+        setConversations(prev => prev.map(c => 
+            c.id === selectedConversationId ? {
+                ...c,
+                messages: [...c.messages, newMessage],
+                lastMessage: newMessage.text,
+                timestamp: Date.now()
+            } : c
+        ));
         
         setMessageInput('');
     };
@@ -150,34 +155,36 @@ function MessagingPage() {
 
     const handleClearMessages = () => {
         if (!conversationToClear) return;
-        // TODO: Update Firestore to clear messages array
+        setConversations(prev => prev.map(c => c.id === conversationToClear.id ? { ...c, messages: [] } : c));
         toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
         setConversationToClear(null);
     };
 
     const handleDeleteConversation = () => {
         if (!conversationToDelete) return;
-        // TODO: Delete Firestore document for this conversation
+        setConversations(prev => prev.filter(c => c.id !== conversationToDelete.id));
+        if (selectedConversationId === conversationToDelete.id) {
+            setSelectedConversationId(null);
+        }
         setConversationToDelete(null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
     const handleTogglePin = (convo: Conversation | null) => {
         if (!convo) return;
-        // TODO: Update Firestore 'pinned' field
+        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, pinned: !c.pinned } : c));
         toast({ title: `Conversation ${convo.pinned ? 'unpinned' : 'pinned'}`});
     };
 
     const handleToggleFavourite = (convo: Conversation | null) => {
         if (!convo) return;
-        // TODO: Update Firestore 'favourited' field
+        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, favourited: !c.favourited } : c));
         toast({ title: `Conversation ${convo.favourited ? 'removed from' : 'added to'} favourites`});
     };
     
     const handleToggleMute = (convo: Conversation | null) => {
         if (!convo || !user) return;
         toggleMute(convo.id);
-        toast({ title: `Conversation has been ${convo.mutedBy.includes(user.id) ? 'unmuted' : 'muted'}` });
     };
 
     const handleMessageSelection = (messageId: string) => {
@@ -190,21 +197,27 @@ function MessagingPage() {
 
     const handleDeleteSelectedMessages = () => {
         if (!selectedConversation) return;
-        // TODO: Update Firestore to remove selected messages
+        setConversations(prev => prev.map(c => 
+            c.id === selectedConversation.id 
+            ? { ...c, messages: c.messages.filter(m => !selectedMessages.includes(m.id)) }
+            : c
+        ));
         toast({ title: `${selectedMessages.length} Message(s) Deleted` });
         setIsMessageSelectionMode(false);
         setSelectedMessages([]);
     };
 
     const handleBulkPin = (pin: boolean) => {
-        // TODO: Batch update Firestore for selected conversations
+        setConversations(prev => prev.map(c => 
+            selectedConversations.includes(c.id) ? { ...c, pinned: pin } : c
+        ));
         toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
         setIsConvSelectionMode(false);
         setSelectedConversations([]);
     }
 
     const handleBulkDelete = () => {
-        // TODO: Batch delete Firestore documents for selected conversations
+        setConversations(prev => prev.filter(c => !selectedConversations.includes(c.id)));
         if (selectedConversations.includes(selectedConversation?.id || '')) {
             setSelectedConversationId(null);
         }
@@ -239,10 +252,9 @@ function MessagingPage() {
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleToggleMute(convo)}>
                         {user && convo.mutedBy.includes(user.id) ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                        <span>{user && convo.mutedBy.includes(user.id) ? 'Unmute Notifications' : 'Mute Notifications'}</span>
+                        <span>{user && convo.mutedBy.includes(user.id) ? 'Unmute' : 'Mute'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => {
-                        // TODO: Update Firestore to mark as unread
                         toast({ title: 'Marked as unread' });
                     }}>
                         <Mail className="mr-2 h-4 w-4" />
@@ -461,10 +473,9 @@ function MessagingPage() {
                                     </DropdownMenuItem>
                                      <DropdownMenuItem onClick={() => handleToggleMute(selectedConversation)}>
                                         {user && selectedConversation.mutedBy.includes(user.id) ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                                        <span>{user && selectedConversation.mutedBy.includes(user.id) ? 'Unmute' : 'Mute'} Notifications</span>
+                                        <span>{user && selectedConversation.mutedBy.includes(user.id) ? 'Unmute' : 'Mute'}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
-                                         // TODO: Update Firestore
                                          toast({ title: 'Marked as unread' });
                                     }}>
                                         <Mail className="mr-2 h-4 w-4" />
@@ -627,5 +638,3 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
-
-    

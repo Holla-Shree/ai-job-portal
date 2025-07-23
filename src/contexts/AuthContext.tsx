@@ -7,6 +7,7 @@ export type UserRole = 'user' | 'recruiter' | 'admin';
 
 export interface User {
   id: string; 
+  name: string;
   role: UserRole;
   avatar?: string;
   email?: string; 
@@ -16,7 +17,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (role: UserRole, id: string | undefined, email?: string) => void;
+  login: (role: UserRole, id: string | undefined, email: string, name: string) => void;
   logout: () => void;
   updateAvatar: (avatar: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -29,13 +30,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs only on the client
     const initializeUser = () => {
         try {
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
             const parsedUser: User = JSON.parse(storedUser);
-            // Initialize with empty saved jobs; NotificationContext will populate it
             if (!parsedUser.savedJobs) {
               parsedUser.savedJobs = [];
             }
@@ -51,13 +50,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeUser();
   }, []);
 
-  const login = (role: UserRole, id: string | undefined, email?: string) => {
+  const login = (role: UserRole, id: string | undefined, email: string, name: string) => {
     setLoading(true);
     const userId = id || `user-${Date.now()}`;
-    const avatarText = role === 'user' ? (email || 'J').charAt(0).toUpperCase() : (email || role).charAt(0).toUpperCase();
+    const avatarText = name.charAt(0).toUpperCase();
     
-    // The `savedJobs` array will be populated by the NotificationContext after login.
-    const newUser: User = { role, id: userId, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}`, savedJobs: [] };
+    const newUser: User = { 
+      role, 
+      id: userId, 
+      email, 
+      name,
+      avatar: `https://placehold.co/40x40.png?text=${avatarText}`, 
+      savedJobs: [] 
+    };
     
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));

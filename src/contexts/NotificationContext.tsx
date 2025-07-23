@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 
 export interface Message {
@@ -69,6 +68,7 @@ export type Candidate = {
     name: string;
     profile: string;
     savedJobs?: string[];
+    resumeFilename?: string | null;
 };
 
 interface NotificationContextType {
@@ -76,7 +76,7 @@ interface NotificationContextType {
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
-  initiateConversation: (stub: ConversationStub) => string;
+  initiateConversation: (stub: ConversationStub) => Promise<string>;
   applicationHistory: ApplicationNotification[];
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
@@ -106,7 +106,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { user, setUser } = useAuth();
 
   useEffect(() => {
-    // This effect runs only on the client
     if (typeof window !== 'undefined') {
       try {
         const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
@@ -118,7 +117,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
   
   useEffect(() => {
-    // This effect runs only on the client
     if (typeof window === 'undefined' || !user || !user.id) {
         setJobs([]);
         setCandidates([]);
@@ -127,7 +125,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return;
     };
 
-    // --- Set up Firestore listeners ---
 
     const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
         const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
@@ -138,7 +135,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
-        // Sync savedJobs for the current user
         if(user && user.role === 'user') {
             const currentUserData = candidatesData.find(c => c.id === user.id);
             if(currentUserData && JSON.stringify(currentUserData.savedJobs || []) !== JSON.stringify(user.savedJobs)) {
@@ -147,7 +143,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
     });
 
-    const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
+    const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
         const convosData = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -168,7 +164,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const applicationsQuery = user.role === 'user' 
         ? query(collection(db, "applications"), where("candidateId", "==", user.id))
-        : collection(db, "applications"); // Recruiters/Admins see all
+        : collection(db, "applications");
 
     const unsubscribeApplications = onSnapshot(applicationsQuery, (snapshot) => {
         const appsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
@@ -199,7 +195,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayUnion(jobId)
         });
-        // No need to call setUser here, the onSnapshot listener will handle it.
     } catch (e) {
         console.error("Error saving job: ", e);
     }
@@ -212,7 +207,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayRemove(jobId)
         });
-        // No need to call setUser here, the onSnapshot listener will handle it.
     } catch (e) {
         console.error("Error unsaving job: ", e);
     }
@@ -222,10 +216,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const addNotification = async (jobTitle: string, company: string) => {
     if (!user?.id) return;
     const candidateId = user.id;
+    const candidate = candidates.find(c => c.id === candidateId);
     const newApplication = {
       jobTitle,
       company,
-      candidateName: candidates.find(c => c.id === candidateId)?.name || 'A Job Seeker',
+      candidateName: candidate?.name || 'A Job Seeker',
       timestamp: Date.now(),
       read: false,
       status: 'Applied' as const,
@@ -281,22 +276,45 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const initiateConversation = (stub: ConversationStub): string => {
-    // This function can be simplified as conversations are now handled by Firestore.
-    // The logic to find or create a conversation would happen on the messaging page itself.
-    // For now, we'll just return a temporary ID and let the page handle the rest.
-    const existingConvo = conversations.find(c => c.jobTitle === stub.jobTitle && c.partnerName === stub.partnerName);
-    if(existingConvo) {
-        return existingConvo.id;
-    }
-    return `new-${Date.now()}`;
-  }
+  const initiateConversation = async (stub: ConversationStub): Promise<string> => {
+      if (!user) return '';
+
+      const recruiterId = `recruiter@${stub.company.toLowerCase().replace(/\s+/g, '')}.com`;
+      const participants = [user.id, recruiterId].sort();
+
+      const q = query(
+          collection(db, "conversations"),
+          where("participants", "==", participants),
+          where("jobTitle", "==", stub.jobTitle)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+          return querySnapshot.docs[0].id;
+      } else {
+          const newConversation = {
+              participants: participants,
+              jobTitle: stub.jobTitle,
+              company: stub.company,
+              candidateName: user.name,
+              lastMessage: "Conversation started.",
+              messages: [],
+              pinned: false,
+              favourited: false,
+              unreadBy: [recruiterId],
+              mutedBy: [],
+              timestamp: Date.now(),
+          };
+          const docRef = await addDoc(collection(db, "conversations"), newConversation);
+          return docRef.id;
+      }
+  };
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
     try {
         await addDoc(collection(db, "jobs"), {
             ...job,
-            // A real app would geocode the location, but we'll use a default for now.
             position: { lat: 20.5937, lng: 78.9629 },
         });
     } catch (e) {
@@ -316,12 +334,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const updateCandidateProfile = async (candidateId: string, profileData: Partial<Candidate>) => {
     try {
-      await setDoc(doc(db, "candidates", candidateId), profileData, { merge: true });
+      const docRef = doc(db, "candidates", candidateId);
+      await setDoc(docRef, profileData, { merge: true });
     } catch (e) {
       console.error("Error updating candidate profile: ", e);
       throw e;
     }
   };
+
 
   const unblockUser = (userId: string) => {
     setBlockedUsers(prev => prev.filter(u => u.id !== userId));

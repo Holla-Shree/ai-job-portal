@@ -4,7 +4,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,10 +39,14 @@ export default function LoginForm() {
   const onSubmit = (data: LoginFormValues) => {
     // In a real app, you'd validate credentials. Here, we'll assign roles based on email.
     let role: 'user' | 'recruiter' | 'admin' = 'user';
+    let name = data.email.split('@')[0];
+
     if (data.email.includes('recruiter')) {
       role = 'recruiter';
+      name = "Recruiter Admin";
     } else if (data.email.includes('admin')) {
       role = 'admin';
+      name = "Platform Admin";
     }
 
     toast({
@@ -50,10 +54,9 @@ export default function LoginForm() {
       description: `Welcome! You are now logged in as a ${role}.`,
     });
     
-    // Create a deterministic ID from the email for linking to profiles
     const userId = `user-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
 
-    login(role, userId, data.email);
+    login(role, userId, data.email, name);
 
     // Redirect based on role
     switch (role) {

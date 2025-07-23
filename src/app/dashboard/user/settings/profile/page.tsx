@@ -1,7 +1,6 @@
 
-
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera, Bookmark } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera, Bookmark, Upload, Trash2 } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,6 +23,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
 const resumeUploadSchema = z.object({
@@ -55,8 +55,8 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         });
     };
 
-    const handleMessageRecruiter = () => {
-        const conversationId = initiateConversation({
+    const handleMessageRecruiter = async () => {
+        const conversationId = await initiateConversation({
             jobTitle: job.title,
             company: job.company,
             partnerName: `Recruiter @ ${job.company}`
@@ -119,7 +119,7 @@ function UserProfileCard() {
 
     useEffect(() => {
         if (currentUserProfile) {
-            setName(currentUserProfile.name || user?.email?.split('@')[0] || '');
+            setName(currentUserProfile.name || (user?.email?.split('@')[0] || ''));
             const profileParts = currentUserProfile.profile.split('Summary:');
             const bioText = profileParts.length > 1 ? profileParts[0].trim() : (currentUserProfile.profile.startsWith('Newly registered') ? '' : currentUserProfile.profile);
             setBio(bioText);
@@ -150,15 +150,13 @@ function UserProfileCard() {
     };
     
     const handleSaveChanges = async () => {
-        if (!user?.id) return;
+        if (!user?.id || !currentUserProfile) return;
         
-        let existingProfile = currentUserProfile?.profile || '';
-        const bioExists = existingProfile.includes("Summary:");
-        if (bioExists) {
-            existingProfile = existingProfile.substring(existingProfile.indexOf("Summary:"));
-        }
+        let existingProfile = currentUserProfile.profile || '';
+        const summaryIndex = existingProfile.indexOf("Summary:");
+        const existingSummaryAndBelow = summaryIndex !== -1 ? existingProfile.substring(summaryIndex) : existingProfile;
         
-        const updatedProfile = `${bio}\n\n${existingProfile}`;
+        const updatedProfile = `${bio}\n\n${existingSummaryAndBelow}`;
 
         await updateCandidateProfile(user.id, {
             name: name,
@@ -201,7 +199,9 @@ function UserProfileCard() {
                 <CardDescription>{user?.email}</CardDescription>
             </CardHeader>
             <CardContent>
+                <Label htmlFor="user-bio">Your Bio</Label>
                 <Textarea 
+                    id="user-bio"
                     placeholder="Add a short bio about yourself..." 
                     rows={3} 
                     value={bio}
@@ -225,6 +225,8 @@ function UserProfilePage() {
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
   const [jobRecommendations, setJobRecommendations] = useState<RecommendJobsOutput | null>(null);
   const [selectedJob, setSelectedJob] = useState<RecommendedJob | null>(null);
+  const [currentResumeFile, setCurrentResumeFile] = useState<string | null>(null);
+  const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
   const resumeForm = useForm<ResumeUploadFormValues>({
     resolver: zodResolver(resumeUploadSchema),
@@ -239,8 +241,15 @@ function UserProfilePage() {
   }, [candidates, user]);
 
   useEffect(() => {
-    if (currentUserProfile?.profile) {
-      jobForm.setValue('resumeText', currentUserProfile.profile);
+    if (currentUserProfile) {
+      if (currentUserProfile.profile) {
+        jobForm.setValue('resumeText', currentUserProfile.profile);
+      }
+      if (currentUserProfile.resumeFilename) {
+          setCurrentResumeFile(currentUserProfile.resumeFilename);
+      } else {
+          setCurrentResumeFile(null);
+      }
     }
   }, [currentUserProfile, jobForm]);
 
@@ -262,15 +271,14 @@ function UserProfilePage() {
             const result = await analyzeResume({ resumeDataUri });
             setResumeAnalysis(result);
             
-            // Construct the full text profile
-            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n');
-            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n');
-            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n');
-            const fullText = `Summary: ${result.anonymizedSummary}\\n\\nSkills: ${result.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${experienceText || 'N/A'}\\n\\nEducation:\\n${educationText || 'N/A'}\\n\\nProjects:\\n${projectsText || 'N/A'}\\n\\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
+            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n');
+            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n');
+            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n');
+            const fullText = `Summary: ${result.anonymizedSummary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience:\n${experienceText || 'N/A'}\n\nEducation:\n${educationText || 'N/A'}\n\nProjects:\n${projectsText || 'N/A'}\n\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
             
-            // Update Firestore
             await updateCandidateProfile(user.id, {
                 profile: fullText,
+                resumeFilename: file.name,
             });
             jobForm.setValue('resumeText', fullText);
             
@@ -308,6 +316,23 @@ function UserProfilePage() {
     jobForm.handleSubmit(handleJobRecommendation)();
   };
 
+  const handleDeleteResume = async () => {
+      if (!user?.id) return;
+      
+      await updateCandidateProfile(user.id, {
+          profile: `Newly registered user. Please upload a resume to create a full profile.`,
+          resumeFilename: null, // or delete the field
+      });
+
+      setResumeAnalysis(null);
+      jobForm.reset({ resumeText: '' });
+
+      toast({
+          title: "Resume Deleted",
+          description: "Your resume and profile have been cleared."
+      });
+  }
+
 
   return (
       <div className="w-full">
@@ -325,26 +350,66 @@ function UserProfilePage() {
                 <div className="md:col-span-2">
                     <Card className="shadow-lg">
                         <CardHeader>
-                          <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Upload & Analyze Resume</CardTitle>
+                          <CardTitle className="font-headline flex items-center"><FileText className="mr-2 text-primary" />Manage Your Resume</CardTitle>
                           <CardDescription>Let AI extract key information from your resume, removing personal details to ensure fair matching.</CardDescription>
                         </CardHeader>
-                        <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
-                          <CardContent>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="resumeFile">Upload Resume (PDF, DOCX)</Label>
-                                <Input id="resumeFile" type="file" accept=".pdf,.doc,.docx" {...resumeForm.register("resumeFile")} className="mt-1" />
-                                {resumeForm.formState.errors.resumeFile && <p className="text-sm text-destructive mt-1">{resumeForm.formState.errors.resumeFile.message}</p>}
+                        <CardContent>
+                          {currentResumeFile ? (
+                              <div className="border rounded-lg p-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                      <FileText className="h-6 w-6 text-muted-foreground" />
+                                      <span className="font-medium">{currentResumeFile}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                       <Button variant="outline" size="sm" onClick={() => uploadInputRef.current?.click()}>
+                                          <Upload className="mr-2 h-4 w-4" /> Change
+                                      </Button>
+                                      <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                              <Button variant="destructive" size="sm">
+                                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                              </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                  <AlertDialogDescription>
+                                                      This will delete your current resume and the AI-generated profile. You will need to upload a new one.
+                                                  </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={handleDeleteResume} className="bg-destructive hover:bg-destructive/90">
+                                                      Confirm Delete
+                                                  </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                      </AlertDialog>
+                                  </div>
                               </div>
-                            </div>
-                          </CardContent>
-                          <CardFooter>
-                            <Button type="submit" disabled={isLoadingResume}>
-                              {isLoadingResume ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                              Analyze & Save Profile
-                            </Button>
-                          </CardFooter>
-                        </form>
+                          ) : (
+                              <Button variant="outline" className="w-full" onClick={() => uploadInputRef.current?.click()}>
+                                  <Upload className="mr-2 h-4 w-4" /> Upload Resume to Get Started
+                              </Button>
+                          )}
+                          <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
+                              <Input 
+                                  id="resumeFile" 
+                                  type="file" 
+                                  accept=".pdf,.doc,.docx" 
+                                  {...resumeForm.register("resumeFile")} 
+                                  className="hidden" 
+                                  ref={uploadInputRef}
+                                  onChange={(e) => {
+                                      const files = e.target.files;
+                                      if (files && files.length > 0) {
+                                          resumeForm.setValue('resumeFile', files);
+                                          resumeForm.handleSubmit(handleResumeUpload)();
+                                      }
+                                  }}
+                              />
+                          </form>
+                        </CardContent>
                     </Card>
                     <Card className="shadow-lg mt-6">
                         <CardHeader>
@@ -353,53 +418,11 @@ function UserProfilePage() {
                         </CardHeader>
                         <CardContent>
                           <ScrollArea className="h-[400px]">
-                          {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-                          {resumeAnalysis ? (
-                            <div className="space-y-4 pr-4">
-                               <div>
-                                <h4 className="font-semibold flex items-center"><FileText className="mr-2 h-5 w-5 text-accent" />Professional Summary</h4>
-                                <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.anonymizedSummary || 'Not available'}</p>
-                              </div>
-                              <Separator />
-                              <div>
-                                <h4 className="font-semibold flex items-center"><Sparkles className="mr-2 h-5 w-5 text-accent" />Skills</h4>
-                                <p className="text-sm text-muted-foreground pl-7">{resumeAnalysis.skills.join(', ') || 'Not available'}</p>
-                              </div>
-                              <Separator />
-                              <div>
-                                <h4 className="font-semibold flex items-center"><Briefcase className="mr-2 h-5 w-5 text-accent" />Experience</h4>
-                                <ul className="pl-7 text-sm text-muted-foreground space-y-2">
-                                  {resumeAnalysis.experience.map((exp, i) => (
-                                    <li key={i}>
-                                      <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
-                                      <ul className="list-disc list-inside pl-4">
-                                        {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
-                                      </ul>
-                                    </li>
-                                  )).length > 0 ? resumeAnalysis.experience.map((exp, i) => (
-                                    <li key={i}>
-                                      <span className="font-medium">{exp.jobTitle}</span> at {exp.company} ({exp.duration})
-                                      <ul className="list-disc list-inside pl-4">
-                                        {exp.responsibilities.map((r, j) => <li key={j}>{r}</li>)}
-                                      </ul>
-                                    </li>
-                                  )) : <li>Not available</li>}
-                                </ul>
-                              </div>
-                              <Separator />
-                              <div>
-                                <h4 className="font-semibold flex items-center"><BookOpen className="mr-2 h-5 w-5 text-accent" />Education</h4>
-                                 <ul className="pl-7 text-sm text-muted-foreground space-y-1">
-                                  {resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>).length > 0 ? resumeAnalysis.education.map((edu, i) => <li key={i}><span className="font-medium">{edu.degree}</span> in {edu.fieldOfStudy} from {edu.institution} ({edu.graduationYear})</li>) : <li>Not available</li>}
-                                </ul>
-                              </div>
-                              <Separator />
-                              <div>
-                                <h4 className="font-semibold flex items-center"><Award className="mr-2 h-5 w-5 text-accent" />Certifications</h4>
-                                 <ul className="list-disc list-inside pl-7 text-sm text-muted-foreground">
-                                  {resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>).length > 0 ? resumeAnalysis.certifications.map((cert, i) => <li key={i}>{cert}</li>) : <li>Not available</li>}
-                                </ul>
-                              </div>
+                          {(isLoadingResume || (currentResumeFile && !currentUserProfile?.profile)) && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                          
+                          {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') ? (
+                            <div className="space-y-4 pr-4 whitespace-pre-wrap text-sm text-muted-foreground">
+                                {currentUserProfile.profile}
                             </div>
                           ) : (
                             !isLoadingResume && <p className="text-sm text-muted-foreground">Upload and analyze your resume to see your anonymized profile here.</p>
