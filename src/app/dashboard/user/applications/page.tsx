@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -51,6 +52,7 @@ function ApplicationHistoryPage() {
 
     const getStatusBadgeVariant = (status: ApplicationNotification['status']) => {
         switch (status) {
+            case 'Interested': return 'outline';
             case 'Applied': return 'secondary';
             case 'Under Review': return 'default';
             case 'Interview': return 'default';
@@ -75,7 +77,7 @@ function ApplicationHistoryPage() {
                          <ListChecks className="h-8 w-8 text-primary" />
                          <div>
                             <CardTitle className="font-headline text-3xl">My Applications</CardTitle>
-                            <CardDescription>Track the status of all your job applications.</CardDescription>
+                            <CardDescription>Track the status of all your job applications and expressions of interest.</CardDescription>
                          </div>
                     </div>
                 </CardHeader>
@@ -97,7 +99,7 @@ function ApplicationHistoryPage() {
                                 </TableHead>
                                 <TableHead>
                                      <Button variant="ghost" onClick={() => requestSort('timestamp')}>
-                                        Date Applied
+                                        Date
                                         {getSortIndicator('timestamp')}
                                      </Button>
                                 </TableHead>

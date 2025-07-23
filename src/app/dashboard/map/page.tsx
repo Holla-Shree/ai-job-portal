@@ -6,7 +6,7 @@ import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare, Bookmark, Loader2 } from 'lucide-react';
+import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare, Bookmark, Loader2, Star } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import GoogleMapsProvider from '@/components/GoogleMapsProvider';
@@ -22,10 +22,9 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, saveJob, unsaveJob, expressInterest } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
-    const [isMessaging, setIsMessaging] = useState(false);
 
     const isSaved = user?.savedJobs.includes(job.id);
 
@@ -42,21 +41,17 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
         });
     };
 
-    const handleMessageRecruiter = () => {
+    const handleExpressInterest = () => {
         if (!user) {
             router.push('/login?redirect=/dashboard/map');
-            toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
+            toast({ title: 'Please log in to express interest', variant: 'destructive' });
             return;
         }
-        setIsMessaging(true);
-        const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
-        const params = new URLSearchParams({
-            jobTitle: job.title,
-            company: job.company,
-            message: message,
-            partnerName: `Recruiter @ ${job.company}`,
+        expressInterest(job.title, job.company);
+        toast({
+            title: "Interest Expressed!",
+            description: `The recruiter for the ${job.title} role has been notified of your interest.`,
         });
-        router.push(`/dashboard/messaging?${params.toString()}`);
     }
 
     const handleToggleSave = () => {
@@ -122,9 +117,9 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             </ScrollArea>
              <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                <Button variant="outline" className="w-full" onClick={handleMessageRecruiter} disabled={isMessaging}>
-                     {isMessaging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                     Message Recruiter
+                <Button variant="outline" className="w-full" onClick={handleExpressInterest}>
+                     <Star className="mr-2 h-4 w-4" />
+                     Express Interest
                 </Button>
                 <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />

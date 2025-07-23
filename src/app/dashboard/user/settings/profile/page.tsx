@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera, Bookmark, Upload, Trash2 } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera, Bookmark, Upload, Trash2, Star } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,9 +43,8 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: strin
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
     const router = useRouter();
-    const { addNotification, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, saveJob, unsaveJob, expressInterest } = useNotifications();
     const { user } = useAuth();
-    const [isMessaging, setIsMessaging] = useState(false);
     
     const isSaved = user?.savedJobs.includes(job.id);
 
@@ -57,16 +56,12 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         });
     };
     
-    const handleMessageRecruiter = (job: RecommendedJob) => {
-        setIsMessaging(true);
-        const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
-        const params = new URLSearchParams({
-            jobTitle: job.title,
-            company: job.company,
-            message: message,
-            partnerName: `Recruiter @ ${job.company}`,
+    const handleExpressInterest = () => {
+        expressInterest(job.title, job.company);
+        toast({
+            title: "Interest Expressed!",
+            description: `The recruiter for the ${job.title} role has been notified of your interest.`,
         });
-        router.push(`/dashboard/messaging?${params.toString()}`);
     }
 
     const handleToggleSave = () => {
@@ -98,9 +93,9 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={() => handleMessageRecruiter(job)} disabled={isMessaging}>
-                    {isMessaging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
-                     Message Recruiter
+                 <Button variant="outline" className="w-full" onClick={handleExpressInterest}>
+                    <Star className="mr-2 h-4 w-4" />
+                     Express Interest
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />

@@ -42,19 +42,21 @@ export interface ApplicationNotification {
   candidateName: string; 
   timestamp: number;
   read: boolean;
-  status: 'Applied' | 'Under Review' | 'Interview' | 'Rejected' | 'Offer';
+  status: 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Rejected' | 'Offer';
   candidateId?: string;
 }
 
 interface NotificationContextType {
   notifications: ApplicationNotification[];
   addNotification: (jobTitle: string, company: string) => void;
+  expressInterest: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
   applicationHistory: ApplicationNotification[];
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  initiateConversation: (params: { jobTitle: string; company: string; partnerName: string; createEmpty?: boolean }) => string;
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
@@ -261,6 +263,27 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const expressInterest = async (jobTitle: string, company: string) => {
+    if (!user?.id) return;
+    const candidateId = user.id;
+    const candidate = candidates.find(c => c.id === candidateId);
+    const newApplication = {
+      jobTitle,
+      company,
+      candidateName: candidate?.name || user.name || 'A Job Seeker',
+      timestamp: Date.now(),
+      read: false,
+      status: 'Interested' as const,
+      candidateId: candidateId,
+    };
+    
+    try {
+        await addDoc(collection(db, 'applications'), newApplication);
+    } catch (error) {
+        console.error("Error adding application: ", error);
+    }
+  };
+
   const markAsRead = async (id: string) => {
     if(!user?.id) return;
     
@@ -302,6 +325,40 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         console.error("Error updating application status: ", error);
     }
   };
+  
+  const initiateConversation = (params: { jobTitle: string; company: string; partnerName: string, createEmpty?: boolean }) => {
+        if (!user || !user.id || !user.role) {
+            console.error("User not logged in, cannot initiate conversation.");
+            return '';
+        }
+
+        const { jobTitle, company, partnerName, createEmpty = false } = params;
+        const newConversationId = `conv-${Date.now()}`;
+        const lastMessage = createEmpty ? "Conversation started." : `Hello! I'm interested in the ${jobTitle} position.`;
+
+        const newConversation: Omit<Conversation, 'id'> = {
+            participants: [user.id, 'recruiter-placeholder'], // Will be replaced by recruiter id
+            jobTitle,
+            company,
+            candidateName: user.name || "A Job Seeker",
+            lastMessage: lastMessage,
+            messages: [],
+            pinned: false,
+            favourited: false,
+            unreadBy: ['recruiter-placeholder'],
+            mutedBy: [],
+            timestamp: Date.now(),
+            partnerName: partnerName,
+            partnerRole: 'Recruiter',
+            avatar: partnerName.charAt(0).toUpperCase()
+        };
+
+        // In a real app, we would find the actual recruiter ID.
+        // For now, we simulate adding a new conversation.
+        setConversations(prev => [{...newConversation, id: newConversationId}, ...prev]);
+
+        return newConversationId;
+    };
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
     try {
@@ -360,7 +417,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, initiateConversation, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );
