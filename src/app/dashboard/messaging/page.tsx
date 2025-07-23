@@ -292,28 +292,10 @@ function MessagingPage() {
                     </ContextMenuItem>
                 </>
             )}
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <ContextMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setConversationToDelete(convo)}}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Conversation
-                    </ContextMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
-                            Yes, delete conversation
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ContextMenuItem className="text-destructive" onSelect={() => setConversationToDelete(convo)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Conversation
+            </ContextMenuItem>
         </ContextMenuContent>
     );
 
@@ -560,28 +542,10 @@ function MessagingPage() {
                                     </DropdownMenuItem>
                                 </>
                             )}
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setConversationToDelete(selectedConversation)}}>
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete Conversation
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
-                                            Yes, delete conversation
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            <DropdownMenuItem className="text-destructive" onSelect={() => setConversationToDelete(selectedConversation)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Conversation
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                      </DropdownMenu>
                      <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
@@ -656,6 +620,23 @@ function MessagingPage() {
             )}
         </Card>
       </div>
+
+       <AlertDialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConversationToDelete(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
+                      Yes, delete conversation
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
