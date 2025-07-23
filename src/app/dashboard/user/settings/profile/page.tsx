@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -464,7 +463,7 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter className="gap-2">
-                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
+                            <Button variant="link" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
                                 Know More
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
