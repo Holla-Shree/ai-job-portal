@@ -407,7 +407,7 @@ function ChatbotPage() {
                             {msg.sender === 'user' && (
                                 <Avatar className="h-8 w-8">
                                 <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="person avatar" />
-                                <AvatarFallback>U</AvatarFallback>
+                                <AvatarFallback>JB</AvatarFallback>
                                 </Avatar>
                             )}
                             </div>
@@ -480,19 +480,19 @@ function ChatbotPage() {
                     <Textarea
                         id="userAnswer"
                         {...form.register("userAnswer")}
-                        placeholder={!isSessionActive ? "Enter a job description to begin..." : "Type your answer here..."}
+                        placeholder={!activeSessionId ? "Start a new session to begin..." : "Type your answer here..."}
                         rows={1}
                         className="flex-1 resize-none text-sm bg-background"
-                        disabled={isLoading || !activeSessionId || !isSessionActive}
+                        disabled={isLoading || !activeSessionId}
                         onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            if(form.formState.isValid) {
-                                form.handleSubmit(handleChatSubmit)();
-                            } else {
-                                form.trigger();
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if(form.formState.isValid) {
+                                    form.handleSubmit(handleChatSubmit)();
+                                } else {
+                                    form.trigger();
+                                }
                             }
-                        }
                         }}
                     />
                     <Button type="submit" size="icon" disabled={isLoading || !activeSessionId}>

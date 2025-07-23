@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth, UserRole } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { collection, addDoc, getDocs, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore"; 
 import { db } from '@/lib/firebase';
@@ -284,6 +284,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { user } = useAuth();
 
   useEffect(() => {
+    // This effect runs once on mount to load initial data from localStorage.
     try {
       const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
       if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
@@ -296,14 +297,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const storedSavedJobs = localStorage.getItem(SAVED_JOBS_KEY);
       if (storedSavedJobs) setSavedJobs(JSON.parse(storedSavedJobs));
-
-      if(user) {
-        const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-        if (storedConversations) {
-            setConversations(JSON.parse(storedConversations));
-        } else {
-            setConversations(getMockConversations(user.role));
-        }
+      
+      const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+      if (user) {
+        setConversations(storedConversations ? JSON.parse(storedConversations) : getMockConversations(user.role));
+      } else {
+        setConversations([]);
       }
 
     } catch (error) {
@@ -312,14 +311,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [user]);
 
    useEffect(() => {
+        // This effect syncs data with Firestore
         const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (querySnapshot) => {
             const jobsData: Job[] = [];
             querySnapshot.forEach((doc) => {
                 jobsData.push({ id: doc.id, ...doc.data() } as Job);
             });
-            if (jobsData.length > 0) {
-              setJobs(jobsData);
-            }
+            // Combine mock data with firestore data, giving preference to firestore
+             const combinedJobs = [...MOCK_JOBS, ...jobsData];
+             const uniqueJobs = combinedJobs.filter((job, index, self) => index === self.findIndex((j) => j.id === job.id || j.title === job.title));
+             setJobs(uniqueJobs);
         });
 
         const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (querySnapshot) => {
@@ -327,16 +328,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             querySnapshot.forEach((doc) => {
                 candidatesData.push({ id: doc.id, ...doc.data() } as Candidate);
             });
-            setCandidates(candidatesData.length > 0 ? candidatesData : MOCK_CANDIDATES);
+            const combinedCandidates = [...MOCK_CANDIDATES, ...candidatesData];
+            const uniqueCandidates = combinedCandidates.filter((candidate, index, self) => index === self.findIndex((c) => c.id === candidate.id));
+            setCandidates(uniqueCandidates);
         });
 
-        // Cleanup subscription on unmount
         return () => {
             unsubscribeJobs();
             unsubscribeCandidates();
         };
     }, []);
 
+  // These effects save data back to localStorage whenever it changes.
   useEffect(() => {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
@@ -346,7 +349,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [applicationHistory]);
 
   useEffect(() => {
-    if(user) { // Only save conversations if a user is logged in
+    if(user) {
         localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
     }
   }, [conversations, user]);
@@ -369,47 +372,33 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   const addNotification = (jobTitle: string, company: string) => {
-    // In a real app, you'd get the user's ID. Here we'll mock one.
-    const candidateId = `cand-${Math.floor(Math.random() * 1000)}`;
+    const candidateId = user?.id || `cand-anon-${Math.floor(Math.random() * 1000)}`;
     const newApplication: ApplicationNotification = {
       id: `app-${Date.now()}`,
       jobTitle,
       company,
-      candidateName: 'Priya Patel', // Mock candidate name for demo
+      candidateName: candidates.find(c => c.id === candidateId)?.name || 'A Job Seeker',
       timestamp: Date.now(),
       read: false,
       status: 'Applied',
       candidateId: candidateId,
     };
     
-    // Add to recruiter notifications
     setNotifications(prev => [newApplication, ...prev]);
-    // Add to user's application history
     setApplicationHistory(prev => [newApplication, ...prev]);
   };
 
   const markAsRead = (id: string) => {
-    // This can be used for both notifications and system messages in conversations
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
-     setConversations(prev =>
-      prev.map(c => (c.id === id ? { ...c, unread: false } : c))
-    );
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
+     setConversations(prev => prev.map(c => (c.id === id ? { ...c, unread: false } : c)));
   };
 
   const toggleMute = (id: string) => {
-    setConversations(prev =>
-      prev.map(c => (c.id === id ? { ...c, muted: !c.muted } : c))
-    );
+    setConversations(prev => prev.map(c => (c.id === id ? { ...c, muted: !c.muted } : c)));
   };
   
   const updateApplicationStatus = (candidateId: string, status: ApplicationNotification['status']) => {
-    setApplicationHistory(prev =>
-      prev.map(app => (app.candidateId === candidateId ? { ...app, status } : app))
-    );
-    // You could also create a new notification for the user here
-    // to inform them of the status change.
+    setApplicationHistory(prev => prev.map(app => (app.candidateId === candidateId ? { ...app, status } : app)));
   };
 
   const initiateConversation = (stub: ConversationStub): string => {
@@ -445,7 +434,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
-    // Optimistic update
     const tempId = `temp-${Date.now()}`;
     const newJob: Job = {
         ...job,
@@ -459,18 +447,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             ...job,
             position: { lat: 20.5937, lng: 78.9629 },
         });
-        // Replace temp job with real one from Firestore
         setJobs(prevJobs => prevJobs.map(j => j.id === tempId ? { ...j, id: docRef.id } : j));
     } catch (e) {
         console.error("Error adding document: ", e);
-        // Revert optimistic update on error
         setJobs(prevJobs => prevJobs.filter(j => j.id !== tempId));
-        throw e; // Re-throw error to be caught in the component
+        throw e;
     }
   };
 
   const deleteJob = async (jobId: string) => {
-    // Optimistic update
     const originalJobs = jobs;
     setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
     
@@ -478,14 +463,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await deleteDoc(doc(db, "jobs", jobId));
     } catch (e) {
         console.error("Error deleting document: ", e);
-        // Revert optimistic update on error
         setJobs(originalJobs);
         throw e;
     }
   };
 
   const updateCandidateProfile = async (candidateId: string, profileData: { name: string, profile: string }) => {
-    // Optimistic update
     const originalCandidates = candidates;
     setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, ...profileData } : c));
     
@@ -505,17 +488,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   useEffect(() => {
     if (!user) return;
-     const mockConvos = getMockConversations(user?.role || 'user');
-     const storedConversationsStr = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-     let storedConversations: Conversation[];
-     
-     try {
-       storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
-     } catch (e) {
-       storedConversations = mockConvos;
-     }
-     
-    if (user?.role === 'recruiter' || user?.role === 'admin') {
+    
+    if (user.role === 'recruiter' || user.role === 'admin') {
         const newNotifConvos: Conversation[] = notifications
         .filter(notif => !notif.read) // Only show unread notifications as conversations
         .map(notif => ({
@@ -536,24 +510,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }));
 
         // Combine and remove duplicates
-        const combined = [...newNotifConvos, ...storedConversations];
+        const combined = [...newNotifConvos, ...conversations];
         const uniqueConvos = combined.filter((convo, index, self) =>
             index === self.findIndex((c) => c.id === convo.id)
         );
-        // Only use the recruiter mock data if showing recruiter conversations
-        if(storedConversations === mockConvos) {
-            setConversations(getMockConversations('recruiter'));
-        } else {
-            setConversations(uniqueConvos);
-        }
-    } else if (user?.role === 'user') {
-        // For users, if there's nothing in storage, use their specific mock data.
-       const roleSpecificMock = getMockConversations('user');
-       if (JSON.stringify(storedConversations) === JSON.stringify(getMockConversations('recruiter'))) {
-         setConversations(roleSpecificMock);
-       } else {
-         setConversations(storedConversations);
-       }
+        setConversations(uniqueConvos);
     }
   }, [notifications, user]);
 
