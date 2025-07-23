@@ -61,6 +61,15 @@ function MessagingPage() {
             const suggestedMessage = searchParams.get('message');
     
             if (jobTitle && company && partnerName) {
+                // Prevent creating a new conversation if one was just created or selected.
+                // This logic is simple and can be improved with a more robust state management if needed.
+                if (selectedConversation && selectedConversation.jobTitle === jobTitle && selectedConversation.company === company) {
+                     // Clean up URL params
+                    const newPath = window.location.pathname;
+                    router.replace(newPath, { scroll: false });
+                    return;
+                }
+
                 const recruiterId = `recruiter@${company.toLowerCase().replace(/\s+/g, '')}.com`;
                 const participants = [user.id, recruiterId].sort();
     
@@ -78,11 +87,12 @@ function MessagingPage() {
                 if (!querySnapshot.empty) {
                     conversationId = querySnapshot.docs[0].id;
                 } else {
-                    const newConversation = {
+                     const candidateName = user.name || user.email?.split('@')[0] || "Job Seeker";
+                     const newConversation = {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name,
+                        candidateName: candidateName,
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
@@ -107,6 +117,7 @@ function MessagingPage() {
         };
 
         handleNewConversation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, user, router]);
 
 
@@ -343,7 +354,7 @@ function MessagingPage() {
             </Link>
         </Button>
       )}
-      <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="h-[calc(100vh-theme(spacing.44))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* Conversations List */}
         <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">
             <CardHeader className="p-4 border-b">
