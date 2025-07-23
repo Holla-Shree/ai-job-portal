@@ -393,6 +393,13 @@ function MessagingPage() {
                     <Button variant={filter === 'unread' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('unread')}>Unread</Button>
                     <Button variant={filter === 'favorites' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => setFilter('favorites')}>Favorites</Button>
                 </div>
+                {user?.role === 'recruiter' && (
+                    <Button asChild variant="outline" className="w-full mt-4">
+                        <Link href="/dashboard/recruiter?tab=shortlisted">
+                            <Star className="mr-2 h-4 w-4" /> View Shortlisted Candidates
+                        </Link>
+                    </Button>
+                )}
             </CardHeader>
             <CardContent className="p-0 flex-1">
                 <ScrollArea className="h-full">
@@ -473,18 +480,10 @@ function MessagingPage() {
                     </div>
                     <div className="flex items-center gap-1">
                      {user?.role === 'recruiter' && selectedConversation.partnerRole === 'Candidate' && (
-                        <>
-                        <Button asChild size="sm" variant="outline">
-                            <Link href="/dashboard/recruiter?tab=shortlisted">
-                                <Star className="mr-2 h-4 w-4" />
-                                View Shortlisted
-                            </Link>
-                        </Button>
                         <Button size="sm" variant="outline" onClick={handleScheduleInterview}>
                             <CalendarPlus className="mr-2 h-4 w-4" />
                             Schedule Interview
                         </Button>
-                        </>
                      )}
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
