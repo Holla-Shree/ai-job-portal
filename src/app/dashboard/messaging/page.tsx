@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -82,7 +83,7 @@ function MessagingPage() {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name,
+                        candidateName: user.name || "A Job Seeker",
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
