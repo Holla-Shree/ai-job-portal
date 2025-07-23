@@ -186,7 +186,8 @@ function ChatbotPage() {
     setSessionToDelete(null);
   };
   
-  const handleRenameSession = () => {
+  const handleRenameSession = (e: React.FormEvent | React.KeyboardEvent) => {
+    e.preventDefault();
     if (!editingSessionId || !editingTitle.trim()) return;
     setSessions(prev => prev.map(s => s.id === editingSessionId ? { ...s, title: editingTitle.trim() } : s));
     setEditingSessionId(null);
@@ -295,23 +296,23 @@ function ChatbotPage() {
                 <div className="p-2 space-y-1">
                     {sortedSessions.map(session => (
                        <ContextMenu key={session.id}>
-                           <ContextMenuTrigger>
+                           <ContextMenuTrigger asChild>
                                <div 
                                  className={cn("p-2 rounded-md cursor-pointer hover:bg-muted", activeSessionId === session.id && "bg-muted")}
                                  onClick={() => setActiveSessionId(session.id)}
                                 >
                                     {editingSessionId === session.id ? (
-                                        <div className="flex items-center gap-1">
+                                        <form className="flex items-center gap-1" onSubmit={handleRenameSession}>
                                             <Input 
                                                 value={editingTitle} 
                                                 onChange={(e) => setEditingTitle(e.target.value)} 
-                                                onKeyDown={(e) => { if(e.key === 'Enter') handleRenameSession(); if(e.key === 'Escape') setEditingSessionId(null);}}
+                                                onKeyDown={(e) => { if(e.key === 'Escape') setEditingSessionId(null);}}
+                                                onBlur={() => setEditingSessionId(null)}
                                                 autoFocus
                                                 className="h-7 text-sm"
                                             />
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRenameSession}><Save className="h-4 w-4"/></Button>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingSessionId(null)}><X className="h-4 w-4"/></Button>
-                                        </div>
+                                            <Button type="submit" variant="ghost" size="icon" className="h-6 w-6" onMouseDown={(e) => e.preventDefault()}><Save className="h-4 w-4"/></Button>
+                                        </form>
                                     ) : (
                                         <p className="text-sm font-medium truncate">{session.title}</p>
                                     )}
