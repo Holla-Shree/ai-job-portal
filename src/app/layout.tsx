@@ -8,6 +8,9 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 export const metadata: Metadata = {
   title: 'JobMatch AI',
   description: 'AI-powered job matching and career development platform',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({
