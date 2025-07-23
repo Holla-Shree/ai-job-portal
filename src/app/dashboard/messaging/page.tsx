@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Ban, Heart, Mail, Settings } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -265,7 +265,7 @@ function MessagingPage() {
     }
     
     const ConversationContextMenu = ({ convo }: { convo: Conversation }) => (
-        <ContextMenuContent>
+        <ContextMenuContent onSelect={(e) => e.preventDefault()}>
             {convo.partnerRole !== 'System' && (
                 <>
                     <ContextMenuItem onClick={() => handleTogglePin(convo)}>
@@ -292,21 +292,17 @@ function MessagingPage() {
                         <CheckSquare className="mr-2 h-4 w-4" />
                         Select Messages
                     </ContextMenuItem>
-                    <AlertDialogTrigger asChild>
-                      <ContextMenuItem onSelect={(e) => e.preventDefault()}>
-                          <Eraser className="mr-2 h-4 w-4" />
-                          Clear Messages
-                      </ContextMenuItem>
-                    </AlertDialogTrigger>
+                    <ContextMenuItem onClick={() => setConversationToClear(convo)}>
+                        <Eraser className="mr-2 h-4 w-4" />
+                        Clear Messages
+                    </ContextMenuItem>
                     <ContextMenuSeparator />
                 </>
             )}
-             <AlertDialogTrigger asChild>
-                <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault() }}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Conversation
-                </ContextMenuItem>
-            </AlertDialogTrigger>
+             <ContextMenuItem className="text-destructive" onClick={() => setConversationToDelete(convo)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Conversation
+            </ContextMenuItem>
         </ContextMenuContent>
     );
 
@@ -402,88 +398,47 @@ function MessagingPage() {
                 <ScrollArea className="h-full">
                     <div className="p-2 space-y-1">
                     {filteredConversations.map(convo => (
-                        <AlertDialog key={convo.id} onOpenChange={(open) => {
-                                if(!open) {
-                                    setConversationToClear(null);
-                                    setConversationToDelete(null);
-                                }
-                            }}>
-                            <ContextMenu>
-                                <ContextMenuTrigger>
-                                    <div
-                                        className={cn(
-                                            "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
-                                            selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
-                                            isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
-                                        )}
-                                        onClick={() => handleSelectConversation(convo.id)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
-                                        tabIndex={0}
-                                        role="button"
-                                    >
-                                        {isConvSelectionMode && (
-                                            <Checkbox 
-                                                checked={selectedConversations.includes(convo.id)} 
-                                                onCheckedChange={() => handleSelectConversation(convo.id)}
-                                                className="mt-2"
-                                                aria-label={`Select conversation with ${convo.partnerName}`}
-                                            />
-                                        )}
-                                        {renderAvatar(convo)}
-                                        <div className="flex-1 truncate">
-                                            <div className="flex justify-between items-center">
-                                                <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
-                                                <div className="flex items-center gap-1.5">
-                                                    {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
-                                                    {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
-                                                    {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
-                                                </div>
+                        <ContextMenu key={convo.id}>
+                            <ContextMenuTrigger>
+                                <div
+                                    className={cn(
+                                        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
+                                        selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
+                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
+                                    )}
+                                    onClick={() => handleSelectConversation(convo.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
+                                    tabIndex={0}
+                                    role="button"
+                                >
+                                    {isConvSelectionMode && (
+                                        <Checkbox 
+                                            checked={selectedConversations.includes(convo.id)} 
+                                            onCheckedChange={() => handleSelectConversation(convo.id)}
+                                            className="mt-2"
+                                            aria-label={`Select conversation with ${convo.partnerName}`}
+                                        />
+                                    )}
+                                    {renderAvatar(convo)}
+                                    <div className="flex-1 truncate">
+                                        <div className="flex justify-between items-center">
+                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                                {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
+                                                {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                             </div>
-                                            <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
-                                            <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                                         </div>
-                                        {convo.unread && (
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-                                        )}
+                                        <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                        <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                                     </div>
-                                </ContextMenuTrigger>
-                                <ConversationContextMenu convo={convo} />
-                            </ContextMenu>
-                            <AlertDialogContent>
-                                {conversationToDelete?.id === convo.id && (
-                                    <>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
-                                            Yes, delete conversation
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                    </>
-                                )}
-                                {conversationToClear?.id === convo.id && (
-                                    <>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Clear all messages?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This action cannot be undone. All messages in this conversation will be permanently deleted.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
-                                            Yes, clear messages
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                    </>
-                                )}
-                            </AlertDialogContent>
-                        </AlertDialog>
+                                    {convo.unread && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+                                    )}
+                                </div>
+                            </ContextMenuTrigger>
+                            <ConversationContextMenu convo={convo} />
+                        </ContextMenu>
                     ))}
                     </div>
                 </ScrollArea>
@@ -572,21 +527,17 @@ function MessagingPage() {
                                         <CheckSquare className="mr-2 h-4 w-4" />
                                         Select Messages
                                     </DropdownMenuItem>
-                                    <AlertDialogTrigger asChild>
-                                      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(selectedConversation); }}>
+                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(selectedConversation); }}>
                                           <Eraser className="mr-2 h-4 w-4" />
                                           Clear Messages
-                                      </DropdownMenuItem>
-                                    </AlertDialogTrigger>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                 </>
                             )}
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToDelete(selectedConversation); }}>
+                            <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToDelete(selectedConversation); }}>
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Delete Conversation
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                      </DropdownMenu>
                      <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
@@ -661,6 +612,49 @@ function MessagingPage() {
             )}
         </Card>
       </div>
+
+      <AlertDialog open={!!conversationToDelete || !!conversationToClear} onOpenChange={(open) => {
+          if (!open) {
+              setConversationToDelete(null);
+              setConversationToClear(null);
+          }
+      }}>
+          <AlertDialogContent>
+              {conversationToDelete && (
+                  <>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
+                              Yes, delete conversation
+                          </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </>
+              )}
+              {conversationToClear && (
+                  <>
+                      <AlertDialogHeader>
+                          <AlertDialogTitle>Clear all messages?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                              This action cannot be undone. All messages in this conversation will be permanently deleted.
+                          </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
+                              Yes, clear messages
+                          </AlertDialogAction>
+                      </AlertDialogFooter>
+                  </>
+              )}
+          </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
@@ -674,3 +668,5 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
+
+    
