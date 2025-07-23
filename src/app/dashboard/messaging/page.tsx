@@ -413,7 +413,7 @@ function MessagingPage() {
                     <div className="p-2 space-y-1">
                     {filteredConversations.map(convo => (
                         <ContextMenu key={convo.id}>
-                            <ContextMenuTrigger disabled={blockedUsers.includes(convo.partnerName)}>
+                            <ContextMenuTrigger>
                                 <div
                                     className={cn(
                                         "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
