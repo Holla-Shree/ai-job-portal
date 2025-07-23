@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, addDoc, getDocs, onSnapshot, doc, setDoc } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore"; 
 import { db } from '@/lib/firebase';
 
 export interface Message {
@@ -79,6 +79,7 @@ interface NotificationContextType {
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   jobs: Job[];
   addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
+  deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
   addCandidate: (candidate: Omit<Candidate, 'id'>) => Promise<void>;
   updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
@@ -362,6 +363,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const deleteJob = async (jobId: string) => {
+    try {
+        await deleteDoc(doc(db, "jobs", jobId));
+    } catch (e) {
+        console.error("Error deleting document: ", e);
+    }
+  };
+
   const addCandidate = async (candidate: Omit<Candidate, 'id'>) => {
     try {
         const newCandidateId = `cand-${Date.now()}`;
@@ -422,7 +431,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, candidates, addCandidate, updateCandidateProfile }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, addCandidate, updateCandidateProfile }}>
       {children}
     </NotificationContext.Provider>
   );

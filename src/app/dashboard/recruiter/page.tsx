@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2 } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,6 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 
 interface ScoredCandidate extends ScreenCandidateOutput {
   candidate: { id: string; name: string; profile: string; };
@@ -52,7 +53,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalPage() {
   const { toast } = useToast();
-  const { updateApplicationStatus, initiateConversation, candidates, addJob } = useNotifications();
+  const { updateApplicationStatus, initiateConversation, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -131,8 +132,7 @@ function RecruiterPortalPage() {
     setScreeningResults([]);
     setScreeningProgress(0);
 
-    // Add job to global state
-    addJob({
+    await addJob({
         title: data.jobTitle,
         company: data.companyName,
         city: data.location,
@@ -199,6 +199,16 @@ function RecruiterPortalPage() {
     router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
   };
 
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      await deleteJob(jobId);
+      toast({ title: "Job Deleted", description: "The job posting has been successfully removed." });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the job posting." });
+    }
+  };
+
   const getBadgeVariant = (strength: ScreenCandidateOutput['matchStrength']) => {
     switch (strength) {
       case 'Strong Match': return 'default';
@@ -224,8 +234,9 @@ function RecruiterPortalPage() {
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
         <Tabs defaultValue="screening">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="screening"><Sparkles className="mr-2" />Post Job & Screen</TabsTrigger>
+            <TabsTrigger value="postings"><Briefcase className="mr-2" />My Postings</TabsTrigger>
             <TabsTrigger value="shortlisted"><Star className="mr-2" />Shortlisted</TabsTrigger>
             <TabsTrigger value="talent"><Users className="mr-2" />Talent Pool</TabsTrigger>
           </TabsList>
@@ -407,6 +418,70 @@ function RecruiterPortalPage() {
                   </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="postings">
+             <Card className="shadow-xl">
+              <CardHeader>
+                  <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2" />My Job Postings</CardTitle>
+                  <CardDescription>Manage your active job listings.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Job Title</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobs.length > 0 ? (
+                        jobs.map((job) => (
+                            <TableRow key={job.id}>
+                            <TableCell className="font-medium">{job.title}</TableCell>
+                            <TableCell>{job.company}</TableCell>
+                            <TableCell>{job.city}</TableCell>
+                            <TableCell className="text-right">
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="sm">
+                                      <Trash2 className="mr-2 h-3 w-3" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the job posting for "{job.title}".
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className="bg-destructive hover:bg-destructive/90">
+                                            Confirm Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                You haven't posted any jobs yet.
+                            </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="shortlisted">
