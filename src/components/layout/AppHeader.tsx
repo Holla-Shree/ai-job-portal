@@ -64,7 +64,7 @@ export function AppHeader() {
   const visibleNavItems = getVisibleNavItems();
   
   const getInitials = (role: string) => {
-    if (role === 'user') return 'JS';
+    if (role === 'user') return 'JB';
     if (role === 'recruiter') return 'R';
     if (role === 'admin') return 'A';
     return role.charAt(0).toUpperCase();
