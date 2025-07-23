@@ -169,7 +169,7 @@ function JobMapPage() {
                             <Separator />
                             <ScrollArea className="flex-1">
                                 <div className="p-2 space-y-2">
-                                    {jobs.map(job => (
+                                    {jobs.filter(job => job.position && job.position.lat && job.position.lng).map(job => (
                                         <div
                                             key={job.id}
                                             ref={el => jobListRef.current[job.id] = el}
@@ -209,7 +209,7 @@ function JobMapPage() {
                         disableDefaultUI={true}
                         className="h-full w-full"
                     >
-                        {jobs.map((job) => (
+                        {jobs.filter(job => job.position && job.position.lat && job.position.lng).map((job) => (
                              <AdvancedMarker
                                 key={job.id}
                                 position={job.position}
