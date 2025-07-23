@@ -55,7 +55,7 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             company: job.company,
             partnerName: `Recruiter @ ${job.company}`
         });
-        const message = `Hi, I'm interested in the ${job.title} position at ${job.company} and had a few questions.`;
+        const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
         router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
     }
     
