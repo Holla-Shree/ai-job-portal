@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, addDoc, getDocs, onSnapshot } from "firebase/firestore"; 
+import { collection, addDoc, getDocs, onSnapshot, doc, setDoc } from "firebase/firestore"; 
 import { db } from '@/lib/firebase';
 
 export interface Message {
@@ -80,7 +80,8 @@ interface NotificationContextType {
   jobs: Job[];
   addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
   candidates: Candidate[];
-  addCandidate: (candidate: Omit<Candidate, 'id'>) => void;
+  addCandidate: (candidate: Omit<Candidate, 'id'>) => Promise<void>;
+  updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -88,34 +89,6 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
-const CANDIDATES_STORAGE_KEY = 'jobMatchCandidates';
-
-const MOCK_CANDIDATES = [
-    { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science from IIT Bombay.' },
-    { id: 'cand2', name: 'Rohan Sharma', profile: 'Senior Backend Engineer specializing in Python, Django, and microservices architecture. 8+ years of experience building scalable financial systems. Proficient with Kubernetes and GCP. Master\'s in Software Engineering from BITS Pilani.' },
-    { id: 'cand3', name: 'Anjali Menon', profile: 'Junior Frontend Developer with 1 year of experience. Strong skills in HTML, CSS, JavaScript, and React. Passionate about creating beautiful user interfaces. Completed a 6-month coding bootcamp from UpGrad.' },
-    { id: 'cand4', name: 'Vikram Singh', profile: 'DevOps Engineer with 4 years of experience in CI/CD pipelines using Jenkins and GitLab. Certified Kubernetes Administrator. Expertise in Terraform and Ansible for infrastructure as code. Based in Pune.' },
-    { id: 'cand5', name: 'Sneha Reddy', profile: 'Data Scientist with 3 years of experience in machine learning and predictive modeling. Proficient in Python, Scikit-learn, and TensorFlow. Experience with data visualization tools like Tableau. From Hyderabad.' },
-    { id: 'cand6', name: 'Amit Kumar', profile: 'Product Manager with 6 years of experience in the SaaS industry. Proven track record of launching successful B2B products. Strong analytical skills and experience with Agile methodologies. MBA from IIM Ahmedabad.' },
-    { id: 'cand7', name: 'Neha Gupta', profile: 'UX/UI Designer with a focus on mobile applications. 5 years of experience creating intuitive and user-friendly designs for iOS and Android. Proficient in Figma, Sketch, and Adobe Creative Suite. Portfolio available upon request.' },
-    { id: 'cand8', name: 'Karan Malhotra', profile: 'Cybersecurity Analyst with 7 years of experience in threat detection and incident response. Certified Information Systems Security Professional (CISSP). Experience with SIEM tools like Splunk. Based in Delhi.' },
-    { id: 'cand9', name: 'Isha Nair', profile: 'Digital Marketing Manager with a decade of experience in SEO, SEM, and social media marketing. Successfully managed multi-million dollar ad budgets. Google Ads certified. Currently located in Mumbai.' },
-    { id: 'cand10', name: 'Rajesh Kumar', profile: 'Mobile App Developer with expertise in Flutter. 4 years of experience building cross-platform applications for startups. Published several apps on the Play Store and App Store.' },
-    { id: 'cand11', name: 'Deepika Rao', profile: 'QA Automation Engineer with 5 years of experience. Expertise in building testing frameworks from scratch using Selenium and Cypress. Strong understanding of software development life cycle. From Bengaluru.' },
-    { id: 'cand12', name: 'Arjun Desai', profile: 'Cloud Solutions Architect with 9 years of experience. AWS Certified Solutions Architect – Professional. Specializes in designing and implementing scalable and cost-effective cloud infrastructure for enterprises.' },
-    { id: 'cand13', name: 'Sunita Joshi', profile: 'HR Business Partner with 8 years of experience in the tech industry. Expertise in talent acquisition, employee relations, and performance management. SHRM-CP certified.' },
-    { id: 'cand14', name: 'Manish Verma', profile: 'Data Engineer with 4 years of experience building and maintaining ETL pipelines. Proficient in Apache Spark, Kafka, and Airflow. Experience with big data technologies on AWS.' },
-    { id: 'cand15', name: 'Pooja Agarwal', profile: 'Business Analyst with a background in finance. 6 years of experience translating business requirements into technical specifications for fintech products. Based in Gurugram.' },
-    { id: 'cand16', name: 'Siddharth Chatterjee', profile: 'Content Strategist and Writer with 7 years of experience creating engaging content for B2B tech companies. Expertise in long-form blog posts, white papers, and case studies. From Kolkata.' },
-    { id: 'cand17', name: 'Aditi Sharma', profile: 'Salesforce Developer with 3 years of experience. Certified Salesforce Platform Developer I. Experience in Apex, Visualforce, and Lightning Web Components. Based in Noida.' },
-    { id: 'cand18', name: 'Vivek Iyer', profile: 'Senior Java Developer with 10 years of experience in building enterprise-grade applications using Spring Boot and Hibernate. Strong understanding of microservices and RESTful APIs. From Chennai.' },
-    { id: 'cand19', name: 'Fatima Khan', profile: 'Scrum Master with 5 years of experience facilitating agile ceremonies for multiple development teams. Certified ScrumMaster (CSM). Passionate about improving team velocity and productivity.' },
-    { id: 'cand20', name: 'Nikhil Reddy', profile: 'AI/ML Engineer with 2 years of experience post-Master\'s. Researched and implemented computer vision models using PyTorch. Strong mathematical and statistical background. Graduated from IISc Bangalore.' },
-    { id: 'fresher1', name: 'Aarav Sharma', profile: 'Recent B.Tech Computer Science graduate from VIT Vellore (CGPA: 8.5/10). No professional experience. Skilled in Java, Python, and SQL. Developed a "Library Management System" as a final year project using Java Swing and MySQL. Seeking an entry-level software developer role.' },
-    { id: 'fresher2', name: 'Meera Desai', profile: 'Fresh MBA graduate with a specialization in Marketing from NMIMS, Mumbai. Completed a 3-month marketing internship at a local startup, where I assisted with social media campaigns and market research. Proficient in Google Analytics and Mailchimp. Eager to start a career as a Marketing Associate.' },
-    { id: 'fresher3', name: 'Rohan Gupta', profile: 'B.Com (Honours) graduate from Delhi University. No work experience. Strong understanding of accounting principles, financial statements, and taxation. Certified in Tally ERP 9 and advanced MS Excel. Looking for a trainee position in an accounting or finance department.' },
-    { id: 'fresher4', name: 'Sunita Krishnan', profile: 'Just graduated with a Bachelor of Design (B.Des) in Graphic Design from NID Ahmedabad. No industry experience. Portfolio includes branding projects, illustration, and UI mockups for mobile apps created for academic assignments. Skilled in Adobe Creative Suite (Photoshop, Illustrator, InDesign). Seeking a Junior Graphic Designer role.' },
-];
 
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -260,20 +233,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setConversations(getMockConversations(user.role));
       }
 
-      const storedCandidates = localStorage.getItem(CANDIDATES_STORAGE_KEY);
-      if (storedCandidates) {
-        setCandidates(JSON.parse(storedCandidates));
-      } else {
-        setCandidates(MOCK_CANDIDATES);
-      }
-
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     }
   }, [user]);
 
    useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "jobs"), (querySnapshot) => {
+        const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (querySnapshot) => {
             const jobsData: Job[] = [];
             querySnapshot.forEach((doc) => {
                 jobsData.push({ id: doc.id, ...doc.data() } as Job);
@@ -281,8 +247,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             setJobs(jobsData);
         });
 
+        const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (querySnapshot) => {
+            const candidatesData: Candidate[] = [];
+            querySnapshot.forEach((doc) => {
+                candidatesData.push({ id: doc.id, ...doc.data() } as Candidate);
+            });
+            setCandidates(candidatesData);
+        });
+
         // Cleanup subscription on unmount
-        return () => unsubscribe();
+        return () => {
+            unsubscribeJobs();
+            unsubscribeCandidates();
+        };
     }, []);
 
   useEffect(() => {
@@ -296,10 +273,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations]);
-
-  useEffect(() => {
-    localStorage.setItem(CANDIDATES_STORAGE_KEY, JSON.stringify(candidates));
-  }, [candidates]);
 
 
   const addNotification = (jobTitle: string, company: string) => {
@@ -389,13 +362,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const addCandidate = (candidate: Omit<Candidate, 'id'>) => {
-      const newCandidate: Candidate = {
+  const addCandidate = async (candidate: Omit<Candidate, 'id'>) => {
+    try {
+        const newCandidateId = `cand-${Date.now()}`;
+        await setDoc(doc(db, "candidates", newCandidateId), {
           ...candidate,
-          id: `cand-${Date.now()}`,
-      };
-      setCandidates(prev => [newCandidate, ...prev]);
+          id: newCandidateId
+        });
+    } catch (e) {
+        console.error("Error adding candidate: ", e);
+    }
   };
+
+  const updateCandidateProfile = async (candidateId: string, profileData: { name: string, profile: string }) => {
+    try {
+      await setDoc(doc(db, "candidates", candidateId), profileData, { merge: true });
+    } catch (e) {
+      console.error("Error updating candidate profile: ", e);
+    }
+  };
+
 
   useEffect(() => {
     if (!user) return;
@@ -436,7 +422,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, candidates, addCandidate }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, candidates, addCandidate, updateCandidateProfile }}>
       {children}
     </NotificationContext.Provider>
   );

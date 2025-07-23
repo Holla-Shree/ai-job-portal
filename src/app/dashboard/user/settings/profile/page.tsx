@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -88,8 +88,25 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
 
 function UserProfileCard() {
     const { user, updateAvatar } = useAuth();
+    const { candidates, updateCandidateProfile } = useNotifications();
+    const [name, setName] = useState('');
+    const [bio, setBio] = useState('');
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const currentUserProfile = React.useMemo(() => {
+        return candidates.find(c => c.id === user?.id);
+    }, [candidates, user]);
+
+    useEffect(() => {
+        if (currentUserProfile) {
+            setName(currentUserProfile.name);
+            // A simple way to extract a bio if it exists.
+            const profileParts = currentUserProfile.profile.split('Summary:');
+            const bioText = profileParts.length > 1 ? profileParts[0].trim() : '';
+            setBio(bioText);
+        }
+    }, [currentUserProfile]);
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();
@@ -110,6 +127,28 @@ function UserProfileCard() {
             reader.readAsDataURL(file);
         }
     };
+    
+    const handleSaveChanges = async () => {
+        if (!user?.id) return;
+        
+        let existingProfile = currentUserProfile?.profile || '';
+        const bioExists = existingProfile.includes("Summary:");
+        if (bioExists) {
+            existingProfile = existingProfile.substring(existingProfile.indexOf("Summary:"));
+        }
+        
+        const updatedProfile = `${bio}\n\n${existingProfile}`;
+
+        await updateCandidateProfile(user.id, {
+            name: name,
+            profile: updatedProfile,
+        });
+
+        toast({
+            title: 'Profile Saved',
+            description: 'Your changes have been saved to your profile.',
+        });
+    }
 
     return (
         <Card>
@@ -117,7 +156,7 @@ function UserProfileCard() {
                  <div className="relative">
                     <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
                         <AvatarImage src={user?.avatar} alt="User Avatar" data-ai-hint="person avatar" />
-                        <AvatarFallback>JS</AvatarFallback>
+                        <AvatarFallback>{name ? name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                     </Avatar>
                     <div 
                         className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90"
@@ -133,14 +172,23 @@ function UserProfileCard() {
                         accept="image/png, image/jpeg"
                     />
                 </div>
-                <CardTitle>Job Seeker</CardTitle>
-                <CardDescription>user@example.com</CardDescription>
+                 <Input 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="text-xl font-bold text-center border-0 focus:ring-0 shadow-none"
+                 />
+                <CardDescription>{user?.email}</CardDescription>
             </CardHeader>
             <CardContent>
-                <Textarea placeholder="Add a short bio about yourself..." rows={3} />
+                <Textarea 
+                    placeholder="Add a short bio about yourself..." 
+                    rows={3} 
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                />
             </CardContent>
              <CardFooter>
-                <Button className="w-full">Save Changes</Button>
+                <Button className="w-full" onClick={handleSaveChanges}>Save Changes</Button>
             </CardFooter>
         </Card>
     )
@@ -149,6 +197,8 @@ function UserProfileCard() {
 
 function UserProfilePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { updateCandidateProfile } = useNotifications();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
@@ -164,6 +214,10 @@ function UserProfilePage() {
   });
 
   const handleResumeUpload: SubmitHandler<ResumeUploadFormValues> = async (data) => {
+    if (!user?.id) {
+        toast({ variant: "destructive", title: "Error", description: "You must be logged in to upload a resume." });
+        return;
+    }
     setIsLoadingResume(true);
     setResumeAnalysis(null);
     const file = data.resumeFile[0];
@@ -175,15 +229,21 @@ function UserProfilePage() {
           if (resumeDataUri) {
             const result = await analyzeResume({ resumeDataUri });
             setResumeAnalysis(result);
-            // Populate resume text for job recommendations with the anonymized summary and details
+            
+            // Construct the full text profile
             const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n');
             const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n');
             const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n');
-
             const fullText = `Summary: ${result.anonymizedSummary}\\n\\nSkills: ${result.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${experienceText || 'N/A'}\\n\\nEducation:\\n${educationText || 'N/A'}\\n\\nProjects:\\n${projectsText || 'N/A'}\\n\\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
             
+            // Update Firestore
+            await updateCandidateProfile(user.id, {
+                name: "Job Seeker", // This should be ideally taken from user profile
+                profile: fullText,
+            });
+
             jobForm.setValue('resumeText', fullText);
-            toast({ title: "Resume Analyzed", description: "Your anonymized profile has been created." });
+            toast({ title: "Resume Analyzed & Saved", description: "Your anonymized profile has been created and saved." });
           }
         };
         reader.readAsDataURL(file);
@@ -250,7 +310,7 @@ function UserProfilePage() {
                           <CardFooter>
                             <Button type="submit" disabled={isLoadingResume}>
                               {isLoadingResume ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                              Analyze Resume
+                              Analyze & Save Profile
                             </Button>
                           </CardFooter>
                         </form>
@@ -258,7 +318,7 @@ function UserProfilePage() {
                     <Card className="shadow-lg mt-6">
                         <CardHeader>
                           <CardTitle className="font-headline flex items-center"><UserCircle className="mr-2 text-primary" />Anonymized Profile</CardTitle>
-                          <CardDescription>Information extracted from your resume for bias-free matching.</CardDescription>
+                          <CardDescription>This is the information recruiters see. It is updated when you analyze a new resume.</CardDescription>
                         </CardHeader>
                         <CardContent>
                           <ScrollArea className="h-[400px]">
@@ -311,7 +371,7 @@ function UserProfilePage() {
                               </div>
                             </div>
                           ) : (
-                            !isLoadingResume && <p className="text-sm text-muted-foreground">Upload your resume to see your anonymized profile here.</p>
+                            !isLoadingResume && <p className="text-sm text-muted-foreground">Upload and analyze your resume to see your anonymized profile here.</p>
                           )}
                           </ScrollArea>
                         </CardContent>

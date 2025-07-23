@@ -50,8 +50,11 @@ export default function LoginPage() {
       title: 'Login Successful',
       description: `Welcome! You are now logged in as a ${role}.`,
     });
+    
+    // Create a deterministic ID from the email for linking to profiles
+    const userId = role === 'user' ? `cand-${data.email.replace(/[^a-zA-Z0-9]/g, '')}` : undefined;
 
-    login(role);
+    login(role, userId, data.email);
 
     // Redirect based on role
     switch (role) {

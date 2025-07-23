@@ -6,14 +6,16 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export type UserRole = 'user' | 'recruiter' | 'admin';
 
 interface User {
+  id?: string; // Add ID for linking to profiles
   role: UserRole;
   avatar?: string;
+  email?: string; // Add email for display
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (role: UserRole) => void;
+  login: (role: UserRole, id?: string, email?: string) => void;
   logout: () => void;
   updateAvatar: (avatar: string) => void;
 }
@@ -39,8 +41,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = (role: UserRole) => {
-    const newUser: User = { role };
+  const login = (role: UserRole, id?: string, email?: string) => {
+    const newUser: User = { role, id, email };
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     setLoading(false);

@@ -40,14 +40,17 @@ export default function SignupPage() {
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = (data: SignupFormValues) => {
-    const { role, fullName } = data;
+  const onSubmit = async (data: SignupFormValues) => {
+    const { role, fullName, email } = data;
     
-    // Add to talent pool if the role is 'user'
+    // Create a deterministic but unique-enough ID from the email
+    const candidateId = `cand-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
+
     if (role === 'user') {
-        addCandidate({
+        await addCandidate({
+            id: candidateId,
             name: fullName,
-            profile: `Newly registered user. Add your resume to create a full profile.`
+            profile: `Newly registered user. Please upload a resume to create a full profile.`
         });
     }
 
@@ -56,7 +59,7 @@ export default function SignupPage() {
       description: "You have been successfully signed up.",
     });
 
-    login(role as UserRole);
+    login(role as UserRole, candidateId);
 
     // Redirect based on role
     switch (role) {
