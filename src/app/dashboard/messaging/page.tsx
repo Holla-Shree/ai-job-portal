@@ -17,198 +17,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications, Conversation } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
-
-interface Message {
-  id: string;
-  sender: 'me' | 'other' | 'system';
-  text: string;
-  timestamp: string;
-}
-
-interface Conversation {
-  id: string;
-  partnerName: string;
-  partnerRole: 'Recruiter' | 'Candidate' | 'System';
-  jobTitle: string;
-  lastMessage: string;
-  avatar: string;
-  messages: Message[];
-  pinned: boolean;
-  favourited: boolean;
-  unread: boolean;
-  timestamp: number;
-}
-
-const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
-
-const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
-    // Try to load from local storage first
-    try {
-        const stored = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-        if (stored) {
-            return JSON.parse(stored);
-        }
-    } catch (e) {
-        console.error("Could not parse conversations from local storage", e);
-    }
-    
-    // Fallback to default mock data if nothing in storage
-    if (role === 'user') {
-      return [
-        {
-          id: 'conv1',
-          partnerName: 'Recruiter @ TekSystems India',
-          partnerRole: 'Recruiter',
-          jobTitle: 'Senior Backend Engineer',
-          lastMessage: 'That sounds great! I am available to chat tomorrow.',
-          avatar: 'R',
-          messages: [
-            { id: 'msg1', sender: 'other', text: 'Hi Priya, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
-            { id: 'msg2', sender: 'me', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
-            { id: 'msg3', sender: 'other', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
-            { id: 'msg4', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
-          ],
-          pinned: true,
-          favourited: true,
-          unread: false,
-          timestamp: Date.now() - 1000 * 60 * 5,
-        },
-        {
-          id: 'conv2',
-          partnerName: 'HR @ Google',
-          partnerRole: 'Recruiter',
-          jobTitle: 'Data Scientist',
-          lastMessage: 'Sure, I will share it shortly.',
-          avatar: 'G',
-          messages: [
-            { id: 'msg1', sender: 'other', text: 'Hi there, we have received your application for the Data Scientist role. Can you please share your portfolio?', timestamp: 'Yesterday' },
-            { id: 'msg2', sender: 'me', text: 'Sure, I will share it shortly.', timestamp: 'Yesterday' },
-          ],
-          pinned: false,
-          favourited: false,
-          unread: true,
-          timestamp: Date.now() - 1000 * 60 * 60 * 24,
-        },
-      ];
-    }
-    return [
-      {
-        id: 'conv1',
-        partnerName: 'Priya Patel',
-        partnerRole: 'Candidate',
-        jobTitle: 'Senior Backend Engineer',
-        lastMessage: 'That sounds great! I am available to chat tomorrow.',
-        avatar: 'PP',
-        messages: [
-          { id: 'msg1', sender: 'me', text: 'Hi Priya, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
-          { id: 'msg2', sender: 'other', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
-          { id: 'msg3', sender: 'me', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
-          { id: 'msg4', sender: 'other', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
-        ],
-        pinned: false,
-        favourited: true,
-        unread: false,
-        timestamp: Date.now() - 1000 * 60 * 10,
-      },
-      {
-        id: 'conv4',
-        partnerName: 'Candidate Name',
-        partnerRole: 'Candidate',
-        jobTitle: 'Senior Backend Engineer',
-        lastMessage: 'Thanks for the opportunity!',
-        avatar: 'CN',
-        messages: [
-          { id: 'msg1', sender: 'me', text: 'Hi, we have an opening for a Senior Backend Engineer at TekSystems India. Are you interested?', timestamp: '3 days ago' },
-          { id: 'msg2', sender: 'other', text: 'Yes, I am interested. Could you please share more details?', timestamp: '3 days ago' },
-          { id: 'msg3', sender: 'me', text: 'Certainly. We are looking for someone with 5+ years of experience in backend development. The job description is attached.', timestamp: '3 days ago' },
-          { id: 'msg4', sender: 'other', text: 'Thanks for the opportunity!', timestamp: '2 days ago' },
-        ],
-        pinned: false,
-        favourited: false,
-        unread: false,
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
-      },
-      {
-        id: 'conv2',
-        partnerName: 'Rohan Sharma',
-        partnerRole: 'Candidate',
-        jobTitle: 'Data Scientist',
-        lastMessage: 'Yes, I have submitted my resume via the portal.',
-        avatar: 'RS',
-        messages: [
-          { id: 'msg1', sender: 'me', text: 'Hi Rohan, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
-          { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
-        ],
-        pinned: false,
-        favourited: false,
-        unread: true,
-        timestamp: Date.now() - 1000 * 60 * 60 * 23,
-      },
-      {
-        id: 'conv3',
-        partnerName: 'Anjali Menon',
-        partnerRole: 'Candidate',
-        jobTitle: 'Junior Frontend Developer',
-        lastMessage: 'Perfect, looking forward to it.',
-        avatar: 'AM',
-        messages: [
-          { id: 'msg1', sender: 'me', text: 'Hello Anjali, we were impressed with your portfolio and would like to schedule a brief introductory call.', timestamp: '2 days ago' },
-          { id: 'msg2', sender: 'other', text: 'Thank you so much! I\'d love that. What time works for you?', timestamp: '2 days ago' },
-          { id: 'msg3', sender: 'me', text: 'How about Friday at 2 PM?', timestamp: '2 days ago' },
-          { id: 'msg4', sender: 'other', text: 'Perfect, looking forward to it.', timestamp: '2 days ago' },
-        ],
-        pinned: false,
-        favourited: false,
-        unread: false,
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
-      }
-    ];
-};
-
 
 function MessagingPage() {
     const { user } = useAuth();
     const { toast } = useToast();
-    const { notifications, markAsRead } = useNotifications();
-    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const { 
+        conversations, 
+        setConversations,
+        markAsRead, 
+    } = useNotifications();
     const searchParams = useSearchParams();
     
-    useEffect(() => {
-        const mockConvos = getMockConversations(user?.role || 'user');
-
-        if (user?.role === 'recruiter' || user?.role === 'admin') {
-            const newNotifConvos = notifications.map(notif => ({
-                id: notif.id,
-                partnerName: 'System Notification',
-                partnerRole: 'System',
-                jobTitle: notif.jobTitle,
-                lastMessage: `New application from ${notif.candidateName}.`,
-                avatar: 'Bell',
-                messages: [
-                    { id: `msg-${notif.id}`, sender: 'system', text: `A new candidate, ${notif.candidateName}, has applied for the ${notif.jobTitle} position at ${notif.company}. You can view their profile in the talent pool.`, timestamp: formatDistanceToNow(notif.timestamp) + ' ago' },
-                ],
-                pinned: true,
-                favourited: false,
-                unread: !notif.read,
-                timestamp: notif.timestamp,
-            } as Conversation));
-
-            // Combine and remove duplicates
-            const combined = [...newNotifConvos, ...mockConvos];
-            const uniqueConvos = combined.filter((convo, index, self) =>
-                index === self.findIndex((c) => c.id === convo.id)
-            );
-
-            setConversations(uniqueConvos);
-        } else {
-            setConversations(mockConvos);
-        }
-
-    }, [notifications, user?.role]);
-
-
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
@@ -223,17 +44,12 @@ function MessagingPage() {
             const conversationToOpen = conversations.find(c => c.id === openConversationId);
             if (conversationToOpen) {
                 setSelectedConversation(conversationToOpen);
+                if (conversationToOpen.unread) {
+                    markAsRead(conversationToOpen.id);
+                }
             }
         }
-    }, [searchParams, conversations]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
-        } catch (e) {
-            console.error("Could not save conversations to local storage", e);
-        }
-    }, [conversations]);
+    }, [searchParams, conversations, markAsRead]);
 
     const filteredConversations = useMemo(() => {
         let convos = [...conversations];
@@ -274,10 +90,7 @@ function MessagingPage() {
         if (conversation) {
             setSelectedConversation(conversation);
             if (conversation.unread) {
-                 setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, unread: false } : c));
-                 if (conversation.partnerRole === 'System') {
-                    markAsRead(conversation.id);
-                 }
+                 markAsRead(conversation.id);
             }
         }
     };
@@ -286,9 +99,9 @@ function MessagingPage() {
         e.preventDefault();
         if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
 
-        const newMessage: Message = {
+        const newMessage = {
             id: `msg${Date.now()}`,
-            sender: 'me',
+            sender: 'me' as const,
             text: messageInput,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
