@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import withAuth from '@/components/withAuth';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
 
 interface MessagingSettings {
     enableReadReceipts: boolean;
@@ -21,6 +23,7 @@ interface MessagingSettings {
 function MessagingSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
+    const { setConversations, blockedUsers, unblockUser } = useNotifications();
     const [settings, setSettings] = useState<MessagingSettings>({
         enableReadReceipts: true,
         allowMessagesFrom: 'anyone',
@@ -53,8 +56,25 @@ function MessagingSettingsPage() {
         }, 1000); // Simulate network delay
     };
     
+    const handleClearAllConversations = () => {
+        setConversations([]);
+        toast({
+            title: 'All Conversations Cleared',
+            description: 'Your chat history has been wiped.',
+            variant: 'destructive',
+        });
+    }
+
+    const handleUnblock = (userId: string) => {
+        unblockUser(userId);
+        toast({
+            title: 'User Unblocked',
+            description: 'You can now send and receive messages from this user.',
+        });
+    };
+    
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto py-8 max-w-4xl">
              <Button variant="ghost" onClick={() => router.back()} className="mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Messages
@@ -106,9 +126,61 @@ function MessagingSettingsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="p-4 border rounded-lg">
+                             <Label className="flex flex-col space-y-1">
+                                <span>Blocked Users</span>
+                                <span className="font-normal leading-snug text-muted-foreground">
+                                    Manage users you have blocked.
+                                </span>
+                            </Label>
+                            <div className="mt-4 space-y-2">
+                                {blockedUsers && blockedUsers.length > 0 ? (
+                                    blockedUsers.map(user => (
+                                        <div key={user.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                                            <span>{user.name}</span>
+                                            <Button variant="outline" size="sm" onClick={() => handleUnblock(user.id)}>Unblock</Button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-2">You haven't blocked any users.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                     <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
+                         <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg">
+                            <Label className="flex flex-col space-y-1">
+                                <span>Clear All Conversations</span>
+                                <span className="font-normal leading-snug text-muted-foreground">
+                                    Permanently delete all of your messages. This action cannot be undone.
+                                </span>
+                            </Label>
+                             <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. All of your conversations and messages will be permanently deleted.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleClearAllConversations}>
+                                            Yes, Delete Everything
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end pt-4">
                         <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
                             {isSaving ? 'Saving...' : 'Save Changes'}
                         </Button>
