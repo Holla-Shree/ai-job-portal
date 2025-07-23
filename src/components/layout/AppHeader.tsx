@@ -65,26 +65,8 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-4">
-          <AppLogo />
-          <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-            {visibleNavItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary",
-                  pathname === item.href ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        
-        <div className="md:hidden">
+      <div className="container flex h-16 items-center">
+        <div className="flex items-center gap-4 md:hidden">
             <Sheet>
             <SheetTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -115,69 +97,95 @@ export function AppHeader() {
             </Sheet>
         </div>
         
-        <div className="flex items-center gap-2">
-           <ModeToggle />
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-9 w-9">
-                     <AvatarImage src={user.avatar} alt={user.role} data-ai-hint="person avatar"/>
-                     <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
-                  </Avatar>
+        <div className="hidden md:flex flex-1 items-center justify-between">
+            <div className="flex items-center gap-4">
+              <AppLogo />
+            </div>
+
+            <nav className="flex items-center gap-4 lg:gap-6">
+                {visibleNavItems.map((item) => (
+                <Link
+                    key={item.label}
+                    href={item.href}
+                    className={cn(
+                    "text-sm font-medium transition-colors hover:text-primary",
+                    pathname === item.href ? "text-primary" : "text-muted-foreground"
+                    )}
+                >
+                    {item.label}
+                </Link>
+                ))}
+            </nav>
+
+            <div className="flex items-center gap-2">
+            <ModeToggle />
+            {user ? (
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.avatar} alt={user.role} data-ai-hint="person avatar"/>
+                        <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
+                    </Avatar>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">Logged in as</p>
+                        <p className="text-xs leading-none text-muted-foreground capitalize">
+                        {user.role === 'user' ? 'Job Seeker' : user.role}
+                        </p>
+                    </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                    <Link href={getSettingsLink()}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Profile Settings</span>
+                    </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                    <Link href="/dashboard/messaging/settings">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        <span>Messaging Settings</span>
+                    </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <>
+                <Button asChild variant="ghost" size="sm">
+                    <Link href="/map">
+                    <MapIcon className="mr-2 h-4 w-4"/>
+                    Job Map
+                    </Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Logged in as</p>
-                    <p className="text-xs leading-none text-muted-foreground capitalize">
-                      {user.role === 'user' ? 'Job Seeker' : user.role}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
-                  <Link href={getSettingsLink()}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Profile Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/messaging/settings">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    <span>Messaging Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/map">
-                  <MapIcon className="mr-2 h-4 w-4"/>
-                  Job Map
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4"/>
-                  Sign In
-                </Link>
-              </Button>
-              <Separator orientation="vertical" className="h-6" />
-              <Button asChild size="sm">
-                <Link href="/signup">
-                   <UserPlus className="mr-2 h-4 w-4"/>
-                   Sign Up
-                </Link>
-              </Button>
-            </>
-          )}
+                <Button asChild variant="ghost" size="sm">
+                    <Link href="/login">
+                    <LogIn className="mr-2 h-4 w-4"/>
+                    Sign In
+                    </Link>
+                </Button>
+                <Separator orientation="vertical" className="h-6" />
+                <Button asChild size="sm">
+                    <Link href="/signup">
+                    <UserPlus className="mr-2 h-4 w-4"/>
+                    Sign Up
+                    </Link>
+                </Button>
+                </>
+            )}
+            </div>
+        </div>
+        
+        {/* Mobile view right side (empty for balance) or additional controls */}
+        <div className="flex-1 flex justify-end md:hidden">
+             <ModeToggle />
         </div>
       </div>
     </header>
