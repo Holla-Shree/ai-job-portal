@@ -95,7 +95,7 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
             </CardFooter>
@@ -462,7 +462,7 @@ function UserProfilePage() {
                           <CardContent className="flex-grow">
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
-                          <CardFooter className="gap-2">
+                          <CardFooter className="gap-2 justify-center">
                             <Button variant="link" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
                                 Know More
                             </Button>
