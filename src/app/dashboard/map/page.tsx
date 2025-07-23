@@ -121,8 +121,8 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
-                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
+                <Button variant="outline" size="lg" className="px-3" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                    <Bookmark className={cn("h-6 w-6", isSaved && "fill-primary text-primary")} />
                 </Button>
             </div>
         </div>
