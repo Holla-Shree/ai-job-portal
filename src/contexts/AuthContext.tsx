@@ -17,7 +17,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (role: UserRole, id: string | undefined, email: string, name: string) => void;
+  login: (role: UserRole, id: string, email: string, name: string) => void;
   logout: () => void;
   updateAvatar: (avatar: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -35,7 +35,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
             const parsedUser: User = JSON.parse(storedUser);
-            if (!parsedUser.savedJobs) {
+             // Ensure savedJobs is always an array
+            if (!Array.isArray(parsedUser.savedJobs)) {
               parsedUser.savedJobs = [];
             }
             setUser(parsedUser);
@@ -50,18 +51,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeUser();
   }, []);
 
-  const login = (role: UserRole, id: string | undefined, email: string, name: string) => {
+  const login = (role: UserRole, id: string, email: string, name: string) => {
     setLoading(true);
-    const userId = id || `user-${Date.now()}`;
     const avatarText = name.charAt(0).toUpperCase();
     
+    // Create a base user object without savedJobs. 
+    // savedJobs will be populated by NotificationContext after fetching from DB.
     const newUser: User = { 
       role, 
-      id: userId, 
+      id, 
       email, 
       name,
       avatar: `https://placehold.co/40x40.png?text=${avatarText}`, 
-      savedJobs: [] 
+      savedJobs: [] // Start with an empty array, to be hydrated by NotificationContext
     };
     
     setUser(newUser);

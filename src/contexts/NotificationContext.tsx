@@ -134,16 +134,21 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         setJobs(jobsData);
     });
-
+    
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
         // Sync saved jobs from Firestore to AuthContext state
-        if(user && user.role === 'user') {
+        if (user && user.role === 'user') {
             const currentUserData = candidatesData.find(c => c.id === user.id);
-            if(currentUserData && JSON.stringify(currentUserData.savedJobs || []) !== JSON.stringify(user.savedJobs)) {
-                setUser(prev => prev ? ({ ...prev, savedJobs: currentUserData.savedJobs || [] }) : null);
+            if (currentUserData) {
+                // Ensure savedJobs is always an array before comparing
+                const currentSavedJobs = currentUserData.savedJobs || [];
+                const userSavedJobs = user.savedJobs || [];
+                if (JSON.stringify(currentSavedJobs) !== JSON.stringify(userSavedJobs)) {
+                     setUser(prevUser => prevUser ? { ...prevUser, savedJobs: currentSavedJobs } : null);
+                }
             }
         }
     });
@@ -206,7 +211,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const userDocRef = doc(db, 'candidates', user.id);
     
     // Optimistically update local state for immediate UI feedback
-    const newSavedJobs = [...user.savedJobs, jobId];
+    const newSavedJobs = [...(user.savedJobs || []), jobId];
     setUser(prev => prev ? { ...prev, savedJobs: newSavedJobs } : null);
 
     try {
@@ -225,7 +230,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
      const userDocRef = doc(db, 'candidates', user.id);
 
     // Optimistically update local state
-    const oldSavedJobs = user.savedJobs;
+    const oldSavedJobs = user.savedJobs || [];
     setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
 
     try {
@@ -312,7 +317,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const q = query(
           collection(db, "conversations"),
           where("participants", "==", participants),
-          where("jobTitle", "==", stub.jobTitle)
+          where("jobTitle", "==", stub.jobTitle),
+          where("company", "==", stub.company)
       );
       
       const querySnapshot = await getDocs(q);
@@ -323,6 +329,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       } else {
           // Create a new conversation
           const candidateName = user.name || 'A Job Seeker';
+          if (!candidateName) {
+            console.error("Cannot create conversation, user name is not defined.");
+            return null;
+          }
           const newConversation = {
               participants: participants,
               jobTitle: stub.jobTitle,
