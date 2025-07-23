@@ -67,7 +67,7 @@ export function AppHeader() {
     if (role === 'user') return 'JB';
     if (role === 'recruiter') return 'R';
     if (role === 'admin') return 'A';
-    return role.charAt(0).toUpperCase();
+    return 'U';
   }
   
   const getSettingsLink = () => {
