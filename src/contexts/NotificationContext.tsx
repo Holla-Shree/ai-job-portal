@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 
 export interface Message {
@@ -66,6 +66,7 @@ export type Candidate = {
     id: string;
     name: string;
     profile: string;
+    savedJobs?: string[];
 };
 
 interface NotificationContextType {
@@ -82,10 +83,9 @@ interface NotificationContextType {
   addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
-  updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
+  updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
-  savedJobs: string[];
   saveJob: (jobId: string) => void;
   unsaveJob: (jobId: string) => void;
 }
@@ -93,7 +93,6 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const BLOCKED_USERS_KEY = 'jobMatchBlockedUsers';
-const SAVED_JOBS_KEY = 'jobMatchSavedJobs';
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
@@ -102,16 +101,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
-  const [savedJobs, setSavedJobs] = useState<string[]>([]);
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   useEffect(() => {
     try {
       const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
       if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
-
-      const storedSavedJobs = localStorage.getItem(SAVED_JOBS_KEY);
-      if (storedSavedJobs) setSavedJobs(JSON.parse(storedSavedJobs));
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
     }
@@ -122,6 +117,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setJobs([]);
         setCandidates([]);
         setConversations([]);
+        setApplicationHistory([]);
         return;
     };
 
@@ -140,11 +136,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const convosData = snapshot.docs.map(doc => {
             const data = doc.data();
             const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
+             // A more robust system would fetch partner profiles, here we use placeholder logic
+            const partnerIsRecruiter = user.role === 'user';
+            const partnerName = partnerIsRecruiter ? `Recruiter @ ${data.company || 'a company'}` : data.candidateName || 'A candidate';
+
             return {
                 id: doc.id,
                 ...data,
-                 // These are for UI display and should be adapted based on a more robust user profile system
-                partnerName: data.jobTitle,
+                partnerName: partnerName,
                 partnerRole: partnerRole,
                 avatar: partnerRole.charAt(0),
             } as Conversation
@@ -152,11 +151,21 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setConversations(convosData);
     });
 
+    const applicationsQuery = user.role === 'user' 
+        ? query(collection(db, "applications"), where("candidateId", "==", user.id))
+        : collection(db, "applications"); // Recruiters/Admins see all
+
+    const unsubscribeApplications = onSnapshot(applicationsQuery, (snapshot) => {
+        const appsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
+        setApplicationHistory(appsData);
+    });
+
 
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
         unsubscribeConversations();
+        unsubscribeApplications();
     };
 }, [user]);
 
@@ -165,16 +174,31 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers));
   }, [blockedUsers]);
   
-  useEffect(() => {
-    localStorage.setItem(SAVED_JOBS_KEY, JSON.stringify(savedJobs));
-  }, [savedJobs]);
 
-  const saveJob = (jobId: string) => {
-    setSavedJobs(prev => [...new Set([...prev, jobId])]);
+  const saveJob = async (jobId: string) => {
+    if (!user || user.role !== 'user') return;
+    const userDocRef = doc(db, 'candidates', user.id);
+    try {
+        await updateDoc(userDocRef, {
+            savedJobs: arrayUnion(jobId)
+        });
+        setUser(prev => prev ? ({ ...prev, savedJobs: [...prev.savedJobs, jobId] }) : null);
+    } catch (e) {
+        console.error("Error saving job: ", e);
+    }
   };
   
-  const unsaveJob = (jobId: string) => {
-    setSavedJobs(prev => prev.filter(id => id !== jobId));
+  const unsaveJob = async (jobId: string) => {
+    if (!user || user.role !== 'user') return;
+     const userDocRef = doc(db, 'candidates', user.id);
+    try {
+        await updateDoc(userDocRef, {
+            savedJobs: arrayRemove(jobId)
+        });
+        setUser(prev => prev ? ({ ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) }) : null);
+    } catch (e) {
+        console.error("Error unsaving job: ", e);
+    }
   };
 
 
@@ -273,7 +297,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const updateCandidateProfile = async (candidateId: string, profileData: { name: string, profile: string }) => {
+  const updateCandidateProfile = async (candidateId: string, profileData: Partial<Candidate>) => {
     try {
       await setDoc(doc(db, "candidates", candidateId), profileData, { merge: true });
     } catch (e) {
@@ -287,7 +311,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, savedJobs, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );
@@ -300,5 +324,3 @@ export const useNotifications = () => {
   }
   return context;
 };
-
-    

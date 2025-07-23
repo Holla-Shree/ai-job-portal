@@ -13,14 +13,16 @@ import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from '@/contexts/AuthContext';
 
 
 function SavedJobsPage() {
-    const { jobs, savedJobs, unsaveJob, addNotification, initiateConversation } = useNotifications();
+    const { jobs, unsaveJob, addNotification, initiateConversation } = useNotifications();
+    const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
 
-    const savedJobsDetails = jobs.filter(job => savedJobs.includes(job.id));
+    const savedJobsDetails = jobs.filter(job => user?.savedJobs.includes(job.id));
 
     const handleApply = (job: Job) => {
         addNotification(job.title, job.company);

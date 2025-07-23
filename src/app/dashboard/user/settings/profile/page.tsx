@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -40,10 +41,11 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: strin
 
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, initiateConversation, savedJobs, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
+    const { user } = useAuth();
     const router = useRouter();
     
-    const isSaved = savedJobs.includes(job.id);
+    const isSaved = user?.savedJobs.includes(job.id);
 
     const handleApply = () => {
         addNotification(job.title, job.company);
@@ -266,9 +268,9 @@ function UserProfilePage() {
             
             // Update Firestore
             await updateCandidateProfile(user.id, {
-                name: currentUserProfile?.name || "Job Seeker",
                 profile: fullText,
             });
+            jobForm.setValue('resumeText', fullText);
             
             toast({ title: "Resume Analyzed & Saved", description: "Your anonymized profile has been created and saved." });
           }

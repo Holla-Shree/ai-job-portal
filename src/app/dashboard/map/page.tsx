@@ -22,11 +22,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, initiateConversation, savedJobs, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
 
-    const isSaved = savedJobs.includes(job.id);
+    const isSaved = user?.savedJobs.includes(job.id);
 
     const handleApply = () => {
         if (!user) {

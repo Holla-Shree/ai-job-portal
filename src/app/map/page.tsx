@@ -25,9 +25,9 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
-    const { addNotification, initiateConversation, savedJobs, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
     
-    const isSaved = savedJobs.includes(job.id);
+    const isSaved = user?.savedJobs.includes(job.id);
 
 
     const handleApply = () => {
