@@ -61,8 +61,6 @@ export function AppHeader() {
     return items;
   }
   
-  const visibleNavItems = getVisibleNavItems();
-
   const getInitials = (role: string) => {
     if (role === 'user') return 'JB';
     if (role === 'recruiter') return 'R';
@@ -79,6 +77,8 @@ export function AppHeader() {
       default: return '/login';
     }
   };
+
+  const visibleNavItems = getVisibleNavItems();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
