@@ -136,7 +136,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" size="lg" className="px-3" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                <Button variant="outline" className="p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-6 w-6", isSaved && "fill-primary text-primary")} />
                 </Button>
             </div>
@@ -246,7 +246,7 @@ export default function JobMapPage() {
                             disableDefaultUI={true}
                             className="h-full w-full"
                         >
-                            {jobs.filter(job => job.position?.lat && job.position?.lng).map((job) => (
+                            {jobs.filter(job => job.position && job.position.lat && job.position.lng).map((job) => (
                                  <AdvancedMarker
                                     key={job.id}
                                     position={job.position}
