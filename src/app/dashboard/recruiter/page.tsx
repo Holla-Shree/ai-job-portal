@@ -88,7 +88,19 @@ function RecruiterPortalPage() {
 
   useEffect(() => {
     setIsClient(true);
+    // Load shortlisted candidates from local storage
+    const storedShortlisted = localStorage.getItem('shortlistedCandidates');
+    if (storedShortlisted) {
+      setShortlistedCandidates(JSON.parse(storedShortlisted));
+    }
   }, []);
+
+  useEffect(() => {
+    // Save shortlisted candidates to local storage
+    if (isClient) {
+      localStorage.setItem('shortlistedCandidates', JSON.stringify(shortlistedCandidates));
+    }
+  }, [shortlistedCandidates, isClient]);
 
   const filteredTalentPool = useMemo(() => {
     if (!talentSearchTerm) return MOCK_CANDIDATES;
@@ -99,6 +111,10 @@ function RecruiterPortalPage() {
         candidate.profile.toLowerCase().includes(lowercasedTerm)
     );
   }, [talentSearchTerm]);
+
+  const getShortlistedCandidatesDetails = useMemo(() => {
+    return MOCK_CANDIDATES.filter(candidate => shortlistedCandidates.includes(candidate.id));
+  }, [shortlistedCandidates]);
 
 
   React.useEffect(() => {
@@ -133,7 +149,6 @@ function RecruiterPortalPage() {
   const handleAutoScreen: SubmitHandler<JobPostingFormValues> = async (data) => {
     setIsScreening(true);
     setScreeningResults([]);
-    setShortlistedCandidates([]);
     setScreeningProgress(0);
     toast({ title: "Screening Started", description: "AI is now screening candidates against your job description." });
     
@@ -165,7 +180,7 @@ function RecruiterPortalPage() {
       if (prev.includes(candidateId)) {
         return prev.filter(id => id !== candidateId); // Un-shortlist
       } else {
-        toast({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in your dashboard." });
+        toast({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in the 'Shortlisted' tab." });
         return [...prev, candidateId]; // Shortlist
       }
     });
@@ -203,8 +218,9 @@ function RecruiterPortalPage() {
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
         <Tabs defaultValue="screening">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="screening"><Sparkles className="mr-2" />Post Job & Screen</TabsTrigger>
+            <TabsTrigger value="shortlisted"><Star className="mr-2" />Shortlisted</TabsTrigger>
             <TabsTrigger value="talent"><Users className="mr-2" />Talent Pool</TabsTrigger>
           </TabsList>
           
@@ -295,7 +311,14 @@ function RecruiterPortalPage() {
                               <AccordionTrigger>
                                  <div className="flex justify-between items-center w-full pr-4">
                                    <div className="text-left flex items-center gap-2">
-                                     {shortlistedCandidates.includes(result.candidate.id) && <Star className="h-4 w-4 text-amber-400 fill-amber-400" />}
+                                     <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
+                                        >
+                                          <Star className={`h-4 w-4 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                      </Button>
                                      <div>
                                        <p className="font-semibold">{result.candidate.name}</p>
                                        <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
@@ -322,14 +345,6 @@ function RecruiterPortalPage() {
                                      </div>
                                    )}
                                    <div className="flex items-center gap-2 pt-2 border-t">
-                                       <Button
-                                          variant={shortlistedCandidates.includes(result.candidate.id) ? "secondary" : "outline"}
-                                          size="sm"
-                                          onClick={() => handleShortlistCandidate(result.candidate.id)}
-                                        >
-                                          <Star className={`mr-2 h-4 w-4 ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-500 fill-amber-500' : ''}`} />
-                                          {shortlistedCandidates.includes(result.candidate.id) ? 'Shortlisted' : 'Shortlist'}
-                                        </Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
                                             <Button variant="default" size="sm">
@@ -363,6 +378,57 @@ function RecruiterPortalPage() {
                   </CardContent>
               </Card>
             </div>
+          </TabsContent>
+          
+          <TabsContent value="shortlisted">
+             <Card className="shadow-xl">
+              <CardHeader>
+                  <CardTitle className="font-headline flex items-center"><Star className="mr-2" />Shortlisted Candidates</CardTitle>
+                  <CardDescription>Your top candidates across all job postings.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Candidate</TableHead>
+                        <TableHead>Profile Summary</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {getShortlistedCandidatesDetails.length > 0 ? (
+                        getShortlistedCandidatesDetails.map((candidate) => (
+                            <TableRow key={candidate.id}>
+                            <TableCell className="font-medium">
+                                <div className="flex items-center gap-3">
+                                <Avatar>
+                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                    <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span>{candidate.name}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-xs max-w-md truncate">{candidate.profile}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" onClick={() => handleShortlistCandidate(candidate.id)}>
+                                    Remove
+                                </Button>
+                            </TableCell>
+                            </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                No candidates have been shortlisted yet.
+                            </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="talent">
@@ -418,5 +484,3 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
-
-    
