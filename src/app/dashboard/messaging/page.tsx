@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import { useNotifications, Conversation } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function MessagingPage() {
@@ -53,7 +53,7 @@ function MessagingPage() {
     
     useEffect(() => {
         const handleNewConversation = async () => {
-            if (!user) return;
+            if (!user?.id || !user.name) return; // Ensure user name is loaded
     
             const jobTitle = searchParams.get('jobTitle');
             const company = searchParams.get('company');
@@ -61,15 +61,6 @@ function MessagingPage() {
             const suggestedMessage = searchParams.get('message');
     
             if (jobTitle && company && partnerName) {
-                // Prevent creating a new conversation if one was just created or selected.
-                // This logic is simple and can be improved with a more robust state management if needed.
-                if (selectedConversation && selectedConversation.jobTitle === jobTitle && selectedConversation.company === company) {
-                     // Clean up URL params
-                    const newPath = window.location.pathname;
-                    router.replace(newPath, { scroll: false });
-                    return;
-                }
-
                 const recruiterId = `recruiter@${company.toLowerCase().replace(/\s+/g, '')}.com`;
                 const participants = [user.id, recruiterId].sort();
     
@@ -87,12 +78,11 @@ function MessagingPage() {
                 if (!querySnapshot.empty) {
                     conversationId = querySnapshot.docs[0].id;
                 } else {
-                     const candidateName = user.name || user.email?.split('@')[0] || "Job Seeker";
                      const newConversation = {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: candidateName,
+                        candidateName: user.name, // Use loaded user name
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
@@ -110,7 +100,7 @@ function MessagingPage() {
                     setMessageInput(decodeURIComponent(suggestedMessage));
                 }
     
-                // Clean up URL params
+                // Clean up URL params to prevent re-triggering
                 const newPath = window.location.pathname;
                 router.replace(newPath, { scroll: false });
             }
@@ -171,7 +161,7 @@ function MessagingPage() {
         }
     };
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
 
@@ -182,18 +172,18 @@ function MessagingPage() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        // This part needs to be wired up to a real backend (e.g., Firestore update)
-        // For now, it will only update local state
-        setConversations(prev => prev.map(c => 
-            c.id === selectedConversationId ? {
-                ...c,
-                messages: [...c.messages, newMessage],
+        try {
+            const convoRef = doc(db, "conversations", selectedConversationId!);
+            await updateDoc(convoRef, {
+                messages: [...selectedConversation.messages, newMessage],
                 lastMessage: newMessage.text,
                 timestamp: Date.now()
-            } : c
-        ));
-        
-        setMessageInput('');
+            });
+            setMessageInput('');
+        } catch (error) {
+            console.error("Error sending message:", error);
+            toast({ title: "Error", description: "Could not send message.", variant: "destructive" });
+        }
     };
 
     const handleScheduleInterview = () => {
@@ -203,33 +193,56 @@ function MessagingPage() {
         });
     };
 
-    const handleClearMessages = () => {
+    const handleClearMessages = async () => {
         if (!conversationToClear) return;
-        setConversations(prev => prev.map(c => c.id === conversationToClear.id ? { ...c, messages: [] } : c));
-        toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
-        setConversationToClear(null);
+        const convoRef = doc(db, "conversations", conversationToClear.id);
+        try {
+            await updateDoc(convoRef, { messages: [] });
+            toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
+        } catch (error) {
+            console.error("Error clearing messages:", error);
+            toast({ title: "Error", description: "Could not clear messages.", variant: "destructive" });
+        } finally {
+            setConversationToClear(null);
+        }
     };
 
-    const handleDeleteConversation = () => {
+    const handleDeleteConversation = async () => {
         if (!conversationToDelete) return;
-        setConversations(prev => prev.filter(c => c.id !== conversationToDelete.id));
-        if (selectedConversationId === conversationToDelete.id) {
-            setSelectedConversationId(null);
+        try {
+            await deleteDoc(doc(db, "conversations", conversationToDelete.id));
+            if (selectedConversationId === conversationToDelete.id) {
+                setSelectedConversationId(null);
+            }
+            toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
+        } catch (error) {
+            console.error("Error deleting conversation:", error);
+            toast({ title: "Error", description: "Could not delete conversation.", variant: "destructive" });
+        } finally {
+            setConversationToDelete(null);
         }
-        setConversationToDelete(null);
-        toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
-    const handleTogglePin = (convo: Conversation | null) => {
+    const handleTogglePin = async (convo: Conversation | null) => {
         if (!convo) return;
-        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, pinned: !c.pinned } : c));
-        toast({ title: `Conversation ${convo.pinned ? 'unpinned' : 'pinned'}`});
+        try {
+            await updateDoc(doc(db, "conversations", convo.id), { pinned: !convo.pinned });
+            toast({ title: `Conversation ${convo.pinned ? 'unpinned' : 'pinned'}`});
+        } catch (error) {
+            console.error("Error pinning conversation:", error);
+            toast({ title: "Error", description: "Could not update pin status.", variant: "destructive" });
+        }
     };
 
-    const handleToggleFavourite = (convo: Conversation | null) => {
+    const handleToggleFavourite = async (convo: Conversation | null) => {
         if (!convo) return;
-        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, favourited: !c.favourited } : c));
-        toast({ title: `Conversation ${convo.favourited ? 'removed from' : 'added to'} favourites`});
+        try {
+            await updateDoc(doc(db, "conversations", convo.id), { favourited: !convo.favourited });
+            toast({ title: `Conversation ${convo.favourited ? 'removed from' : 'added to'} favourites`});
+        } catch (error) {
+            console.error("Error favouriting conversation:", error);
+            toast({ title: "Error", description: "Could not update favourite status.", variant: "destructive" });
+        }
     };
     
     const handleToggleMute = (convo: Conversation | null) => {
@@ -245,35 +258,58 @@ function MessagingPage() {
         );
     };
 
-    const handleDeleteSelectedMessages = () => {
+    const handleDeleteSelectedMessages = async () => {
         if (!selectedConversation) return;
-        setConversations(prev => prev.map(c => 
-            c.id === selectedConversation.id 
-            ? { ...c, messages: c.messages.filter(m => !selectedMessages.includes(m.id)) }
-            : c
-        ));
-        toast({ title: `${selectedMessages.length} Message(s) Deleted` });
-        setIsMessageSelectionMode(false);
-        setSelectedMessages([]);
+        const updatedMessages = selectedConversation.messages.filter(m => !selectedMessages.includes(m.id));
+        try {
+            await updateDoc(doc(db, "conversations", selectedConversation.id), { messages: updatedMessages });
+            toast({ title: `${selectedMessages.length} Message(s) Deleted` });
+        } catch (error) {
+            console.error("Error deleting selected messages:", error);
+            toast({ title: "Error", description: "Could not delete messages.", variant: "destructive" });
+        } finally {
+            setIsMessageSelectionMode(false);
+            setSelectedMessages([]);
+        }
     };
 
-    const handleBulkPin = (pin: boolean) => {
-        setConversations(prev => prev.map(c => 
-            selectedConversations.includes(c.id) ? { ...c, pinned: pin } : c
-        ));
-        toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
-        setIsConvSelectionMode(false);
-        setSelectedConversations([]);
+    const handleBulkPin = async (pin: boolean) => {
+        const batch = writeBatch(db);
+        selectedConversations.forEach(id => {
+            const docRef = doc(db, "conversations", id);
+            batch.update(docRef, { pinned: pin });
+        });
+        try {
+            await batch.commit();
+            toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
+        } catch (error) {
+             console.error("Error bulk pinning:", error);
+            toast({ title: "Error", description: "Could not update conversations.", variant: "destructive" });
+        } finally {
+            setIsConvSelectionMode(false);
+            setSelectedConversations([]);
+        }
     }
 
-    const handleBulkDelete = () => {
-        setConversations(prev => prev.filter(c => !selectedConversations.includes(c.id)));
-        if (selectedConversations.includes(selectedConversation?.id || '')) {
-            setSelectedConversationId(null);
+    const handleBulkDelete = async () => {
+        const batch = writeBatch(db);
+        selectedConversations.forEach(id => {
+            const docRef = doc(db, "conversations", id);
+            batch.delete(docRef);
+        });
+        try {
+            await batch.commit();
+            if (selectedConversations.includes(selectedConversation?.id || '')) {
+                setSelectedConversationId(null);
+            }
+            toast({ title: `${selectedConversations.length} conversation(s) deleted` });
+        } catch (error) {
+            console.error("Error bulk deleting:", error);
+            toast({ title: "Error", description: "Could not delete conversations.", variant: "destructive" });
+        } finally {
+            setIsConvSelectionMode(false);
+            setSelectedConversations([]);
         }
-        toast({ title: `${selectedConversations.length} conversation(s) deleted` });
-        setIsConvSelectionMode(false);
-        setSelectedConversations([]);
     }
 
     const renderAvatar = (convo: Conversation) => {
