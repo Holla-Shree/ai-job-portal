@@ -57,6 +57,9 @@ interface NotificationContextType {
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  blockedUsers: string[];
+  blockUser: (partnerName: string) => void;
+  unblockUser: (partnerName: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -64,6 +67,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
+const BLOCKED_USERS_STORAGE_KEY = 'jobMatchBlockedUsers';
 
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -189,6 +193,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -198,6 +203,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const storedHistory = localStorage.getItem(APPLICATION_HISTORY_KEY);
        if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
+       
+      const storedBlockedUsers = localStorage.getItem(BLOCKED_USERS_STORAGE_KEY);
+      if (storedBlockedUsers) setBlockedUsers(JSON.parse(storedBlockedUsers));
 
       const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
       if (storedConversations) {
@@ -217,6 +225,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(APPLICATION_HISTORY_KEY, JSON.stringify(applicationHistory));
   }, [applicationHistory]);
+
+  useEffect(() => {
+    localStorage.setItem(BLOCKED_USERS_STORAGE_KEY, JSON.stringify(blockedUsers));
+  }, [blockedUsers]);
+  
+  useEffect(() => {
+    // Filter out conversations with blocked users
+    const visibleConversations = conversations.filter(c => !blockedUsers.includes(c.partnerName));
+    if (visibleConversations.length < conversations.length) {
+      setConversations(visibleConversations);
+    }
+    // Note: This effect should only run when blockedUsers changes.
+  }, [blockedUsers]);
 
   useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
@@ -297,12 +318,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setConversations(prev => [newConversation, ...prev]);
     return newConversation.id;
   }
+  
+  const blockUser = (partnerName: string) => {
+      setBlockedUsers(prev => [...new Set([...prev, partnerName])]);
+  };
+
+  const unblockUser = (partnerName: string) => {
+      setBlockedUsers(prev => prev.filter(name => name !== partnerName));
+  };
+
 
   useEffect(() => {
     if (!user) return;
      const mockConvos = getMockConversations(user?.role || 'user');
      const storedConversationsStr = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-     const storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
+     let storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
+     
+     // Ensure blocked users' conversations are not shown
+     storedConversations = storedConversations.filter((c: Conversation) => !blockedUsers.includes(c.partnerName));
      
     if (user?.role === 'recruiter' || user?.role === 'admin') {
         const newNotifConvos: Conversation[] = notifications
@@ -327,17 +360,17 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         // Combine and remove duplicates
         const combined = [...newNotifConvos, ...storedConversations];
         const uniqueConvos = combined.filter((convo, index, self) =>
-            index === self.findIndex((c) => c.id === convo.id)
+            index === self.findIndex((c) => c.id === convo.id && !blockedUsers.includes(convo.partnerName))
         );
         setConversations(uniqueConvos);
     } else {
        setConversations(storedConversations);
     }
-  }, [notifications, user]);
+  }, [notifications, user, blockedUsers]);
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, blockedUsers, blockUser, unblockUser }}>
       {children}
     </NotificationContext.Provider>
   );

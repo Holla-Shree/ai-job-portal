@@ -12,7 +12,7 @@ import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, 
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -30,11 +30,13 @@ function MessagingPage() {
         setConversations,
         markAsRead, 
         toggleMute,
+        blockUser
     } = useNotifications();
     const searchParams = useSearchParams();
     
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
+    const [conversationToClear, setConversationToClear] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
@@ -144,14 +146,17 @@ function MessagingPage() {
     };
 
     const handleClearMessages = () => {
-        if (!selectedConversation) return;
+        if (!conversationToClear) return;
         const updatedConversations = conversations.map(c => {
-            if (c.id === selectedConversation.id) return { ...c, messages: [], lastMessage: "Chat cleared" };
+            if (c.id === conversationToClear.id) return { ...c, messages: [], lastMessage: "Chat cleared" };
             return c;
         });
         setConversations(updatedConversations);
-        setSelectedConversation(prev => prev ? { ...prev, messages: [] } : null);
+        if (selectedConversation?.id === conversationToClear.id) {
+             setSelectedConversation(prev => prev ? { ...prev, messages: [] } : null);
+        }
         toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
+        setConversationToClear(null);
     };
 
     const handleDeleteConversation = () => {
@@ -200,8 +205,13 @@ function MessagingPage() {
         toast({ title: `Conversation has been ${convo.muted ? 'unmuted' : 'muted'}` });
     };
 
-    const handleGenericAction = (action: string) => {
-        toast({ title: `${action}!`, description: `This is a demo. The ${action.toLowerCase()} action has been simulated.` });
+    const handleBlockUser = (convo: Conversation | null) => {
+        if (!convo) return;
+        blockUser(convo.partnerName);
+        if (selectedConversation?.id === convo.id) {
+            setSelectedConversation(null);
+        }
+        toast({ title: "User Blocked", description: `${convo.partnerName} has been blocked and their conversation hidden.` });
     };
 
     const handleMessageSelection = (messageId: string) => {
@@ -292,12 +302,12 @@ function MessagingPage() {
                         <CheckSquare className="mr-2 h-4 w-4" />
                         Select Messages
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => { setSelectedConversation(convo); handleClearMessages()}}>
+                    <ContextMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(convo); }}>
                         <Eraser className="mr-2 h-4 w-4" />
                         Clear Messages
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem className="text-destructive" onClick={() => handleGenericAction('Blocked')}>
+                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); handleBlockUser(convo); }}>
                         <Ban className="mr-2 h-4 w-4" />
                         <span>Block</span>
                     </ContextMenuItem>
@@ -531,12 +541,12 @@ function MessagingPage() {
                                         <CheckSquare className="mr-2 h-4 w-4" />
                                         Select Messages
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleClearMessages}>
+                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(selectedConversation); }}>
                                         <Eraser className="mr-2 h-4 w-4" />
                                         Clear Messages
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onClick={() => handleGenericAction('Blocked')}>
+                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); handleBlockUser(selectedConversation); }}>
                                         <Ban className="mr-2 h-4 w-4" />
                                         <span>Block</span>
                                     </DropdownMenuItem>
@@ -633,6 +643,23 @@ function MessagingPage() {
                   <AlertDialogCancel onClick={() => setConversationToDelete(null)}>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
                       Yes, delete conversation
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+       <AlertDialog open={!!conversationToClear} onOpenChange={(open) => !open && setConversationToClear(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all messages?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                  This action cannot be undone. All messages in this conversation will be permanently deleted.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConversationToClear(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
+                      Yes, clear messages
                   </AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
