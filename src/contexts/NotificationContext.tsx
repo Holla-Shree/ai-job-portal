@@ -42,7 +42,7 @@ export interface ApplicationNotification {
   candidateName: string; 
   timestamp: number;
   read: boolean;
-  status: 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Rejected' | 'Offer';
+  status: 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Offer' | 'Rejected';
   candidateId?: string;
 }
 
@@ -209,29 +209,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const saveJob = async (job: Job) => {
       if (!user?.id) return;
-      const candidateId = user.id;
-      const existingApp = applicationHistory.find(app => app.candidateId === candidateId && app.jobTitle === job.title && app.company === job.company);
-
-      if (existingApp) {
-          // It's already in the pipeline, maybe just saved. Don't do anything.
-          return;
-      }
       
-      const newApplication = {
-        jobTitle: job.title,
-        company: job.company,
-        candidateName: user.name || 'A Job Seeker',
-        timestamp: Date.now(),
-        read: false,
-        status: 'Interested' as const,
-        candidateId: candidateId,
-      };
-    
-      try {
-          await addDoc(collection(db, 'applications'), newApplication);
-      } catch (error) {
-          console.error("Error adding 'Interested' application: ", error);
-      }
+      // The `expressInterest` function is now the correct way to "save" a job
+      // as it adds it to the "Interested" column of the pipeline.
+      await expressInterest(job.title, job.company);
   };
   
   const unsaveJob = async (jobId: string) => {
@@ -290,7 +271,33 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   const expressInterest = async (jobTitle: string, company: string) => {
-     await addNotification(jobTitle, company);
+    if (!user?.id) return;
+    const candidateId = user.id;
+
+    // Check if an entry for this job already exists for this user
+    const q = query(
+        collection(db, 'applications'), 
+        where("candidateId", "==", candidateId),
+        where("jobTitle", "==", jobTitle),
+        where("company", "==", company),
+    );
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        // Only create a new "Interested" record if one doesn't exist
+        const candidate = candidates.find(c => c.id === candidateId);
+        const newInterest = {
+          jobTitle,
+          company,
+          candidateName: candidate?.name || user.name || 'A Job Seeker',
+          timestamp: Date.now(),
+          read: false,
+          status: 'Interested' as const,
+          candidateId: candidateId,
+        };
+        await addDoc(collection(db, 'applications'), newInterest);
+    }
+    // If a record already exists (e.g., they are already interested or applied), do nothing.
   };
 
   const markAsRead = async (id: string) => {
@@ -406,3 +413,5 @@ export const useNotifications = () => {
   }
   return context;
 };
+
+    

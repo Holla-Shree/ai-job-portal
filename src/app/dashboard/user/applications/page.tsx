@@ -174,3 +174,5 @@ function ApplicationPipelinePage() {
 }
 
 export default withAuth(ApplicationPipelinePage, ['user', 'admin']);
+
+    
