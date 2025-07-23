@@ -77,7 +77,7 @@ interface NotificationContextType {
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
-  initiateConversation: (stub: ConversationStub) => Promise<void>;
+  initiateConversation: (stub: ConversationStub) => Promise<string | null>;
   applicationHistory: ApplicationNotification[];
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
@@ -303,8 +303,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const initiateConversation = async (stub: ConversationStub): Promise<void> => {
-      if (!user) return;
+  const initiateConversation = async (stub: ConversationStub): Promise<string | null> => {
+      if (!user) return null;
 
       const recruiterId = `recruiter@${stub.company.toLowerCase().replace(/\s+/g, '')}.com`;
       const participants = [user.id, recruiterId].sort();
@@ -315,12 +315,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           where("jobTitle", "==", stub.jobTitle)
       );
       
-      let conversationId = '';
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-          conversationId = querySnapshot.docs[0].id;
+          // Conversation already exists
+          return querySnapshot.docs[0].id;
       } else {
+          // Create a new conversation
           const candidateName = user.name || 'A Job Seeker';
           const newConversation = {
               participants: participants,
@@ -335,12 +336,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               mutedBy: [],
               timestamp: Date.now(),
           };
-          const docRef = await addDoc(collection(db, "conversations"), newConversation);
-          conversationId = docRef.id;
+          try {
+            const docRef = await addDoc(collection(db, "conversations"), newConversation);
+            return docRef.id;
+          } catch (error) {
+              console.error("Error creating new conversation:", error);
+              return null;
+          }
       }
-      
-      const message = `Hi, I'm interested in the ${stub.jobTitle} position and had a few questions.`;
-      router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
   };
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {

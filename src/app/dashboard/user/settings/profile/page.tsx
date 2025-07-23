@@ -41,8 +41,10 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: strin
 
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
+    const router = useRouter();
     const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
     const { user } = useAuth();
+    const [isMessaging, setIsMessaging] = useState(false);
     
     const isSaved = user?.savedJobs.includes(job.id);
 
@@ -54,12 +56,20 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         });
     };
     
-    const handleMessageRecruiter = () => {
-        initiateConversation({ 
+    const handleMessageRecruiter = async (job: RecommendedJob) => {
+        setIsMessaging(true);
+        const conversationId = await initiateConversation({ 
             jobTitle: job.title, 
             company: job.company, 
             partnerName: `Recruiter @ ${job.company}` 
         });
+        if (conversationId) {
+            const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
+            router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not start a conversation. Please try again.' });
+        }
+        setIsMessaging(false);
     }
 
     const handleToggleSave = () => {
@@ -91,8 +101,9 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
-                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                 <Button variant="outline" className="w-full" onClick={() => handleMessageRecruiter(job)} disabled={isMessaging}>
+                    {isMessaging ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                     Message Recruiter
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
