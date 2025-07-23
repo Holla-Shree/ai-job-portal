@@ -28,7 +28,7 @@ const navItems = [
   { href: '/dashboard/map', label: 'Job Map', icon: MapIcon, roles: ['user', 'recruiter', 'admin'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter'] },
   { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter', 'admin'] },
-  { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'recruiter', 'admin'] },
+  { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'admin'] },
   { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield, roles: ['admin'] },
 ];
 
