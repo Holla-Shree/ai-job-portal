@@ -32,6 +32,7 @@ function MessagingPage() {
     const searchParams = useSearchParams();
     
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+    const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
@@ -152,10 +153,13 @@ function MessagingPage() {
     };
 
     const handleDeleteConversation = () => {
-        if (!selectedConversation) return;
-        const updatedConversations = conversations.filter(c => c.id !== selectedConversation.id);
+        if (!conversationToDelete) return;
+        const updatedConversations = conversations.filter(c => c.id !== conversationToDelete.id);
         setConversations(updatedConversations);
-        setSelectedConversation(null);
+        if(selectedConversation?.id === conversationToDelete.id) {
+            setSelectedConversation(null);
+        }
+        setConversationToDelete(null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
@@ -290,7 +294,7 @@ function MessagingPage() {
             )}
             <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <ContextMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setSelectedConversation(convo)}}>
+                    <ContextMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setConversationToDelete(convo)}}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Conversation
                     </ContextMenuItem>
@@ -558,7 +562,7 @@ function MessagingPage() {
                             )}
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => {e.preventDefault(); setConversationToDelete(selectedConversation)}}>
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Delete Conversation
                                     </DropdownMenuItem>
