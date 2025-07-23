@@ -1,7 +1,7 @@
 
 
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -136,8 +136,8 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" className="p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
-                    <Bookmark className={cn("h-6 w-6", isSaved && "fill-primary text-primary")} />
+                <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
             </div>
         </div>
@@ -151,6 +151,17 @@ export default function JobMapPage() {
     const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
     const jobListRef = useRef<Record<string, HTMLDivElement | null>>({});
 
+    const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchLocation, setSearchLocation] = useState('');
+    const [searchType, setSearchType] = useState('');
+    const [searchDomain, setSearchDomain] = useState('');
+
+    useEffect(() => {
+        // Initially, show all jobs that have a valid position
+        setFilteredJobs(jobs.filter(job => job.position?.lat && job.position?.lng));
+    }, [jobs]);
+
     useEffect(() => {
         if (selectedJob && jobListRef.current[selectedJob.id]) {
             jobListRef.current[selectedJob.id]?.scrollIntoView({
@@ -159,6 +170,27 @@ export default function JobMapPage() {
             });
         }
     }, [selectedJob]);
+    
+     const handleSearch = () => {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        const lowerCaseLocation = searchLocation.toLowerCase();
+
+        const results = jobs.filter(job => {
+            const matchesQuery = lowerCaseQuery ? 
+                job.title.toLowerCase().includes(lowerCaseQuery) || 
+                job.company.toLowerCase().includes(lowerCaseQuery) ||
+                job.description.toLowerCase().includes(lowerCaseQuery) : true;
+            
+            const matchesLocation = lowerCaseLocation ? job.city.toLowerCase().includes(lowerCaseLocation) : true;
+            const matchesType = searchType ? job.type === searchType : true;
+            const matchesDomain = searchDomain ? job.domain === searchDomain : true;
+
+            return job.position?.lat && job.position?.lng && matchesQuery && matchesLocation && matchesType && matchesDomain;
+        });
+
+        setFilteredJobs(results);
+        setSelectedJob(null); // Deselect any job when search is performed
+    };
 
     return (
         <GoogleMapsProvider>
@@ -176,37 +208,58 @@ export default function JobMapPage() {
                                     <p className="text-sm text-muted-foreground">Explore opportunities on the map.</p>
                                 </div>
                                 <div className="p-4 space-y-4">
-                                   <Input placeholder="Job title, keyword, or company" className="bg-muted border-0" />
-                                   <Input placeholder="City, state, or remote" className="bg-muted border-0" />
+                                   <Input 
+                                       placeholder="Job title, keyword, or company" 
+                                       className="bg-muted border-0"
+                                       value={searchQuery}
+                                       onChange={(e) => setSearchQuery(e.target.value)}
+                                   />
+                                   <Input 
+                                       placeholder="City, state, or remote" 
+                                       className="bg-muted border-0"
+                                       value={searchLocation}
+                                       onChange={(e) => setSearchLocation(e.target.value)}
+                                   />
                                     <div className="grid grid-cols-2 gap-2">
-                                         <Select>
+                                         <Select value={searchType} onValueChange={setSearchType}>
                                             <SelectTrigger className="bg-muted border-0"><SelectValue placeholder="Job Type" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="full-time">Full-time</SelectItem>
-                                                <SelectItem value="part-time">Part-time</SelectItem>
-                                                <SelectItem value="contract">Contract</SelectItem>
-                                                <SelectItem value="remote">Remote</SelectItem>
-                                                <SelectItem value="internship">Internship</SelectItem>
+                                                <SelectItem value="">All Types</SelectItem>
+                                                <SelectItem value="Full-time">Full-time</SelectItem>
+                                                <SelectItem value="Part-time">Part-time</SelectItem>
+                                                <SelectItem value="Contract">Contract</SelectItem>
+                                                <SelectItem value="Remote">Remote</SelectItem>
+                                                <SelectItem value="Internship">Internship</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                         <Select>
+                                         <Select value={searchDomain} onValueChange={setSearchDomain}>
                                             <SelectTrigger className="bg-muted border-0"><SelectValue placeholder="Domain" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="tech">Tech</SelectItem>
-                                                <SelectItem value="fintech">Fintech</SelectItem>
-                                                <SelectItem value="healthcare">Healthcare</SelectItem>
-                                                <SelectItem value="ecommerce">E-commerce</SelectItem>
+                                                <SelectItem value="">All Domains</SelectItem>
+                                                <SelectItem value="Tech">Tech</SelectItem>
+                                                <SelectItem value="Fintech">Fintech</SelectItem>
+                                                <SelectItem value="Healthcare">Healthcare</SelectItem>
+                                                <SelectItem value="E-commerce">E-commerce</SelectItem>
+                                                <SelectItem value="Design">Design</SelectItem>
+                                                <SelectItem value="Marketing">Marketing</SelectItem>
+                                                <SelectItem value="HR">HR</SelectItem>
+                                                <SelectItem value="Finance">Finance</SelectItem>
+                                                <SelectItem value="Support">Support</SelectItem>
+                                                <SelectItem value="Content">Content</SelectItem>
+                                                <SelectItem value="Business">Business</SelectItem>
+                                                <SelectItem value="Security">Security</SelectItem>
+                                                <SelectItem value="Sales">Sales</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <Button className="w-full">
+                                    <Button className="w-full" onClick={handleSearch}>
                                         <Search className="mr-2 h-4 w-4" /> Search Jobs
                                     </Button>
                                 </div>
                                 <Separator />
                                 <ScrollArea className="flex-1">
                                     <div className="p-2 space-y-2">
-                                        {jobs.filter(job => job.position?.lat && job.position?.lng).map(job => (
+                                        {filteredJobs.length > 0 ? filteredJobs.map(job => (
                                             <div
                                                 key={job.id}
                                                 ref={el => jobListRef.current[job.id] = el}
@@ -229,7 +282,11 @@ export default function JobMapPage() {
                                                     <Badge variant="outline">{job.domain}</Badge>
                                                 </div>
                                             </div>
-                                        ))}
+                                        )) : (
+                                            <div className="text-center text-muted-foreground p-8">
+                                                <p>No jobs found matching your criteria.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </ScrollArea>
                             </>
@@ -246,10 +303,10 @@ export default function JobMapPage() {
                             disableDefaultUI={true}
                             className="h-full w-full"
                         >
-                            {jobs.filter(job => job.position && job.position.lat && job.position.lng).map((job) => (
+                            {filteredJobs.map((job) => (
                                  <AdvancedMarker
                                     key={job.id}
-                                    position={job.position}
+                                    position={job.position as { lat: number, lng: number }}
                                     onClick={() => setSelectedJob(job)}
                                 >
                                    <div className={cn(
