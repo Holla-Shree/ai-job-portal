@@ -231,15 +231,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [blockedUsers]);
   
   useEffect(() => {
-    // Filter out conversations with blocked users
-    const visibleConversations = conversations.filter(c => !blockedUsers.includes(c.partnerName));
-    if (visibleConversations.length < conversations.length) {
-      setConversations(visibleConversations);
-    }
-    // Note: This effect should only run when blockedUsers changes.
-  }, [blockedUsers]);
-
-  useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations]);
 
@@ -334,9 +325,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
      const storedConversationsStr = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
      let storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
      
-     // Ensure blocked users' conversations are not shown
-     storedConversations = storedConversations.filter((c: Conversation) => !blockedUsers.includes(c.partnerName));
-     
     if (user?.role === 'recruiter' || user?.role === 'admin') {
         const newNotifConvos: Conversation[] = notifications
         .filter(notif => !notif.read) // Only show unread notifications as conversations
@@ -360,13 +348,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         // Combine and remove duplicates
         const combined = [...newNotifConvos, ...storedConversations];
         const uniqueConvos = combined.filter((convo, index, self) =>
-            index === self.findIndex((c) => c.id === convo.id && !blockedUsers.includes(convo.partnerName))
+            index === self.findIndex((c) => c.id === convo.id)
         );
         setConversations(uniqueConvos);
     } else {
        setConversations(storedConversations);
     }
-  }, [notifications, user, blockedUsers]);
+  }, [notifications, user]);
 
 
   return (

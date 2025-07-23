@@ -30,6 +30,7 @@ function MessagingPage() {
         setConversations,
         markAsRead, 
         toggleMute,
+        blockedUsers,
         blockUser
     } = useNotifications();
     const searchParams = useSearchParams();
@@ -37,6 +38,7 @@ function MessagingPage() {
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
     const [conversationToClear, setConversationToClear] = useState<Conversation | null>(null);
+    const [conversationToBlock, setConversationToBlock] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
@@ -114,7 +116,7 @@ function MessagingPage() {
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
+        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System' || blockedUsers.includes(selectedConversation.partnerName)) return;
 
         const newMessage = {
             id: `msg${Date.now()}`,
@@ -205,13 +207,11 @@ function MessagingPage() {
         toast({ title: `Conversation has been ${convo.muted ? 'unmuted' : 'muted'}` });
     };
 
-    const handleBlockUser = (convo: Conversation | null) => {
-        if (!convo) return;
-        blockUser(convo.partnerName);
-        if (selectedConversation?.id === convo.id) {
-            setSelectedConversation(null);
-        }
-        toast({ title: "User Blocked", description: `${convo.partnerName} has been blocked and their conversation hidden.` });
+    const handleBlockUser = () => {
+        if (!conversationToBlock) return;
+        blockUser(conversationToBlock.partnerName);
+        toast({ title: "User Blocked", description: `${conversationToBlock.partnerName} has been blocked.` });
+        setConversationToBlock(null);
     };
 
     const handleMessageSelection = (messageId: string) => {
@@ -307,7 +307,7 @@ function MessagingPage() {
                         Clear Messages
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); handleBlockUser(convo); }}>
+                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(convo); }}>
                         <Ban className="mr-2 h-4 w-4" />
                         <span>Block</span>
                     </ContextMenuItem>
@@ -413,15 +413,16 @@ function MessagingPage() {
                     <div className="p-2 space-y-1">
                     {filteredConversations.map(convo => (
                         <ContextMenu key={convo.id}>
-                            <ContextMenuTrigger>
+                            <ContextMenuTrigger disabled={blockedUsers.includes(convo.partnerName)}>
                                 <div
                                     className={cn(
                                         "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
                                         selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
-                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
+                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted",
+                                        blockedUsers.includes(convo.partnerName) && "opacity-50 cursor-not-allowed"
                                     )}
-                                    onClick={() => handleSelectConversation(convo.id)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
+                                    onClick={() => !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
                                     tabIndex={0}
                                     role="button"
                                 >
@@ -438,6 +439,7 @@ function MessagingPage() {
                                         <div className="flex justify-between items-center">
                                             <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
                                             <div className="flex items-center gap-1.5">
+                                                {blockedUsers.includes(convo.partnerName) && <Ban className="h-4 w-4 text-destructive shrink-0" />}
                                                 {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
                                                 {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
                                                 {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
@@ -546,7 +548,7 @@ function MessagingPage() {
                                         Clear Messages
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); handleBlockUser(selectedConversation); }}>
+                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(selectedConversation); }}>
                                         <Ban className="mr-2 h-4 w-4" />
                                         <span>Block</span>
                                     </DropdownMenuItem>
@@ -608,6 +610,11 @@ function MessagingPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="p-4 border-t">
+                    {blockedUsers.includes(selectedConversation.partnerName) ? (
+                        <div className="w-full flex items-center justify-center text-sm text-destructive font-medium">
+                            <Ban className="mr-2 h-4 w-4" /> You have blocked this user.
+                        </div>
+                    ) : (
                     <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
                         <Input
                             placeholder={selectedConversation.partnerRole === 'System' ? 'This is a system notification.' : 'Type your message...'}
@@ -619,6 +626,7 @@ function MessagingPage() {
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>
+                    )}
                 </CardFooter>
                 </>
             ) : (
@@ -660,6 +668,23 @@ function MessagingPage() {
                   <AlertDialogCancel onClick={() => setConversationToClear(null)}>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
                       Yes, clear messages
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!conversationToBlock} onOpenChange={(open) => !open && setConversationToBlock(null)}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Block {conversationToBlock?.partnerName}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Blocking this user will prevent them from sending you new messages. You can manage blocked users in your settings.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConversationToBlock(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBlockUser} className="bg-destructive hover:bg-destructive/90">
+                      Yes, block user
                   </AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
