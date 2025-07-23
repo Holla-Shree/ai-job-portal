@@ -30,6 +30,8 @@ export interface Conversation {
   partnerName: string;
   partnerRole: 'Recruiter' | 'Candidate' | 'System';
   avatar: string;
+  company?: string;
+  candidateName?: string;
 }
 
 export interface ApplicationNotification {
@@ -104,16 +106,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { user, setUser } = useAuth();
 
   useEffect(() => {
-    try {
-      const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
-      if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
+    // This effect runs only on the client
+    if (typeof window !== 'undefined') {
+      try {
+        const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
+        if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+      } catch (error) {
+        console.error("Failed to load data from localStorage", error);
+      }
     }
   }, []);
   
   useEffect(() => {
-    if (!user || !user.id) {
+    // This effect runs only on the client
+    if (typeof window === 'undefined' || !user || !user.id) {
         setJobs([]);
         setCandidates([]);
         setConversations([]);
@@ -136,7 +142,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const convosData = snapshot.docs.map(doc => {
             const data = doc.data();
             const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
-             // A more robust system would fetch partner profiles, here we use placeholder logic
             const partnerIsRecruiter = user.role === 'user';
             const partnerName = partnerIsRecruiter ? `Recruiter @ ${data.company || 'a company'}` : data.candidateName || 'A candidate';
 
@@ -167,11 +172,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-}, [user]);
+  }, [user]);
 
 
   useEffect(() => {
-    localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers));
+    }
   }, [blockedUsers]);
   
 
@@ -227,9 +234,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     
     const convoRef = doc(db, "conversations", id);
     try {
-      await setDoc(convoRef, { 
-        unreadBy: conversations.find(c=>c.id === id)?.unreadBy.filter(uid => uid !== user.id) 
-      }, { merge: true });
+      await updateDoc(convoRef, { 
+        unreadBy: arrayRemove(user.id)
+      });
     } catch(e) {
       console.error("Error marking as read: ", e);
     }
@@ -241,10 +248,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!convo) return;
     
     const muted = convo.mutedBy.includes(user.id);
-    const newMutedBy = muted ? convo.mutedBy.filter(uid => uid !== user.id) : [...convo.mutedBy, user.id];
+    const newMutedBy = muted ? arrayRemove(user.id) : arrayUnion(user.id);
 
     try {
-        await setDoc(doc(db, "conversations", id), { mutedBy: newMutedBy }, { merge: true });
+        await updateDoc(doc(db, "conversations", id), { mutedBy: newMutedBy });
     } catch(e) {
         console.error("Error toggling mute: ", e);
     }
