@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 
 export interface Message {
@@ -127,6 +127,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return;
     };
 
+    // --- Set up Firestore listeners ---
+
     const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
         const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         setJobs(jobsData);
@@ -135,6 +137,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
+
+        // Sync savedJobs for the current user
+        if(user && user.role === 'user') {
+            const currentUserData = candidatesData.find(c => c.id === user.id);
+            if(currentUserData && JSON.stringify(currentUserData.savedJobs || []) !== JSON.stringify(user.savedJobs)) {
+                setUser(prev => prev ? ({ ...prev, savedJobs: currentUserData.savedJobs || [] }) : null);
+            }
+        }
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
@@ -172,7 +182,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user]);
+  }, [user, setUser]);
 
 
   useEffect(() => {
@@ -189,7 +199,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayUnion(jobId)
         });
-        setUser(prev => prev ? ({ ...prev, savedJobs: [...prev.savedJobs, jobId] }) : null);
+        // No need to call setUser here, the onSnapshot listener will handle it.
     } catch (e) {
         console.error("Error saving job: ", e);
     }
@@ -202,7 +212,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         await updateDoc(userDocRef, {
             savedJobs: arrayRemove(jobId)
         });
-        setUser(prev => prev ? ({ ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) }) : null);
+        // No need to call setUser here, the onSnapshot listener will handle it.
     } catch (e) {
         console.error("Error unsaving job: ", e);
     }

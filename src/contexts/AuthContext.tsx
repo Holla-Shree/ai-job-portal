@@ -2,13 +2,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useNotifications } from './NotificationContext'; // Corrected import
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 export type UserRole = 'user' | 'recruiter' | 'admin';
 
-interface User {
+export interface User {
   id: string; 
   role: UserRole;
   avatar?: string;
@@ -32,20 +29,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for a logged-in user (e.g., from localStorage)
-    const initializeUser = async () => {
+    // This effect runs only on the client
+    const initializeUser = () => {
         try {
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
             const parsedUser: User = JSON.parse(storedUser);
-            // Fetch the latest user data from Firestore to get saved jobs
-            if (parsedUser.role === 'user' && parsedUser.id) {
-                const userDocRef = doc(db, 'candidates', parsedUser.id);
-                const userDocSnap = await getDoc(userDocRef);
-                if (userDocSnap.exists()) {
-                    const dbUser = userDocSnap.data();
-                    parsedUser.savedJobs = dbUser.savedJobs || [];
-                }
+            // Initialize with empty saved jobs; NotificationContext will populate it
+            if (!parsedUser.savedJobs) {
+              parsedUser.savedJobs = [];
             }
             setUser(parsedUser);
           }
@@ -59,25 +51,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeUser();
   }, []);
 
-  const login = async (role: UserRole, id: string | undefined, email?: string) => {
+  const login = (role: UserRole, id: string | undefined, email?: string) => {
     setLoading(true);
     const userId = id || `user-${Date.now()}`;
     const avatarText = role === 'user' ? (email || 'J').charAt(0).toUpperCase() : (email || role).charAt(0).toUpperCase();
-    let savedJobs: string[] = [];
-
-    if (role === 'user' && userId) {
-        try {
-            const userDocRef = doc(db, 'candidates', userId);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-                savedJobs = userDocSnap.data().savedJobs || [];
-            }
-        } catch (error) {
-            console.error("Error fetching user data during login:", error);
-        }
-    }
-
-    const newUser: User = { role, id: userId, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}`, savedJobs };
+    
+    // The `savedJobs` array will be populated by the NotificationContext after login.
+    const newUser: User = { role, id: userId, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}`, savedJobs: [] };
+    
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     setLoading(false);
