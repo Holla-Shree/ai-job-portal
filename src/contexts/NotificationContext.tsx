@@ -277,7 +277,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
@@ -317,7 +317,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             querySnapshot.forEach((doc) => {
                 jobsData.push({ id: doc.id, ...doc.data() } as Job);
             });
-            setJobs(jobsData.length > 0 ? jobsData : MOCK_JOBS);
+            if (jobsData.length > 0) {
+              setJobs(jobsData);
+            }
         });
 
         const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (querySnapshot) => {
