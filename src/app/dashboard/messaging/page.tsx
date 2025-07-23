@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -11,7 +12,7 @@ import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, 
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -28,6 +29,7 @@ function MessagingPage() {
         conversations, 
         setConversations,
         markAsRead, 
+        toggleMute,
     } = useNotifications();
     const searchParams = useSearchParams();
     
@@ -188,6 +190,15 @@ function MessagingPage() {
         }
         toast({ title: `Conversation ${isFavourited ? 'removed from' : 'added to'} favourites`});
     };
+    
+    const handleToggleMute = (convo: Conversation | null) => {
+        if (!convo) return;
+        toggleMute(convo.id);
+         if (selectedConversation?.id === convo.id) {
+            setSelectedConversation(prev => prev ? { ...prev, muted: !convo.muted } : null);
+        }
+        toast({ title: `Conversation has been ${convo.muted ? 'unmuted' : 'muted'}` });
+    };
 
     const handleGenericAction = (action: string) => {
         toast({ title: `${action}!`, description: `This is a demo. The ${action.toLowerCase()} action has been simulated.` });
@@ -224,7 +235,7 @@ function MessagingPage() {
         toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
         setIsConvSelectionMode(false);
         setSelectedConversations([]);
-    };
+    }
 
     const handleBulkDelete = () => {
         const remainingConversations = conversations.filter(c => !selectedConversations.includes(c.id));
@@ -261,9 +272,9 @@ function MessagingPage() {
                         {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                         <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleGenericAction('Muted')}>
-                        <BellOff className="mr-2 h-4 w-4" />
-                        <span>Mute Notifications</span>
+                    <ContextMenuItem onClick={() => handleToggleMute(convo)}>
+                        {convo.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                        <span>{convo.muted ? 'Unmute Notifications' : 'Mute Notifications'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => {
                         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: true } : c));
@@ -366,25 +377,13 @@ function MessagingPage() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                     <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete {selectedConversations.length} conversations?</AlertDialogTitle>
-                                            <AlertDialogDescription>This action cannot be undone and will permanently delete the selected conversations.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
-                                                Confirm Delete
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()} onClick={() => {
+                                    const convosToDelete = conversations.filter(c => selectedConversations.includes(c.id));
+                                    // This is a simplified bulk delete, a real app might have a single dialog
+                                    handleBulkDelete();
+                                }}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -429,6 +428,7 @@ function MessagingPage() {
                                         <div className="flex justify-between items-center">
                                             <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
                                             <div className="flex items-center gap-1.5">
+                                                {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
                                                 {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
                                                 {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                             </div>
@@ -511,9 +511,9 @@ function MessagingPage() {
                                         {selectedConversation.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                                         <span>{selectedConversation.pinned ? 'Unpin' : 'Pin'} Chat</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleGenericAction('Muted')}>
-                                        <BellOff className="mr-2 h-4 w-4" />
-                                        <span>Mute Notifications</span>
+                                     <DropdownMenuItem onClick={() => handleToggleMute(selectedConversation)}>
+                                        {selectedConversation.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                                        <span>{selectedConversation.muted ? 'Unmute' : 'Mute'} Notifications</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
                                          setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, unread: true } : c));
@@ -542,7 +542,7 @@ function MessagingPage() {
                                     </DropdownMenuItem>
                                 </>
                             )}
-                            <DropdownMenuItem className="text-destructive" onSelect={() => setConversationToDelete(selectedConversation)}>
+                            <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()} onClick={() => setConversationToDelete(selectedConversation)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete Conversation
                             </DropdownMenuItem>

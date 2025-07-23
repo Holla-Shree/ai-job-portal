@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -23,6 +24,7 @@ export interface Conversation {
   pinned: boolean;
   favourited: boolean;
   unread: boolean;
+  muted: boolean;
   timestamp: number;
 }
 
@@ -49,6 +51,7 @@ interface NotificationContextType {
   notifications: ApplicationNotification[];
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
+  toggleMute: (id: string) => void;
   initiateConversation: (stub: ConversationStub) => string;
   applicationHistory: ApplicationNotification[];
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
@@ -82,6 +85,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: true,
           favourited: true,
           unread: false,
+          muted: false,
           timestamp: Date.now() - 1000 * 60 * 5,
         },
         {
@@ -98,6 +102,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           pinned: false,
           favourited: false,
           unread: true,
+          muted: true,
           timestamp: Date.now() - 1000 * 60 * 60 * 24,
         },
       ];
@@ -119,6 +124,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: true,
         unread: false,
+        muted: false,
         timestamp: Date.now() - 1000 * 60 * 10,
       },
       {
@@ -137,6 +143,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        muted: false,
         timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
       },
       {
@@ -153,6 +160,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: true,
+        muted: true,
         timestamp: Date.now() - 1000 * 60 * 60 * 23,
       },
       {
@@ -171,6 +179,7 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         pinned: false,
         favourited: false,
         unread: false,
+        muted: false,
         timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
       }
     ];
@@ -242,6 +251,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       prev.map(c => (c.id === id ? { ...c, unread: false } : c))
     );
   };
+
+  const toggleMute = (id: string) => {
+    setConversations(prev =>
+      prev.map(c => (c.id === id ? { ...c, muted: !c.muted } : c))
+    );
+  };
   
   const updateApplicationStatus = (candidateId: string, status: ApplicationNotification['status']) => {
     setApplicationHistory(prev =>
@@ -275,6 +290,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       pinned: false,
       favourited: false,
       unread: false,
+      muted: false,
       timestamp: Date.now(),
     };
 
@@ -304,6 +320,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             pinned: true,
             favourited: false,
             unread: !notif.read,
+            muted: false,
             timestamp: notif.timestamp,
         }));
 
@@ -320,7 +337,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations }}>
       {children}
     </NotificationContext.Provider>
   );
