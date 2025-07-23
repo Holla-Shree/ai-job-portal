@@ -21,7 +21,6 @@ interface MessagingSettings {
 function MessagingSettingsPage() {
     const { toast } = useToast();
     const router = useRouter();
-    const { blockedUsers, unblockUser } = useNotifications();
     const [settings, setSettings] = useState<MessagingSettings>({
         enableReadReceipts: true,
         allowMessagesFrom: 'anyone',
@@ -54,14 +53,6 @@ function MessagingSettingsPage() {
         }, 1000); // Simulate network delay
     };
     
-    const handleUnblock = (partnerName: string) => {
-        unblockUser(partnerName);
-        toast({
-            title: 'User Unblocked',
-            description: `${partnerName} has been unblocked. You can now message them again.`,
-        });
-    };
-
     return (
         <div className="container mx-auto py-8">
              <Button variant="ghost" onClick={() => router.back()} className="mb-4">
@@ -114,28 +105,6 @@ function MessagingSettingsPage() {
                                     <SelectItem value="connections">Connections Only</SelectItem>
                                 </SelectContent>
                             </Select>
-                        </div>
-                        <div className="p-4 border rounded-lg space-y-2">
-                            <Label>
-                                <span>Blocked Users</span>
-                                <span className="block font-normal leading-snug text-muted-foreground">
-                                    Manage users you have blocked.
-                                </span>
-                            </Label>
-                            {blockedUsers.length > 0 ? (
-                                <ul className="space-y-2 pt-2">
-                                    {blockedUsers.map(name => (
-                                        <li key={name} className="flex items-center justify-between text-sm">
-                                            <span>{name}</span>
-                                            <Button variant="outline" size="sm" onClick={() => handleUnblock(name)}>
-                                                <Trash2 className="mr-2 h-4 w-4"/> Unblock
-                                            </Button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-muted-foreground pt-2">You have not blocked any users.</p>
-                            )}
                         </div>
                     </div>
 

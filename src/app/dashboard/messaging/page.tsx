@@ -29,16 +29,13 @@ function MessagingPage() {
         conversations, 
         setConversations,
         markAsRead, 
-        toggleMute,
-        blockedUsers,
-        blockUser
+        toggleMute
     } = useNotifications();
     const searchParams = useSearchParams();
     
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
     const [conversationToClear, setConversationToClear] = useState<Conversation | null>(null);
-    const [conversationToBlock, setConversationToBlock] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
     const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
@@ -116,7 +113,7 @@ function MessagingPage() {
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System' || blockedUsers.includes(selectedConversation.partnerName)) return;
+        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
 
         const newMessage = {
             id: `msg${Date.now()}`,
@@ -207,13 +204,6 @@ function MessagingPage() {
         toast({ title: `Conversation has been ${convo.muted ? 'unmuted' : 'muted'}` });
     };
 
-    const handleBlockUser = () => {
-        if (!conversationToBlock) return;
-        blockUser(conversationToBlock.partnerName);
-        toast({ title: "User Blocked", description: `${conversationToBlock.partnerName} has been blocked.` });
-        setConversationToBlock(null);
-    };
-
     const handleMessageSelection = (messageId: string) => {
         setSelectedMessages(prev => 
             prev.includes(messageId) 
@@ -278,45 +268,45 @@ function MessagingPage() {
         <ContextMenuContent>
             {convo.partnerRole !== 'System' && (
                 <>
-                    <ContextMenuItem onClick={() => handleTogglePin(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
+                    <ContextMenuItem onClick={() => handleTogglePin(convo)}>
                         {convo.pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
                         <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleToggleMute(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
+                    <ContextMenuItem onClick={() => handleToggleMute(convo)}>
                         {convo.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
                         <span>{convo.muted ? 'Unmute Notifications' : 'Mute Notifications'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => {
                         setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: true } : c));
                         toast({ title: 'Marked as unread' });
-                    }} disabled={blockedUsers.includes(convo.partnerName)}>
+                    }}>
                         <Mail className="mr-2 h-4 w-4" />
                         <span>Mark as unread</span>
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleToggleFavourite(convo)} disabled={blockedUsers.includes(convo.partnerName)}>
+                    <ContextMenuItem onClick={() => handleToggleFavourite(convo)}>
                         <Heart className={cn("mr-2 h-4 w-4", convo.favourited && "fill-current text-red-500")} />
                         <span>{convo.favourited ? 'Remove from Favourites' : 'Add to Favourites'}</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}} disabled={blockedUsers.includes(convo.partnerName)}>
+                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}}>
                         <CheckSquare className="mr-2 h-4 w-4" />
                         Select Messages
                     </ContextMenuItem>
-                    <ContextMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(convo); }} disabled={blockedUsers.includes(convo.partnerName)}>
-                        <Eraser className="mr-2 h-4 w-4" />
-                        Clear Messages
-                    </ContextMenuItem>
+                    <AlertDialogTrigger asChild>
+                      <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Eraser className="mr-2 h-4 w-4" />
+                          Clear Messages
+                      </ContextMenuItem>
+                    </AlertDialogTrigger>
                     <ContextMenuSeparator />
-                    <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(convo); }} disabled={blockedUsers.includes(convo.partnerName)}>
-                        <Ban className="mr-2 h-4 w-4" />
-                        <span>Block</span>
-                    </ContextMenuItem>
                 </>
             )}
-            <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToDelete(convo); }}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Conversation
-            </ContextMenuItem>
+             <AlertDialogTrigger asChild>
+                <ContextMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault() }}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Conversation
+                </ContextMenuItem>
+            </AlertDialogTrigger>
         </ContextMenuContent>
     );
 
@@ -412,49 +402,88 @@ function MessagingPage() {
                 <ScrollArea className="h-full">
                     <div className="p-2 space-y-1">
                     {filteredConversations.map(convo => (
-                        <ContextMenu key={convo.id}>
-                            <ContextMenuTrigger>
-                                <div
-                                    className={cn(
-                                        "group flex items-start gap-3 p-3 rounded-lg transition-colors relative",
-                                        blockedUsers.includes(convo.partnerName) ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-                                        selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
-                                        isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
-                                    )}
-                                    onClick={() => !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
-                                    onKeyDown={(e) => e.key === 'Enter' && !blockedUsers.includes(convo.partnerName) && handleSelectConversation(convo.id)}
-                                    tabIndex={0}
-                                    role="button"
-                                >
-                                    {isConvSelectionMode && (
-                                        <Checkbox 
-                                            checked={selectedConversations.includes(convo.id)} 
-                                            onCheckedChange={() => handleSelectConversation(convo.id)}
-                                            className="mt-2"
-                                            aria-label={`Select conversation with ${convo.partnerName}`}
-                                        />
-                                    )}
-                                    {renderAvatar(convo)}
-                                    <div className="flex-1 truncate">
-                                        <div className="flex justify-between items-center">
-                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
-                                            <div className="flex items-center gap-1.5">
-                                                {blockedUsers.includes(convo.partnerName) && <Ban className="h-4 w-4 text-destructive shrink-0" />}
-                                                {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
-                                                {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
-                                                {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                        <AlertDialog key={convo.id} onOpenChange={(open) => {
+                                if(!open) {
+                                    setConversationToClear(null);
+                                    setConversationToDelete(null);
+                                }
+                            }}>
+                            <ContextMenu>
+                                <ContextMenuTrigger>
+                                    <div
+                                        className={cn(
+                                            "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
+                                            selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
+                                            isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
+                                        )}
+                                        onClick={() => handleSelectConversation(convo.id)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSelectConversation(convo.id)}
+                                        tabIndex={0}
+                                        role="button"
+                                    >
+                                        {isConvSelectionMode && (
+                                            <Checkbox 
+                                                checked={selectedConversations.includes(convo.id)} 
+                                                onCheckedChange={() => handleSelectConversation(convo.id)}
+                                                className="mt-2"
+                                                aria-label={`Select conversation with ${convo.partnerName}`}
+                                            />
+                                        )}
+                                        {renderAvatar(convo)}
+                                        <div className="flex-1 truncate">
+                                            <div className="flex justify-between items-center">
+                                                <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                                    {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
+                                                    {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
+                                                </div>
                                             </div>
+                                            <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
+                                            <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                                         </div>
-                                        <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
-                                        <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
+                                        {convo.unread && (
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+                                        )}
                                     </div>
-                                    {convo.unread && (
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-                                    )}
-                                </div>
-                            </ContextMenuTrigger>
-                            <ConversationContextMenu convo={convo} />
-                        </ContextMenu>
+                                </ContextMenuTrigger>
+                                <ConversationContextMenu convo={convo} />
+                            </ContextMenu>
+                            <AlertDialogContent>
+                                {conversationToDelete?.id === convo.id && (
+                                    <>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
+                                            Yes, delete conversation
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                    </>
+                                )}
+                                {conversationToClear?.id === convo.id && (
+                                    <>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Clear all messages?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This action cannot be undone. All messages in this conversation will be permanently deleted.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
+                                            Yes, clear messages
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                    </>
+                                )}
+                            </AlertDialogContent>
+                        </AlertDialog>
                     ))}
                     </div>
                 </ScrollArea>
@@ -543,21 +572,21 @@ function MessagingPage() {
                                         <CheckSquare className="mr-2 h-4 w-4" />
                                         Select Messages
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(selectedConversation); }}>
-                                        <Eraser className="mr-2 h-4 w-4" />
-                                        Clear Messages
-                                    </DropdownMenuItem>
+                                    <AlertDialogTrigger asChild>
+                                      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setConversationToClear(selectedConversation); }}>
+                                          <Eraser className="mr-2 h-4 w-4" />
+                                          Clear Messages
+                                      </DropdownMenuItem>
+                                    </AlertDialogTrigger>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToBlock(selectedConversation); }}>
-                                        <Ban className="mr-2 h-4 w-4" />
-                                        <span>Block</span>
-                                    </DropdownMenuItem>
                                 </>
                             )}
-                            <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToDelete(selectedConversation); }}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Conversation
-                            </DropdownMenuItem>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setConversationToDelete(selectedConversation); }}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Conversation
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
                         </DropdownMenuContent>
                      </DropdownMenu>
                      <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
@@ -610,11 +639,6 @@ function MessagingPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="p-4 border-t">
-                    {blockedUsers.includes(selectedConversation.partnerName) ? (
-                        <div className="w-full flex items-center justify-center text-sm text-destructive font-medium">
-                            <Ban className="mr-2 h-4 w-4" /> You have blocked this user.
-                        </div>
-                    ) : (
                     <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
                         <Input
                             placeholder={selectedConversation.partnerRole === 'System' ? 'This is a system notification.' : 'Type your message...'}
@@ -626,7 +650,6 @@ function MessagingPage() {
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>
-                    )}
                 </CardFooter>
                 </>
             ) : (
@@ -638,57 +661,6 @@ function MessagingPage() {
             )}
         </Card>
       </div>
-
-       <AlertDialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete this conversation and remove its data from our servers.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setConversationToDelete(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteConversation} className="bg-destructive hover:bg-destructive/90">
-                      Yes, delete conversation
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-
-       <AlertDialog open={!!conversationToClear} onOpenChange={(open) => !open && setConversationToClear(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Clear all messages?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                  This action cannot be undone. All messages in this conversation will be permanently deleted.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setConversationToClear(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClearMessages} className="bg-destructive hover:bg-destructive/90">
-                      Yes, clear messages
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!conversationToBlock} onOpenChange={(open) => !open && setConversationToBlock(null)}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Block {conversationToBlock?.partnerName}?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Blocking this user will prevent them from sending you new messages. You can manage blocked users in your settings.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setConversationToBlock(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleBlockUser} className="bg-destructive hover:bg-destructive/90">
-                      Yes, block user
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

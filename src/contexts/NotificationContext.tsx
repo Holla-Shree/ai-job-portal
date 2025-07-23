@@ -57,9 +57,6 @@ interface NotificationContextType {
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  blockedUsers: string[];
-  blockUser: (partnerName: string) => void;
-  unblockUser: (partnerName: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -67,7 +64,6 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
-const BLOCKED_USERS_STORAGE_KEY = 'jobMatchBlockedUsers';
 
 
 const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversation[] => {
@@ -193,7 +189,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -204,9 +199,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const storedHistory = localStorage.getItem(APPLICATION_HISTORY_KEY);
        if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
        
-      const storedBlockedUsers = localStorage.getItem(BLOCKED_USERS_STORAGE_KEY);
-      if (storedBlockedUsers) setBlockedUsers(JSON.parse(storedBlockedUsers));
-
       const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
       if (storedConversations) {
         setConversations(JSON.parse(storedConversations));
@@ -226,10 +218,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     localStorage.setItem(APPLICATION_HISTORY_KEY, JSON.stringify(applicationHistory));
   }, [applicationHistory]);
 
-  useEffect(() => {
-    localStorage.setItem(BLOCKED_USERS_STORAGE_KEY, JSON.stringify(blockedUsers));
-  }, [blockedUsers]);
-  
   useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations]);
@@ -309,15 +297,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setConversations(prev => [newConversation, ...prev]);
     return newConversation.id;
   }
-  
-  const blockUser = (partnerName: string) => {
-      setBlockedUsers(prev => [...new Set([...prev, partnerName])]);
-  };
-
-  const unblockUser = (partnerName: string) => {
-      setBlockedUsers(prev => prev.filter(name => name !== partnerName));
-  };
-
 
   useEffect(() => {
     if (!user) return;
@@ -358,7 +337,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, blockedUsers, blockUser, unblockUser }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations }}>
       {children}
     </NotificationContext.Provider>
   );
