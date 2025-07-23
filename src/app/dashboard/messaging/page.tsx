@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings, Star, Loader2 } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings, Star, Loader2, ArrowLeft } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -296,6 +296,14 @@ function MessagingPage() {
 
   return (
     <div className="container mx-auto py-8">
+      {user?.role === 'user' && (
+        <Button asChild variant="ghost" className="mb-4">
+            <Link href="/dashboard/user/settings/profile">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Profile
+            </Link>
+        </Button>
+      )}
       <div className="h-[calc(100vh-theme(spacing.32))] grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {/* Conversations List */}
         <Card className="md:col-span-1 lg:col-span-1 shadow-xl flex flex-col h-full">

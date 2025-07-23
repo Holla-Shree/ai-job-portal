@@ -22,7 +22,7 @@ function SavedJobsPage() {
     const router = useRouter();
     const { toast } = useToast();
 
-    const savedJobsDetails = jobs.filter(job => user?.savedJobs.includes(job.id));
+    const savedJobsDetails = user ? jobs.filter(job => user.savedJobs?.includes(job.id)) : [];
 
     const handleApply = (job: Job) => {
         addNotification(job.title, job.company);
