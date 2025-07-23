@@ -1,8 +1,9 @@
 
 
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,10 +53,12 @@ const generatorSchema = z.object({
 });
 type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
-function RecruiterPortalPage() {
+
+function RecruiterPortalContent() {
   const { toast } = useToast();
   const { updateApplicationStatus, initiateConversation, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -73,15 +76,17 @@ function RecruiterPortalPage() {
 
   useEffect(() => {
     setIsClient(true);
-    // Load shortlisted candidates from local storage
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
     const storedShortlisted = localStorage.getItem('shortlistedCandidates');
     if (storedShortlisted) {
       setShortlistedCandidates(JSON.parse(storedShortlisted));
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
-    // Save shortlisted candidates to local storage
     if (isClient) {
       localStorage.setItem('shortlistedCandidates', JSON.stringify(shortlistedCandidates));
     }
@@ -133,7 +138,7 @@ function RecruiterPortalPage() {
   
   const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
-    // Fire and forget - the context will handle the optimistic update
+    
     addJob({
         title: data.jobTitle,
         company: data.companyName,
@@ -142,12 +147,15 @@ function RecruiterPortalPage() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
+    }).then(() => {
+        toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+        jobPostForm.reset();
+        setActiveTab("postings");
+    }).catch(err => {
+        toast({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
+    }).finally(() => {
+        setIsPosting(false);
     });
-    
-    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
-    jobPostForm.reset();
-    setActiveTab("postings");
-    setIsPosting(false);
   };
 
   const handleScreeningForJob = async (job: Job) => {
@@ -642,6 +650,15 @@ function RecruiterPortalPage() {
         </Tabs>
       </div>
   );
+}
+
+
+function RecruiterPortalPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <RecruiterPortalContent />
+        </Suspense>
+    )
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);

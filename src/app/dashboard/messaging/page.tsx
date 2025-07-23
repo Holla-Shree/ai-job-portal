@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings, Star } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -473,10 +473,18 @@ function MessagingPage() {
                     </div>
                     <div className="flex items-center gap-1">
                      {user?.role === 'recruiter' && selectedConversation.partnerRole === 'Candidate' && (
+                        <>
+                        <Button asChild size="sm" variant="outline">
+                            <Link href="/dashboard/recruiter?tab=shortlisted">
+                                <Star className="mr-2 h-4 w-4" />
+                                View Shortlisted
+                            </Link>
+                        </Button>
                         <Button size="sm" variant="outline" onClick={handleScheduleInterview}>
                             <CalendarPlus className="mr-2 h-4 w-4" />
                             Schedule Interview
                         </Button>
+                        </>
                      )}
                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -652,5 +660,3 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
-
-    
