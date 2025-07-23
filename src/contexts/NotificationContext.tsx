@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy } from "firebase/firestore";
 import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export interface Message {
   id: string;
@@ -76,7 +77,7 @@ interface NotificationContextType {
   addNotification: (jobTitle: string, company: string) => void;
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
-  initiateConversation: (stub: ConversationStub) => Promise<string>;
+  initiateConversation: (stub: ConversationStub) => Promise<void>;
   applicationHistory: ApplicationNotification[];
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
@@ -104,6 +105,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const { user, setUser } = useAuth();
+  const router = useRouter();
+
 
   useEffect(() => {
     // This effect runs only on the client
@@ -111,14 +114,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       try {
         const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
         if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
-
-        // Initial fetch from localStorage for faster UI response
-        // This will be overwritten by Firestore data once it loads.
-        // const storedConversations = localStorage.getItem('conversations');
-        // if (storedConversations) setConversations(JSON.parse(storedConversations));
-
-        // const storedHistory = localStorage.getItem('applicationHistory');
-        // if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
       } catch (error) {
         console.error("Failed to load data from localStorage", error);
       }
@@ -209,28 +204,38 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const saveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
     const userDocRef = doc(db, 'candidates', user.id);
+    
+    // Optimistically update local state for immediate UI feedback
+    const newSavedJobs = [...user.savedJobs, jobId];
+    setUser(prev => prev ? { ...prev, savedJobs: newSavedJobs } : null);
+
     try {
         await updateDoc(userDocRef, {
             savedJobs: arrayUnion(jobId)
         });
-        // Optimistically update local state
-        setUser(prev => prev ? { ...prev, savedJobs: [...prev.savedJobs, jobId] } : null);
     } catch (e) {
         console.error("Error saving job: ", e);
+        // Revert local state if DB update fails
+         setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
     }
   };
   
   const unsaveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
      const userDocRef = doc(db, 'candidates', user.id);
+
+    // Optimistically update local state
+    const oldSavedJobs = user.savedJobs;
+    setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
+
     try {
         await updateDoc(userDocRef, {
             savedJobs: arrayRemove(jobId)
         });
-        // Optimistically update local state
-        setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
     } catch (e) {
         console.error("Error unsaving job: ", e);
+        // Revert local state if DB update fails
+        setUser(prev => prev ? { ...prev, savedJobs: oldSavedJobs } : null);
     }
   };
 
@@ -298,8 +303,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const initiateConversation = async (stub: ConversationStub): Promise<string> => {
-      if (!user) return '';
+  const initiateConversation = async (stub: ConversationStub): Promise<void> => {
+      if (!user) return;
 
       const recruiterId = `recruiter@${stub.company.toLowerCase().replace(/\s+/g, '')}.com`;
       const participants = [user.id, recruiterId].sort();
@@ -309,17 +314,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           where("participants", "==", participants),
           where("jobTitle", "==", stub.jobTitle)
       );
-
+      
+      let conversationId = '';
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-          return querySnapshot.docs[0].id;
+          conversationId = querySnapshot.docs[0].id;
       } else {
+          const candidateName = user.name || 'A Job Seeker';
           const newConversation = {
               participants: participants,
               jobTitle: stub.jobTitle,
               company: stub.company,
-              candidateName: user.name || 'A Job Seeker',
+              candidateName: candidateName,
               lastMessage: "Conversation started.",
               messages: [],
               pinned: false,
@@ -329,8 +336,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               timestamp: Date.now(),
           };
           const docRef = await addDoc(collection(db, "conversations"), newConversation);
-          return docRef.id;
+          conversationId = docRef.id;
       }
+      
+      const message = `Hi, I'm interested in the ${stub.jobTitle} position and had a few questions.`;
+      router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
   };
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
@@ -357,7 +367,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const updateCandidateProfile = async (candidateId: string, profileData: Partial<Candidate>) => {
     try {
       const docRef = doc(db, "candidates", candidateId);
-      // Using set with merge to create the doc if it doesn't exist, or update it if it does.
       await setDoc(docRef, profileData, { merge: true });
     } catch (e) {
       console.error("Error updating candidate profile: ", e);

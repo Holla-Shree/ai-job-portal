@@ -43,7 +43,6 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
     const { toast } = useToast();
     const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
     const { user } = useAuth();
-    const router = useRouter();
     
     const isSaved = user?.savedJobs.includes(job.id);
 
@@ -54,16 +53,6 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             description: `Your application for the ${job.title} role at ${job.company} has been sent. The recruiter will be notified.`,
         });
     };
-
-    const handleMessageRecruiter = async () => {
-        const conversationId = await initiateConversation({
-            jobTitle: job.title,
-            company: job.company,
-            partnerName: `Recruiter @ ${job.company}`
-        });
-        const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
-        router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
-    }
 
     const handleToggleSave = () => {
         if (isSaved) {
@@ -94,7 +83,7 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
+                 <Button variant="outline" className="w-full" onClick={() => initiateConversation({ jobTitle: job.title, company: job.company, partnerName: `Recruiter @ ${job.company}` })}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
                 <Button variant="outline" size="icon" onClick={() => handleToggleSave()} title={isSaved ? "Unsave Job" : "Save Job"}>
@@ -219,7 +208,7 @@ function UserProfileCard() {
 function UserProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { updateCandidateProfile, candidates } = useNotifications();
+  const { updateCandidateProfile, candidates, initiateConversation } = useNotifications();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
