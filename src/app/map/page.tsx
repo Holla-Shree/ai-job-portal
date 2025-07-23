@@ -25,7 +25,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
     const { toast } = useToast();
     const { user } = useAuth();
     const router = useRouter();
-    const { addNotification, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, expressInterest, unsaveJob } = useNotifications();
     
     const handleApply = () => {
         if (!user) {
@@ -48,7 +48,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
         if (!user) {
             toast({
                 title: "Authentication Required",
-                description: "Please log in or sign up to save jobs.",
+                description: "Please log in or sign up to express interest.",
                 variant: "destructive"
             });
             router.push('/login');
@@ -56,10 +56,10 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
         }
         if (isInterested) {
             unsaveJob(job.id);
-            toast({ title: 'Job Removed From Shortlist' });
+            toast({ title: 'Removed from Interest List' });
         } else {
-            saveJob(job);
-            toast({ title: 'Job Shortlisted!' });
+            expressInterest(job.title, job.company);
+            toast({ title: 'Interest Expressed!' });
         }
     };
     
@@ -113,7 +113,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
                 <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
                     <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
-                    {isInterested ? 'Remove from Shortlist' : 'Add to Shortlist'}
+                    {isInterested ? 'Remove Interest' : 'Express Interest'}
                 </Button>
             </div>
         </div>

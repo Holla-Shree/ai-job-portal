@@ -43,7 +43,7 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: strin
 function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack: () => void; isInterested: boolean; }) {
     const { toast } = useToast();
     const router = useRouter();
-    const { addNotification, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, expressInterest, unsaveJob } = useNotifications();
     
     const handleApply = () => {
         addNotification(job.title, job.company);
@@ -56,12 +56,10 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
     const handleToggleInterest = () => {
         if (isInterested) {
             unsaveJob(job.id);
-            toast({ title: 'Job Removed From Shortlist' });
+            toast({ title: 'Removed from Interest List' });
         } else {
-            // A bit of a hack since we don't have the full job object here
-            const partialJob = {id: job.id, title: job.title, company: job.company} as Job;
-            saveJob(partialJob);
-            toast({ title: 'Job Shortlisted!' });
+            expressInterest(job.title, job.company);
+            toast({ title: 'Interest Expressed!' });
         }
     };
     
@@ -86,7 +84,7 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
                 <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
                     <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
-                    {isInterested ? 'Remove from Shortlist' : 'Add to Shortlist'}
+                    {isInterested ? 'Remove Interest' : 'Express Interest'}
                 </Button>
             </CardFooter>
         </Card>
@@ -233,10 +231,10 @@ function UserProfilePage() {
     return new Set(
         applicationHistory
             .filter(app => app.candidateId === user.id && app.status === 'Interested')
-            .map(app => jobs.find(j => j.title === app.jobTitle && j.company === app.company)?.id)
-            .filter(Boolean)
+            .map(app => `rec-${jobRecommendations?.jobRecommendations.findIndex(j => j.title === app.jobTitle && j.company === app.company)}`)
+            .filter(id => id !== 'rec--1')
     );
-}, [applicationHistory, user, jobs]);
+}, [applicationHistory, user, jobRecommendations]);
 
   useEffect(() => {
     if (currentUserProfile) {

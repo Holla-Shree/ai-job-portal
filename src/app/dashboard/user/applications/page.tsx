@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import withAuth from '@/components/withAuth';
 import { useNotifications, ApplicationNotification, Job } from '@/contexts/NotificationContext';
-import { ArrowLeft, GripVertical, Star, Briefcase, Building, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, Star, Briefcase, Building, Clock, MapPin } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 type StatusColumn = 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Offer' | 'Rejected';
 
@@ -44,7 +44,7 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
 
     const handleRemove = () => {
         if (!jobDetails) return;
-        unsaveJob(jobDetails.id); // unsaveJob now deletes the 'Interested' application
+        unsaveJob(jobDetails.id);
         toast({
             title: "Job Removed",
             description: `Removed ${jobDetails.title} from your pipeline.`
