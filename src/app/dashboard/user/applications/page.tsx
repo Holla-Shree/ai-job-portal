@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import withAuth from '@/components/withAuth';
@@ -52,8 +52,8 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
     }
     
     return (
-        <Card className="mb-4 bg-card/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-shadow duration-300 group">
-            <CardHeader className="p-4">
+        <Card className="mb-4 bg-card/80 backdrop-blur-sm shadow-md hover:shadow-lg transition-shadow duration-300 group flex flex-col">
+            <CardHeader className="p-4 flex-grow">
                 <div className="flex justify-between items-start">
                     <CardTitle className="text-base font-bold">{application.jobTitle}</CardTitle>
                 </div>
@@ -66,14 +66,14 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
                 )}
             </CardHeader>
              {application.status === 'Interested' && jobDetails && (
-                <CardContent className="p-4 pt-0">
-                     <div className="flex gap-2">
-                        <Button size="sm" className="w-full" onClick={handleApply}>
+                <CardFooter className="p-4 pt-0">
+                     <div className="flex gap-2 w-full">
+                        <Button size="sm" className="flex-1" onClick={handleApply}>
                             <Briefcase className="mr-2 h-4 w-4" /> Apply Now
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive" className="w-full">
+                                <Button size="sm" variant="destructive" className="flex-1">
                                     <Trash2 className="mr-2 h-4 w-4" /> Remove
                                 </Button>
                             </AlertDialogTrigger>
@@ -91,7 +91,7 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
                             </AlertDialogContent>
                         </AlertDialog>
                     </div>
-                </CardContent>
+                </CardFooter>
             )}
         </Card>
     )
