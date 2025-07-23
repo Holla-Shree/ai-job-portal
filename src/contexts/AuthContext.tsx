@@ -43,7 +43,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = (role: UserRole, id?: string, email?: string) => {
-    const newUser: User = { role, id, email, avatar: `https://placehold.co/40x40.png?text=${(email || 'U').charAt(0).toUpperCase()}` };
+    const avatarText = role === 'user' ? 'JB' : (email || role).charAt(0).toUpperCase();
+    const newUser: User = { role, id, email, avatar: `https://placehold.co/40x40.png?text=${avatarText}` };
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     setLoading(false);
