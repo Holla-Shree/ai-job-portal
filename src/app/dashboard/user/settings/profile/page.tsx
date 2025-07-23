@@ -2,6 +2,7 @@
 
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -95,8 +96,8 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" className="p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
-                    <Bookmark className={cn("h-6 w-6", isSaved && "fill-primary text-primary")} />
+                <Button variant="outline" className="h-10 w-12 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
             </CardFooter>
         </Card>
@@ -297,6 +298,12 @@ function UserProfilePage() {
 
   return (
       <div className="w-full">
+         <Button asChild variant="ghost" className="mb-4">
+            <Link href="/dashboard/user">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+            </Link>
+        </Button>
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
             <TabsTrigger value="profile"><UserCircle className="mr-2" />My Profile & Resume</TabsTrigger>
