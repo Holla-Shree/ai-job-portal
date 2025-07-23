@@ -207,7 +207,8 @@ function RecruiterPortalPage() {
         createEmpty: true,
     });
     
-    const message = `Hi ${candidateName}, I'm reaching out regarding the ${jobTitle}. I was impressed by your profile and would like to discuss this opportunity further.`;
+    const opportunity = jobTitle === 'this opportunity' ? 'this opportunity' : `the ${jobTitle} position`;
+    const message = `Hi ${candidateName}, I'm reaching out regarding ${opportunity}. I was impressed by your profile and would like to discuss this opportunity further.`;
     router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
   };
 
@@ -363,7 +364,7 @@ function RecruiterPortalPage() {
                                      </div>
                                    )}
                                    <div className="flex items-center gap-2 pt-2 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle") || "the open")}>
+                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle"))}>
                                             <MessageSquare className="mr-2 h-4 w-4" />
                                             Message
                                         </Button>
