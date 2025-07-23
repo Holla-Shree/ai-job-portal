@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -19,6 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import { useNotifications, Conversation } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function MessagingPage() {
     const { user } = useAuth();
@@ -49,27 +52,63 @@ function MessagingPage() {
 
     
     useEffect(() => {
-        const openConversationId = searchParams.get('open');
-        const suggestedMessage = searchParams.get('message');
-
-        if (openConversationId && openConversationId !== selectedConversationId) {
-            const conversationToOpen = conversations.find(c => c.id === openConversationId);
-            if (conversationToOpen) {
-                setSelectedConversationId(conversationToOpen.id);
+        const handleNewConversation = async () => {
+            if (!user) return;
+    
+            const jobTitle = searchParams.get('jobTitle');
+            const company = searchParams.get('company');
+            const partnerName = searchParams.get('partnerName');
+            const suggestedMessage = searchParams.get('message');
+    
+            if (jobTitle && company && partnerName) {
+                const recruiterId = `recruiter@${company.toLowerCase().replace(/\s+/g, '')}.com`;
+                const participants = [user.id, recruiterId].sort();
+    
+                const q = query(
+                    collection(db, "conversations"),
+                    where("participants", "==", participants),
+                    where("jobTitle", "==", jobTitle),
+                    where("company", "==", company)
+                );
+                
+                const querySnapshot = await getDocs(q);
+    
+                let conversationId: string;
+    
+                if (!querySnapshot.empty) {
+                    conversationId = querySnapshot.docs[0].id;
+                } else {
+                    const newConversation = {
+                        participants,
+                        jobTitle,
+                        company,
+                        candidateName: user.name,
+                        lastMessage: suggestedMessage || "Conversation started.",
+                        messages: [],
+                        pinned: false,
+                        favourited: false,
+                        unreadBy: [recruiterId],
+                        mutedBy: [],
+                        timestamp: Date.now(),
+                    };
+                    const docRef = await addDoc(collection(db, "conversations"), newConversation);
+                    conversationId = docRef.id;
+                }
+                
+                setSelectedConversationId(conversationId);
                 if (suggestedMessage) {
                     setMessageInput(decodeURIComponent(suggestedMessage));
                 }
-                if (user && conversationToOpen.unreadBy.includes(user.id)) {
-                    markAsRead(conversationToOpen.id);
-                }
+    
                 // Clean up URL params
-                const newParams = new URLSearchParams(window.location.search);
-                newParams.delete('open');
-                newParams.delete('message');
-                router.replace(`${window.location.pathname}?${newParams.toString()}`);
+                const newPath = window.location.pathname;
+                router.replace(newPath, { scroll: false });
             }
-        }
-    }, [searchParams, conversations, markAsRead, router, user, selectedConversationId]);
+        };
+
+        handleNewConversation();
+    }, [searchParams, user, router]);
+
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -42,7 +43,7 @@ type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: strin
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
     const router = useRouter();
-    const { addNotification, initiateConversation, saveJob, unsaveJob } = useNotifications();
+    const { addNotification, saveJob, unsaveJob } = useNotifications();
     const { user } = useAuth();
     const [isMessaging, setIsMessaging] = useState(false);
     
@@ -56,20 +57,16 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         });
     };
     
-    const handleMessageRecruiter = async (job: RecommendedJob) => {
+    const handleMessageRecruiter = (job: RecommendedJob) => {
         setIsMessaging(true);
-        const conversationId = await initiateConversation({ 
-            jobTitle: job.title, 
-            company: job.company, 
-            partnerName: `Recruiter @ ${job.company}` 
+        const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
+        const params = new URLSearchParams({
+            jobTitle: job.title,
+            company: job.company,
+            message: message,
+            partnerName: `Recruiter @ ${job.company}`,
         });
-        if (conversationId) {
-            const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
-            router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
-        } else {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not start a conversation. Please try again.' });
-        }
-        setIsMessaging(false);
+        router.push(`/dashboard/messaging?${params.toString()}`);
     }
 
     const handleToggleSave = () => {
@@ -227,7 +224,7 @@ function UserProfileCard() {
 function UserProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { updateCandidateProfile, candidates, initiateConversation } = useNotifications();
+  const { updateCandidateProfile, candidates } = useNotifications();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -45,12 +46,29 @@ export interface ApplicationNotification {
   candidateId?: string;
 }
 
-interface ConversationStub {
-    jobTitle: string;
-    company: string;
-    partnerName: string;
-    createEmpty?: boolean;
+interface NotificationContextType {
+  notifications: ApplicationNotification[];
+  addNotification: (jobTitle: string, company: string) => void;
+  markAsRead: (id: string) => void;
+  toggleMute: (id: string) => void;
+  applicationHistory: ApplicationNotification[];
+  updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
+  conversations: Conversation[];
+  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  jobs: Job[];
+  addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
+  deleteJob: (jobId: string) => Promise<void>;
+  candidates: Candidate[];
+  updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
+  blockedUsers: { id: string, name: string }[];
+  unblockUser: (userId: string) => void;
+  saveJob: (jobId: string) => void;
+  unsaveJob: (jobId: string) => void;
 }
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+const BLOCKED_USERS_KEY = 'jobMatchBlockedUsers';
 
 export type Job = { 
     id: string; 
@@ -71,31 +89,6 @@ export type Candidate = {
     savedJobs?: string[];
     resumeFilename?: string | null;
 };
-
-interface NotificationContextType {
-  notifications: ApplicationNotification[];
-  addNotification: (jobTitle: string, company: string) => void;
-  markAsRead: (id: string) => void;
-  toggleMute: (id: string) => void;
-  initiateConversation: (stub: ConversationStub) => Promise<string | null>;
-  applicationHistory: ApplicationNotification[];
-  updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
-  conversations: Conversation[];
-  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
-  jobs: Job[];
-  addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
-  deleteJob: (jobId: string) => Promise<void>;
-  candidates: Candidate[];
-  updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
-  blockedUsers: { id: string, name: string }[];
-  unblockUser: (userId: string) => void;
-  saveJob: (jobId: string) => void;
-  unsaveJob: (jobId: string) => void;
-}
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-const BLOCKED_USERS_KEY = 'jobMatchBlockedUsers';
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
@@ -135,20 +128,29 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setJobs(jobsData);
     });
     
-    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
+    const candidatesCollectionRef = collection(db, "candidates");
+    const unsubscribeCandidates = onSnapshot(candidatesCollectionRef, (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
-        // Sync saved jobs from Firestore to AuthContext state
-        if (user && user.role === 'user') {
+        // Sync user profile data from Firestore to AuthContext state
+        if (user) {
             const currentUserData = candidatesData.find(c => c.id === user.id);
             if (currentUserData) {
-                // Ensure savedJobs is always an array before comparing
-                const currentSavedJobs = currentUserData.savedJobs || [];
-                const userSavedJobs = user.savedJobs || [];
-                if (JSON.stringify(currentSavedJobs) !== JSON.stringify(userSavedJobs)) {
-                     setUser(prevUser => prevUser ? { ...prevUser, savedJobs: currentSavedJobs } : null);
-                }
+                // Combine auth data with Firestore profile data
+                setUser(prevUser => {
+                    if (!prevUser) return null;
+                    const updatedUser = {
+                        ...prevUser,
+                        name: currentUserData.name,
+                        savedJobs: currentUserData.savedJobs || []
+                    };
+                    // Only update if there's a meaningful change to avoid loops
+                    if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
+                        return updatedUser;
+                    }
+                    return prevUser;
+                });
             }
         }
     });
@@ -196,7 +198,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user, setUser]);
+  }, [user?.id, setUser]);
 
 
   useEffect(() => {
@@ -252,7 +254,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const newApplication = {
       jobTitle,
       company,
-      candidateName: candidate?.name || 'A Job Seeker',
+      candidateName: candidate?.name || user.name || 'A Job Seeker',
       timestamp: Date.now(),
       read: false,
       status: 'Applied' as const,
@@ -308,54 +310,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const initiateConversation = async (stub: ConversationStub): Promise<string | null> => {
-      if (!user) return null;
-
-      const recruiterId = `recruiter@${stub.company.toLowerCase().replace(/\s+/g, '')}.com`;
-      const participants = [user.id, recruiterId].sort();
-
-      const q = query(
-          collection(db, "conversations"),
-          where("participants", "==", participants),
-          where("jobTitle", "==", stub.jobTitle),
-          where("company", "==", stub.company)
-      );
-      
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-          // Conversation already exists
-          return querySnapshot.docs[0].id;
-      } else {
-          // Create a new conversation
-          const candidateName = user.name || 'A Job Seeker';
-          if (!candidateName) {
-            console.error("Cannot create conversation, user name is not defined.");
-            return null;
-          }
-          const newConversation = {
-              participants: participants,
-              jobTitle: stub.jobTitle,
-              company: stub.company,
-              candidateName: candidateName,
-              lastMessage: "Conversation started.",
-              messages: [],
-              pinned: false,
-              favourited: false,
-              unreadBy: [recruiterId],
-              mutedBy: [],
-              timestamp: Date.now(),
-          };
-          try {
-            const docRef = await addDoc(collection(db, "conversations"), newConversation);
-            return docRef.id;
-          } catch (error) {
-              console.error("Error creating new conversation:", error);
-              return null;
-          }
-      }
-  };
-
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
     try {
         await addDoc(collection(db, "jobs"), {
@@ -393,7 +347,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );

@@ -2,13 +2,13 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import withAuth from '@/components/withAuth';
 import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Bookmark, MessageSquare, Briefcase, MapPin, Clock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Bookmark, MessageSquare, Briefcase, MapPin, Clock, Trash2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -17,10 +17,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 
 function SavedJobsPage() {
-    const { jobs, unsaveJob, addNotification, initiateConversation } = useNotifications();
+    const { jobs, unsaveJob, addNotification } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
+    const [messagingJobId, setMessagingJobId] = useState<string | null>(null);
 
     const savedJobsDetails = user ? jobs.filter(job => user.savedJobs?.includes(job.id)) : [];
 
@@ -33,13 +34,15 @@ function SavedJobsPage() {
     };
     
     const handleMessageRecruiter = (job: Job) => {
-        const conversationId = initiateConversation({
+        setMessagingJobId(job.id);
+        const message = `Hi, I'm interested in the ${job.title} position I saved and had a few questions.`;
+        const params = new URLSearchParams({
             jobTitle: job.title,
             company: job.company,
-            partnerName: `Recruiter @ ${job.company}`
+            message: message,
+            partnerName: `Recruiter @ ${job.company}`,
         });
-        const message = `Hi, I'm interested in the ${job.title} position I saved and had a few questions.`;
-        router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
+        router.push(`/dashboard/messaging?${params.toString()}`);
     }
 
     const handleUnsave = (jobId: string) => {
@@ -112,8 +115,9 @@ function SavedJobsPage() {
                                     <Button onClick={() => handleApply(job)} className="w-full">
                                         <Briefcase className="mr-2 h-4 w-4" /> Apply Now
                                     </Button>
-                                    <Button variant="outline" className="w-full" onClick={() => handleMessageRecruiter(job)}>
-                                        <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                                    <Button variant="outline" className="w-full" onClick={() => handleMessageRecruiter(job)} disabled={messagingJobId === job.id}>
+                                        {messagingJobId === job.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageSquare className="mr-2 h-4 w-4" />}
+                                         Message Recruiter
                                     </Button>
                                 </CardFooter>
                             </Card>
