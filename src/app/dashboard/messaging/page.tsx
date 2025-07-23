@@ -573,7 +573,7 @@ function MessagingPage() {
                             {msg.sender === 'me' && (
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={`https://placehold.co/40x40.png`} alt="My Avatar" data-ai-hint="person avatar" />
-                                    <AvatarFallback>{user?.role === 'user' ? 'JS' : user?.role.charAt(0).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{user?.role === 'user' ? 'JB' : user?.role.charAt(0).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                             )}
                         </div>
@@ -659,3 +659,5 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
+
+    
