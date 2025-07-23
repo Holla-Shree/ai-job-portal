@@ -82,6 +82,8 @@ interface NotificationContextType {
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
   updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
+  blockedUsers: { id: string, name: string }[];
+  unblockUser: (userId: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -89,6 +91,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
+const BLOCKED_USERS_KEY = 'jobMatchBlockedUsers';
 
 
 const MOCK_JOBS: Job[] = [
@@ -171,14 +174,14 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
     if (role === 'user') {
       return [
         {
-          id: 'conv1',
-          partnerName: 'Recruiter @ TekSystems India',
+          id: 'conv-user-1',
+          partnerName: 'Recruiter @ TechGenix',
           partnerRole: 'Recruiter',
-          jobTitle: 'Senior Backend Engineer',
+          jobTitle: 'Senior Frontend Engineer',
           lastMessage: 'That sounds great! I am available to chat tomorrow.',
-          avatar: 'R',
+          avatar: 'R@T',
           messages: [
-            { id: 'msg1', sender: 'other', text: 'Hi Priya, thanks for your interest in the Senior Backend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
+            { id: 'msg1', sender: 'other', text: 'Hi, thanks for your interest in the Senior Frontend Engineer role. Your profile looks impressive.', timestamp: '10:30 AM' },
             { id: 'msg2', sender: 'me', text: 'Thank you! I am very interested in the position.', timestamp: '10:31 AM' },
             { id: 'msg3', sender: 'other', text: 'Excellent. Would you be available for a brief call tomorrow to discuss your experience further?', timestamp: '10:32 AM' },
             { id: 'msg4', sender: 'me', text: 'That sounds great! I am available to chat tomorrow.', timestamp: '10:33 AM' },
@@ -190,12 +193,12 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
           timestamp: Date.now() - 1000 * 60 * 5,
         },
         {
-          id: 'conv2',
+          id: 'conv-user-2',
           partnerName: 'HR @ Google',
           partnerRole: 'Recruiter',
           jobTitle: 'Data Scientist',
           lastMessage: 'Sure, I will share it shortly.',
-          avatar: 'G',
+          avatar: 'HR@G',
           messages: [
             { id: 'msg1', sender: 'other', text: 'Hi there, we have received your application for the Data Scientist role. Can you please share your portfolio?', timestamp: 'Yesterday' },
             { id: 'msg2', sender: 'me', text: 'Sure, I will share it shortly.', timestamp: 'Yesterday' },
@@ -208,9 +211,10 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         },
       ];
     }
+    // For Recruiter or Admin
     return [
       {
-        id: 'conv1',
+        id: 'conv-recruiter-1',
         partnerName: 'Priya Patel',
         partnerRole: 'Candidate',
         jobTitle: 'Senior Backend Engineer',
@@ -228,18 +232,16 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         muted: false,
         timestamp: Date.now() - 1000 * 60 * 10,
       },
-      {
-        id: 'conv4',
-        partnerName: 'Candidate Name',
+       {
+        id: 'conv-recruiter-2',
+        partnerName: 'Amit Kumar',
         partnerRole: 'Candidate',
-        jobTitle: 'Senior Backend Engineer',
+        jobTitle: 'Senior Frontend Engineer',
         lastMessage: 'Thanks for the opportunity!',
-        avatar: 'CN',
+        avatar: 'AK',
         messages: [
-          { id: 'msg1', sender: 'me', text: 'Hi, we have an opening for a Senior Backend Engineer at TekSystems India. Are you interested?', timestamp: '3 days ago' },
-          { id: 'msg2', sender: 'other', text: 'Yes, I am interested. Could you please share more details?', timestamp: '3 days ago' },
-          { id: 'msg3', sender: 'me', text: 'Certainly. We are looking for someone with 5+ years of experience in backend development. The job description is attached.', timestamp: '3 days ago' },
-          { id: 'msg4', sender: 'other', text: 'Thanks for the opportunity!', timestamp: '2 days ago' },
+          { id: 'msg1', sender: 'me', text: 'Hi Amit, I\'m reaching out regarding this opportunity. I was impressed by your profile and would like to discuss this opportunity further.', timestamp: '03:41 PM' },
+          { id: 'msg2', sender: 'other', text: 'Thanks for the opportunity!', timestamp: '2 days ago' },
         ],
         pinned: false,
         favourited: false,
@@ -248,14 +250,14 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         timestamp: Date.now() - 1000 * 60 * 60 * 24 * 3,
       },
       {
-        id: 'conv2',
-        partnerName: 'Rohan Sharma',
+        id: 'conv-recruiter-3',
+        partnerName: 'Rajesh Nair',
         partnerRole: 'Candidate',
         jobTitle: 'Data Scientist',
         lastMessage: 'Yes, I have submitted my resume via the portal.',
-        avatar: 'RS',
+        avatar: 'RN',
         messages: [
-          { id: 'msg1', sender: 'me', text: 'Hi Rohan, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
+          { id: 'msg1', sender: 'me', text: 'Hi Rajesh, I saw your application for the Data Scientist role. Have you submitted your full resume?', timestamp: 'Yesterday' },
           { id: 'msg2', sender: 'other', text: 'Yes, I have submitted my resume via the portal.', timestamp: 'Yesterday' },
         ],
         pinned: false,
@@ -264,25 +266,6 @@ const getMockConversations = (role: 'recruiter' | 'user' | 'admin'): Conversatio
         muted: true,
         timestamp: Date.now() - 1000 * 60 * 60 * 23,
       },
-      {
-        id: 'conv3',
-        partnerName: 'Anjali Menon',
-        partnerRole: 'Candidate',
-        jobTitle: 'Junior Frontend Developer',
-        lastMessage: 'Perfect, looking forward to it.',
-        avatar: 'AM',
-        messages: [
-          { id: 'msg1', sender: 'me', text: 'Hello Anjali, we were impressed with your portfolio and would like to schedule a brief introductory call.', timestamp: '2 days ago' },
-          { id: 'msg2', sender: 'other', text: 'Thank you so much! I\'d love that. What time works for you?', timestamp: '2 days ago' },
-          { id: 'msg3', sender: 'me', text: 'How about Friday at 2 PM?', timestamp: '2 days ago' },
-          { id: 'msg4', sender: 'other', text: 'Perfect, looking forward to it.', timestamp: '2 days ago' },
-        ],
-        pinned: false,
-        favourited: false,
-        unread: false,
-        muted: false,
-        timestamp: Date.now() - 1000 * 60 * 60 * 24 * 2,
-      }
     ];
 };
 
@@ -292,6 +275,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -302,11 +286,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const storedHistory = localStorage.getItem(APPLICATION_HISTORY_KEY);
       if (storedHistory) setApplicationHistory(JSON.parse(storedHistory));
        
-      const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-      if (storedConversations) {
-        setConversations(JSON.parse(storedConversations));
-      } else if (user) {
-        setConversations(getMockConversations(user.role));
+      const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
+      if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+
+      if(user) {
+        const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+        if (storedConversations) {
+            setConversations(JSON.parse(storedConversations));
+        } else {
+            setConversations(getMockConversations(user.role));
+        }
       }
 
     } catch (error) {
@@ -347,8 +336,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [applicationHistory]);
 
   useEffect(() => {
-    localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
-  }, [conversations]);
+    if(user) { // Only save conversations if a user is logged in
+        localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+    }
+  }, [conversations, user]);
+
+  useEffect(() => {
+    localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers));
+  }, [blockedUsers]);
 
 
   const addNotification = (jobTitle: string, company: string) => {
@@ -481,12 +476,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const unblockUser = (userId: string) => {
+    setBlockedUsers(prev => prev.filter(u => u.id !== userId));
+  }
+
 
   useEffect(() => {
     if (!user) return;
      const mockConvos = getMockConversations(user?.role || 'user');
      const storedConversationsStr = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
-     let storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
+     let storedConversations: Conversation[];
+     
+     try {
+       storedConversations = storedConversationsStr ? JSON.parse(storedConversationsStr) : mockConvos;
+     } catch (e) {
+       storedConversations = mockConvos;
+     }
      
     if (user?.role === 'recruiter' || user?.role === 'admin') {
         const newNotifConvos: Conversation[] = notifications
@@ -513,15 +518,25 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const uniqueConvos = combined.filter((convo, index, self) =>
             index === self.findIndex((c) => c.id === convo.id)
         );
-        setConversations(uniqueConvos);
-    } else {
-       setConversations(storedConversations);
+        // Only use the recruiter mock data if showing recruiter conversations
+        if(storedConversations === mockConvos) {
+            setConversations(getMockConversations('recruiter'));
+        } else {
+            setConversations(uniqueConvos);
+        }
+    } else if (user?.role === 'user') {
+        // For users, if there's nothing in storage, use their specific mock data.
+       if (storedConversations === mockConvos) {
+         setConversations(getMockConversations('user'));
+       } else {
+         setConversations(storedConversations);
+       }
     }
   }, [notifications, user]);
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser }}>
       {children}
     </NotificationContext.Provider>
   );
