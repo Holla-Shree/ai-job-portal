@@ -1,6 +1,7 @@
 
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,6 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 // Mock Candidate Data
 const MOCK_CANDIDATES = [
@@ -74,6 +76,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalPage() {
   const { toast } = useToast();
+  const { updateApplicationStatus } = useNotifications();
   const [isClient, setIsClient] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
@@ -186,10 +189,11 @@ function RecruiterPortalPage() {
     });
   };
 
-  const handleScheduleInterview = (candidateName: string) => {
+  const handleScheduleInterview = (candidateId: string, candidateName: string) => {
+     updateApplicationStatus(candidateId, 'Interview');
      toast({
         title: "Interview Scheduled",
-        description: `An invitation has been sent to ${candidateName}.`,
+        description: `An invitation has been sent to ${candidateName} and their application status has been updated.`,
      });
   };
 
@@ -361,7 +365,7 @@ function RecruiterPortalPage() {
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.name)}>
+                                              <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.id, result.candidate.name)}>
                                                 Confirm & Schedule
                                               </AlertDialogAction>
                                             </AlertDialogFooter>
@@ -410,9 +414,38 @@ function RecruiterPortalPage() {
                                 </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="sm" onClick={() => handleShortlistCandidate(candidate.id)}>
-                                    Remove
+                            <TableCell className="text-right space-x-2">
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href="/dashboard/messaging">
+                                        <MessageSquare className="mr-2 h-3 w-3" />
+                                        Message
+                                    </Link>
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm">
+                                      <CalendarPlus className="mr-2 h-3 w-3" />
+                                      Schedule
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This will send an invitation to {candidate.name} and update their application status.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name)}>
+                                            Confirm
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                                <Button variant="ghost" size="icon" onClick={() => handleShortlistCandidate(candidate.id)}>
+                                    <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                                    <span className="sr-only">Remove from shortlist</span>
                                 </Button>
                             </TableCell>
                             </TableRow>

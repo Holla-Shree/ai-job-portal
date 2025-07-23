@@ -12,6 +12,7 @@ export interface ApplicationNotification {
   timestamp: number;
   read: boolean;
   status: 'Applied' | 'Under Review' | 'Interview' | 'Rejected' | 'Offer';
+  candidateId?: string; // Add candidateId to link notifications
 }
 
 interface ConversationStub {
@@ -26,6 +27,7 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   initiateConversation: (stub: ConversationStub) => string;
   applicationHistory: ApplicationNotification[];
+  updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -63,6 +65,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [applicationHistory]);
 
   const addNotification = (jobTitle: string, company: string) => {
+    // In a real app, you'd get the user's ID. Here we'll mock one.
+    const candidateId = `cand-${Math.floor(Math.random() * 1000)}`;
     const newApplication: ApplicationNotification = {
       id: `app-${Date.now()}`,
       jobTitle,
@@ -71,6 +75,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       timestamp: Date.now(),
       read: false,
       status: 'Applied',
+      candidateId: candidateId,
     };
     
     // Add to recruiter notifications
@@ -83,6 +88,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setNotifications(prev =>
       prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
+  };
+  
+  const updateApplicationStatus = (candidateId: string, status: ApplicationNotification['status']) => {
+    setApplicationHistory(prev =>
+      prev.map(app => (app.candidateId === candidateId ? { ...app, status } : app))
+    );
+    // You could also create a new notification for the user here
+    // to inform them of the status change.
   };
 
   const initiateConversation = (stub: ConversationStub): string => {
@@ -118,7 +131,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation, applicationHistory }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, initiateConversation, applicationHistory, updateApplicationStatus }}>
       {children}
     </NotificationContext.Provider>
   );
