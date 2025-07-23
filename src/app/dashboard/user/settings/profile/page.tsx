@@ -307,12 +307,6 @@ function UserProfilePage() {
 
   return (
       <div className="w-full">
-         <Button asChild variant="ghost" className="mb-4">
-            <Link href="/dashboard/user">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-            </Link>
-        </Button>
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6">
             <TabsTrigger value="profile"><UserCircle className="mr-2" />My Profile & Resume</TabsTrigger>
@@ -463,7 +457,7 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter className="gap-2 justify-center">
-                            <Button variant="link" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
+                            <Button variant="outline" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
                                 Know More
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
@@ -487,3 +481,5 @@ function UserProfilePage() {
 }
 
 export default withAuth(UserProfilePage, ['user', 'admin']);
+
+    
