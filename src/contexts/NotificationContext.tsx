@@ -155,8 +155,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
-    const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
-        const convosData = snapshot.docs.map(doc => {
+    const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
+        const convosData = querySnapshot.docs.map(doc => {
             const data = doc.data();
             const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
             
