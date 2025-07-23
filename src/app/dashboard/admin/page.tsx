@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -14,39 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock Data
-const MOCK_STATS = {
-    totalUsers: 134,
-    totalJobs: 78,
-    totalApplications: 452,
-    resumesParsed: 215,
-};
-
-const MOCK_USER_GROWTH_DATA = [
-    { month: 'Jan', users: 12 },
-    { month: 'Feb', users: 25 },
-    { month: 'Mar', users: 41 },
-    { month: 'Apr', users: 68 },
-    { month: 'May', users: 99 },
-    { month: 'Jun', users: 134 },
-];
-
-const MOCK_AI_USAGE_DATA = [
-    { service: 'Resume Parsing', count: 215 },
-    { service: 'Job Recs', count: 350 },
-    { service: 'Screening', count: 880 },
-    { service: 'Chatbot', count: 1200 },
-];
-
-const MOCK_RECENT_ACTIVITY = [
-    { id: 1, user: 'Priya Patel', action: 'Applied for Senior Backend Engineer', type: 'application', timestamp: '2 minutes ago', role: 'user' },
-    { id: 2, user: 'Recruiter Admin', action: 'Posted new job: "Data Scientist"', type: 'job_posting', timestamp: '15 minutes ago', role: 'recruiter' },
-    { id: 3, user: 'Rohan Sharma', action: 'Uploaded a new resume', type: 'resume_upload', timestamp: '1 hour ago', role: 'user' },
-    { id: 4, user: 'Anjali Menon', action: 'Started a new chatbot session', type: 'chatbot_session', timestamp: '3 hours ago', role: 'user' },
-    { id: 5, user: 'Recruiter Admin', action: 'Viewed screening results for "Data Scientist"', type: 'screening', timestamp: '5 hours ago', role: 'recruiter' },
-    { id: 6, user: 'Vikram Singh', action: 'Registered a new account', type: 'registration', timestamp: '1 day ago', role: 'user' },
-];
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const userGrowthChartConfig = {
   users: {
@@ -70,11 +38,45 @@ interface ChatMessage {
 
 function AdminPanelPage() {
     const { toast } = useToast();
+    const { candidates, jobs, applicationHistory } = useNotifications();
     const [isClient, setIsClient] = useState(false);
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    const MOCK_STATS = useMemo(() => ({
+        totalUsers: candidates.length,
+        totalJobs: jobs.length,
+        totalApplications: applicationHistory.length,
+        resumesParsed: candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered')).length,
+    }), [candidates, jobs, applicationHistory]);
+
+    const MOCK_USER_GROWTH_DATA = [
+        { month: 'Jan', users: 12 },
+        { month: 'Feb', users: 25 },
+        { month: 'Mar', users: 41 },
+        { month: 'Apr', users: 68 },
+        { month: 'May', users: 99 },
+        { month: 'Jun', users: candidates.length },
+    ];
+
+    const MOCK_AI_USAGE_DATA = [
+        { service: 'Resume Parsing', count: MOCK_STATS.resumesParsed },
+        { service: 'Job Recs', count: 350 },
+        { service: 'Screening', count: 880 },
+        { service: 'Chatbot', count: 1200 },
+    ];
+    
+    const MOCK_RECENT_ACTIVITY = [
+        { id: 1, user: 'Priya Patel', action: 'Applied for Senior Backend Engineer', type: 'application', timestamp: '2 minutes ago', role: 'user' },
+        { id: 2, user: 'Recruiter Admin', action: 'Posted new job: "Data Scientist"', type: 'job_posting', timestamp: '15 minutes ago', role: 'recruiter' },
+        { id: 3, user: 'Rohan Sharma', action: 'Uploaded a new resume', type: 'resume_upload', timestamp: '1 hour ago', role: 'user' },
+        { id: 4, user: 'Anjali Menon', action: 'Started a new chatbot session', type: 'chatbot_session', timestamp: '3 hours ago', role: 'user' },
+        { id: 5, user: 'Recruiter Admin', action: 'Viewed screening results for "Data Scientist"', type: 'screening', timestamp: '5 hours ago', role: 'recruiter' },
+        { id: 6, user: 'Vikram Singh', action: 'Registered a new account', type: 'registration', timestamp: '1 day ago', role: 'user' },
+    ];
+
 
     useEffect(() => {
         setIsClient(true);
@@ -333,3 +335,5 @@ function AdminPanelPage() {
 
 
 export default withAuth(AdminPanelPage, ['admin']);
+
+    

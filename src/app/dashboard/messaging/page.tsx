@@ -1,18 +1,18 @@
 
 
 'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings, Star } from "lucide-react";
+import { Send, CalendarPlus, Search, MoreVertical, Trash2, Eraser, Pin, PinOff, X, CheckSquare, MessageSquare, ListChecks, Bell, BellOff, Heart, Mail, Settings, Star, Loader2 } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -33,7 +33,7 @@ function MessagingPage() {
     } = useNotifications();
     const searchParams = useSearchParams();
     
-    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+    const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
     const [conversationToClear, setConversationToClear] = useState<Conversation | null>(null);
     const [messageInput, setMessageInput] = useState('');
@@ -42,6 +42,12 @@ function MessagingPage() {
     const [isConvSelectionMode, setIsConvSelectionMode] = useState(false);
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const selectedConversation = useMemo(() => {
+        return conversations.find(c => c.id === selectedConversationId) || null;
+    }, [selectedConversationId, conversations]);
+
     
     useEffect(() => {
         const openConversationId = searchParams.get('open');
@@ -50,11 +56,11 @@ function MessagingPage() {
         if (openConversationId) {
             const conversationToOpen = conversations.find(c => c.id === openConversationId);
             if (conversationToOpen) {
-                setSelectedConversation(conversationToOpen);
+                setSelectedConversationId(conversationToOpen.id);
                 if (suggestedMessage) {
                     setMessageInput(decodeURIComponent(suggestedMessage));
                 }
-                if (conversationToOpen.unread) {
+                if (user && conversationToOpen.unreadBy.includes(user.id)) {
                     markAsRead(conversationToOpen.id);
                 }
                 // Clean up URL params
@@ -64,12 +70,18 @@ function MessagingPage() {
                 router.replace(`${window.location.pathname}?${newParams.toString()}`);
             }
         }
-    }, [searchParams, conversations, markAsRead, router]);
+    }, [searchParams, conversations, markAsRead, router, user]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [selectedConversation?.messages]);
+
 
     const filteredConversations = useMemo(() => {
+        if (!user) return [];
         let convos = [...conversations];
         if (filter === 'unread') {
-            convos = convos.filter(c => c.unread);
+            convos = convos.filter(c => c.unreadBy.includes(user.id));
         } else if (filter === 'favorites') {
             convos = convos.filter(c => c.favourited);
         }
@@ -79,7 +91,7 @@ function MessagingPage() {
             if (!a.pinned && b.pinned) return 1;
             return b.timestamp - a.timestamp;
         });
-    }, [conversations, filter]);
+    }, [conversations, filter, user]);
     
     const showPinAction = useMemo(() => {
         if (selectedConversations.length === 0) return false;
@@ -101,13 +113,13 @@ function MessagingPage() {
             setIsMessageSelectionMode(false);
             setSelectedMessages([]);
         }
+        
+        setSelectedConversationId(conversationId);
+        setMessageInput(''); // Clear input when switching conversations
+        
         const conversation = conversations.find(c => c.id === conversationId);
-        if (conversation) {
-            setSelectedConversation(conversation);
-            setMessageInput(''); // Clear input when switching conversations
-            if (conversation.unread) {
-                 markAsRead(conversation.id);
-            }
+        if (user && conversation && conversation.unreadBy.includes(user.id)) {
+            markAsRead(conversationId);
         }
     };
 
@@ -122,18 +134,10 @@ function MessagingPage() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        const newTimestamp = Date.now();
-
-        const updatedConversations = conversations.map(c => {
-            if (c.id === selectedConversation.id) {
-                const updatedMessages = [...c.messages, newMessage];
-                return { ...c, messages: updatedMessages, lastMessage: newMessage.text, timestamp: newTimestamp };
-            }
-            return c;
-        });
-
-        setConversations(updatedConversations);
-        setSelectedConversation(prev => prev ? { ...prev, messages: [...prev.messages, newMessage], timestamp: newTimestamp } : null);
+        const updatedMessages = [...selectedConversation.messages, newMessage];
+        // TODO: Update Firestore document for this conversation
+        console.log("Would update Firestore here.");
+        
         setMessageInput('');
     };
 
@@ -146,62 +150,34 @@ function MessagingPage() {
 
     const handleClearMessages = () => {
         if (!conversationToClear) return;
-        const updatedConversations = conversations.map(c => {
-            if (c.id === conversationToClear.id) return { ...c, messages: [], lastMessage: "Chat cleared" };
-            return c;
-        });
-        setConversations(updatedConversations);
-        if (selectedConversation?.id === conversationToClear.id) {
-             setSelectedConversation(prev => prev ? { ...prev, messages: [] } : null);
-        }
+        // TODO: Update Firestore to clear messages array
         toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
         setConversationToClear(null);
     };
 
     const handleDeleteConversation = () => {
         if (!conversationToDelete) return;
-        const updatedConversations = conversations.filter(c => c.id !== conversationToDelete.id);
-        setConversations(updatedConversations);
-        if(selectedConversation?.id === conversationToDelete.id) {
-            setSelectedConversation(null);
-        }
+        // TODO: Delete Firestore document for this conversation
         setConversationToDelete(null);
         toast({ title: "Conversation Deleted", description: "The conversation has been removed." });
     };
     
     const handleTogglePin = (convo: Conversation | null) => {
         if (!convo) return;
-        const isPinned = convo.pinned;
-        const updatedConversations = conversations.map(c => 
-            c.id === convo.id ? { ...c, pinned: !isPinned } : c
-        );
-        setConversations(updatedConversations);
-        if (selectedConversation?.id === convo.id) {
-            setSelectedConversation(prev => prev ? { ...prev, pinned: !isPinned } : null);
-        }
-        toast({ title: `Conversation ${isPinned ? 'unpinned' : 'pinned'}`});
+        // TODO: Update Firestore 'pinned' field
+        toast({ title: `Conversation ${convo.pinned ? 'unpinned' : 'pinned'}`});
     };
 
     const handleToggleFavourite = (convo: Conversation | null) => {
         if (!convo) return;
-        const isFavourited = convo.favourited;
-        const updatedConversations = conversations.map(c => 
-            c.id === convo.id ? { ...c, favourited: !isFavourited } : c
-        );
-        setConversations(updatedConversations);
-        if (selectedConversation?.id === convo.id) {
-            setSelectedConversation(prev => prev ? { ...prev, favourited: !isFavourited } : null);
-        }
-        toast({ title: `Conversation ${isFavourited ? 'removed from' : 'added to'} favourites`});
+        // TODO: Update Firestore 'favourited' field
+        toast({ title: `Conversation ${convo.favourited ? 'removed from' : 'added to'} favourites`});
     };
     
     const handleToggleMute = (convo: Conversation | null) => {
-        if (!convo) return;
+        if (!convo || !user) return;
         toggleMute(convo.id);
-         if (selectedConversation?.id === convo.id) {
-            setSelectedConversation(prev => prev ? { ...prev, muted: !convo.muted } : null);
-        }
-        toast({ title: `Conversation has been ${convo.muted ? 'unmuted' : 'muted'}` });
+        toast({ title: `Conversation has been ${convo.mutedBy.includes(user.id) ? 'unmuted' : 'muted'}` });
     };
 
     const handleMessageSelection = (messageId: string) => {
@@ -214,34 +190,23 @@ function MessagingPage() {
 
     const handleDeleteSelectedMessages = () => {
         if (!selectedConversation) return;
-        const updatedMessages = selectedConversation.messages.filter(msg => !selectedMessages.includes(msg.id));
-        
-        const updatedConversations = conversations.map(c => {
-            if (c.id === selectedConversation.id) {
-                return { ...c, messages: updatedMessages, lastMessage: updatedMessages.length > 0 ? updatedMessages[updatedMessages.length - 1].text : "Messages deleted" };
-            }
-            return c;
-        });
-        
-        setConversations(updatedConversations);
-        setSelectedConversation(prev => prev ? { ...prev, messages: updatedMessages } : null);
+        // TODO: Update Firestore to remove selected messages
         toast({ title: `${selectedMessages.length} Message(s) Deleted` });
         setIsMessageSelectionMode(false);
         setSelectedMessages([]);
     };
 
     const handleBulkPin = (pin: boolean) => {
-        setConversations(prev => prev.map(c => selectedConversations.includes(c.id) ? { ...c, pinned: pin } : c));
+        // TODO: Batch update Firestore for selected conversations
         toast({ title: `${selectedConversations.length} conversation(s) ${pin ? 'pinned' : 'unpinned'}` });
         setIsConvSelectionMode(false);
         setSelectedConversations([]);
     }
 
     const handleBulkDelete = () => {
-        const remainingConversations = conversations.filter(c => !selectedConversations.includes(c.id));
-        setConversations(remainingConversations);
+        // TODO: Batch delete Firestore documents for selected conversations
         if (selectedConversations.includes(selectedConversation?.id || '')) {
-            setSelectedConversation(null);
+            setSelectedConversationId(null);
         }
         toast({ title: `${selectedConversations.length} conversation(s) deleted` });
         setIsConvSelectionMode(false);
@@ -273,11 +238,11 @@ function MessagingPage() {
                         <span>{convo.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => handleToggleMute(convo)}>
-                        {convo.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                        <span>{convo.muted ? 'Unmute Notifications' : 'Mute Notifications'}</span>
+                        {user && convo.mutedBy.includes(user.id) ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                        <span>{user && convo.mutedBy.includes(user.id) ? 'Unmute Notifications' : 'Mute Notifications'}</span>
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => {
-                        setConversations(prev => prev.map(c => c.id === convo.id ? { ...c, unread: true } : c));
+                        // TODO: Update Firestore to mark as unread
                         toast({ title: 'Marked as unread' });
                     }}>
                         <Mail className="mr-2 h-4 w-4" />
@@ -288,7 +253,7 @@ function MessagingPage() {
                         <span>{convo.favourited ? 'Remove from Favourites' : 'Add to Favourites'}</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversation(convo);}}>
+                    <ContextMenuItem onClick={() => {setIsMessageSelectionMode(true); setSelectedMessages([]); setSelectedConversationId(convo.id);}}>
                         <CheckSquare className="mr-2 h-4 w-4" />
                         Select Messages
                     </ContextMenuItem>
@@ -373,11 +338,7 @@ function MessagingPage() {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()} onClick={() => {
-                                    const convosToDelete = conversations.filter(c => selectedConversations.includes(c.id));
-                                    // This is a simplified bulk delete, a real app might have a single dialog
-                                    handleBulkDelete();
-                                }}>
+                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()} onClick={handleBulkDelete}>
                                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -410,7 +371,7 @@ function MessagingPage() {
                                 <div
                                     className={cn(
                                         "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors relative",
-                                        selectedConversation?.id === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
+                                        selectedConversationId === convo.id && !isConvSelectionMode ? "bg-primary/10" : "hover:bg-muted/50",
                                         isConvSelectionMode && selectedConversations.includes(convo.id) && "bg-muted"
                                     )}
                                     onClick={() => handleSelectConversation(convo.id)}
@@ -429,9 +390,9 @@ function MessagingPage() {
                                     {renderAvatar(convo)}
                                     <div className="flex-1 truncate">
                                         <div className="flex justify-between items-center">
-                                            <p className={cn("font-semibold text-sm truncate pr-2", convo.unread && "font-bold")}>{convo.partnerName}</p>
+                                            <p className={cn("font-semibold text-sm truncate pr-2", user && convo.unreadBy.includes(user.id) && "font-bold")}>{convo.partnerName}</p>
                                             <div className="flex items-center gap-1.5">
-                                                {convo.muted && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                                {user && convo.mutedBy.includes(user.id) && <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />}
                                                 {convo.favourited && <Heart className="h-4 w-4 text-red-500 fill-current shrink-0" />}
                                                 {convo.pinned && <Pin className="h-4 w-4 text-primary fill-current shrink-0" />}
                                             </div>
@@ -439,7 +400,7 @@ function MessagingPage() {
                                         <p className="text-xs text-muted-foreground truncate">{convo.partnerRole === 'System' ? `Regarding: ${convo.jobTitle}` : user?.role === 'recruiter' ? convo.partnerRole : convo.jobTitle}</p>
                                         <p className="text-xs text-muted-foreground truncate mt-1">{convo.lastMessage}</p>
                                     </div>
-                                    {convo.unread && (
+                                    {user && convo.unreadBy.includes(user.id) && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
                                     )}
                                 </div>
@@ -499,11 +460,11 @@ function MessagingPage() {
                                         <span>{selectedConversation.pinned ? 'Unpin' : 'Pin'} Chat</span>
                                     </DropdownMenuItem>
                                      <DropdownMenuItem onClick={() => handleToggleMute(selectedConversation)}>
-                                        {selectedConversation.muted ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
-                                        <span>{selectedConversation.muted ? 'Unmute' : 'Mute'} Notifications</span>
+                                        {user && selectedConversation.mutedBy.includes(user.id) ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}
+                                        <span>{user && selectedConversation.mutedBy.includes(user.id) ? 'Unmute' : 'Mute'} Notifications</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
-                                         setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, unread: true } : c));
+                                         // TODO: Update Firestore
                                          toast({ title: 'Marked as unread' });
                                     }}>
                                         <Mail className="mr-2 h-4 w-4" />
@@ -531,7 +492,7 @@ function MessagingPage() {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                      </DropdownMenu>
-                     <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
+                     <Button variant="ghost" size="icon" onClick={() => setSelectedConversationId(null)}>
                         <X className="h-5 w-5" />
                         <span className="sr-only">Close Chat</span>
                     </Button>
@@ -540,45 +501,48 @@ function MessagingPage() {
                     )}
                 </CardHeader>
                 <CardContent className="flex-1 p-4 overflow-y-auto">
-                    <div className="space-y-4">
-                    {selectedConversation.messages.map(msg => (
-                        <div key={msg.id} className={cn("flex items-end gap-2", 
-                            msg.sender === 'me' ? 'justify-end' : 
-                            msg.sender === 'system' ? 'justify-center' :
-                            'justify-start'
-                        )}>
-                            {isMessageSelectionMode && msg.sender !== 'system' && (
-                               <Checkbox 
-                                 id={`msg-select-${msg.id}`}
-                                 checked={selectedMessages.includes(msg.id)}
-                                 onCheckedChange={() => handleMessageSelection(msg.id)}
-                                 className={cn("self-center", msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
-                               />
-                            )}
-                            {msg.sender === 'other' && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
-                                    <AvatarFallback>{selectedConversation.avatar}</AvatarFallback>
-                                </Avatar>
-                            )}
-                             <div className={cn(
-                                'max-w-[70%] p-3 rounded-xl text-sm',
-                                msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 
-                                msg.sender === 'system' ? 'bg-accent/20 text-accent-foreground w-full text-center italic' :
-                                'bg-muted rounded-bl-none'
-                             )}>
-                                <p>{msg.text}</p>
-                                <p className="text-xs opacity-70 mt-1 text-right">{msg.timestamp}</p>
-                             </div>
-                            {msg.sender === 'me' && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={`https://placehold.co/40x40.png`} alt="My Avatar" data-ai-hint="person avatar" />
-                                    <AvatarFallback>{user?.role === 'user' ? 'JB' : user?.role.charAt(0).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                            )}
+                    <ScrollArea className="h-full pr-4">
+                        <div className="space-y-4">
+                        {selectedConversation.messages.map(msg => (
+                            <div key={msg.id} className={cn("flex items-end gap-2", 
+                                msg.sender === 'me' ? 'justify-end' : 
+                                msg.sender === 'system' ? 'justify-center' :
+                                'justify-start'
+                            )}>
+                                {isMessageSelectionMode && msg.sender !== 'system' && (
+                                <Checkbox 
+                                    id={`msg-select-${msg.id}`}
+                                    checked={selectedMessages.includes(msg.id)}
+                                    onCheckedChange={() => handleMessageSelection(msg.id)}
+                                    className={cn("self-center", msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
+                                />
+                                )}
+                                {msg.sender === 'other' && (
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
+                                        <AvatarFallback>{selectedConversation.avatar}</AvatarFallback>
+                                    </Avatar>
+                                )}
+                                <div className={cn(
+                                    'max-w-[70%] p-3 rounded-xl text-sm',
+                                    msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 
+                                    msg.sender === 'system' ? 'bg-accent/20 text-accent-foreground w-full text-center italic' :
+                                    'bg-muted rounded-bl-none'
+                                )}>
+                                    <p>{msg.text}</p>
+                                    <p className="text-xs opacity-70 mt-1 text-right">{msg.timestamp}</p>
+                                </div>
+                                {msg.sender === 'me' && user && (
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user.avatar} alt="My Avatar" data-ai-hint="person avatar" />
+                                        <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                                    </Avatar>
+                                )}
+                            </div>
+                        ))}
+                        <div ref={messagesEndRef} />
                         </div>
-                    ))}
-                    </div>
+                    </ScrollArea>
                 </CardContent>
                 <CardFooter className="p-4 border-t">
                     <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
@@ -652,10 +616,16 @@ function MessagingPage() {
 
 function MessagingPageWrapper() {
     return (
-        <React.Suspense fallback={<div>Loading...</div>}>
+        <React.Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        }>
             <MessagingPage />
         </React.Suspense>
     )
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
+
+    
