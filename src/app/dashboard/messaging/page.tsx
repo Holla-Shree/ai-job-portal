@@ -28,7 +28,6 @@ function MessagingPage() {
     const router = useRouter();
     const { 
         conversations, 
-        setConversations,
         markAsRead, 
         toggleMute
     } = useNotifications();
@@ -81,7 +80,7 @@ function MessagingPage() {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name || "A Job Seeker", // Use loaded user name
+                        candidateName: user.name, // Use loaded user name
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
@@ -105,7 +104,9 @@ function MessagingPage() {
             }
         };
 
-        handleNewConversation();
+        if (user?.id && user?.name && searchParams.get('jobTitle')) {
+            handleNewConversation();
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, user, router]);
 
@@ -732,4 +733,5 @@ function MessagingPageWrapper() {
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
 
+    
     
