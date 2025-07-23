@@ -131,27 +131,26 @@ function RecruiterPortalPage() {
     }
   };
   
-  const handlePostJob: SubmitHandler<JobPostingFormValues> = async (data) => {
+  const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
-    try {
-        await addJob({
-            title: data.jobTitle,
-            company: data.companyName,
-            city: data.location,
-            type: data.type,
-            domain: data.domain,
-            salary: data.salary,
-            description: data.jobDescription,
-        });
+    addJob({
+        title: data.jobTitle,
+        company: data.companyName,
+        city: data.location,
+        type: data.type,
+        domain: data.domain,
+        salary: data.salary,
+        description: data.jobDescription,
+    }).then(() => {
         toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
         jobPostForm.reset();
         setActiveTab("postings");
-    } catch(error) {
+    }).catch((error) => {
         console.error("Error posting job:", error);
         toast({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
-    } finally {
+    }).finally(() => {
         setIsPosting(false);
-    }
+    });
   };
 
   const handleScreeningForJob = async (job: Job) => {
