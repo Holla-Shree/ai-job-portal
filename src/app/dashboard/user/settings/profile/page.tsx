@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera } from "lucide-react";
+import { Loader2, UserCircle, Briefcase, BookOpen, FileText, Search, Sparkles, Award, ArrowLeft, MessageSquare, Camera, Bookmark } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,6 +22,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 
 const resumeUploadSchema = z.object({
@@ -34,12 +36,14 @@ const jobRecommendationSchema = z.object({
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
-type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0];
+type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string };
 
 function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, initiateConversation } = useNotifications();
+    const { addNotification, initiateConversation, savedJobs, saveJob, unsaveJob } = useNotifications();
     const router = useRouter();
+    
+    const isSaved = savedJobs.includes(job.id);
 
     const handleApply = () => {
         addNotification(job.title, job.company);
@@ -58,6 +62,16 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
         const message = `Hi, I'm interested in the ${job.title} position and had a few questions.`;
         router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
     }
+
+    const handleToggleSave = () => {
+        if (isSaved) {
+            unsaveJob(job.id);
+            toast({ title: 'Job Unsaved' });
+        } else {
+            saveJob(job.id);
+            toast({ title: 'Job Saved!' });
+        }
+    };
     
     return (
         <Card className="shadow-lg">
@@ -80,6 +94,9 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
             </CardFooter>
         </Card>
@@ -430,7 +447,7 @@ function UserProfilePage() {
                             <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                           </CardContent>
                           <CardFooter className="gap-2">
-                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedJob(job)}>
+                            <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
                                 Know More
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>

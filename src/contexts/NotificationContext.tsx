@@ -84,6 +84,9 @@ interface NotificationContextType {
   updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
+  savedJobs: string[];
+  saveJob: (jobId: string) => void;
+  unsaveJob: (jobId: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -92,6 +95,7 @@ const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
 const BLOCKED_USERS_KEY = 'jobMatchBlockedUsers';
+const SAVED_JOBS_KEY = 'jobMatchSavedJobs';
 
 
 const MOCK_JOBS: Job[] = [
@@ -276,6 +280,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
+  const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -288,6 +293,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
        
       const storedBlocked = localStorage.getItem(BLOCKED_USERS_KEY);
       if (storedBlocked) setBlockedUsers(JSON.parse(storedBlocked));
+
+      const storedSavedJobs = localStorage.getItem(SAVED_JOBS_KEY);
+      if (storedSavedJobs) setSavedJobs(JSON.parse(storedSavedJobs));
 
       if(user) {
         const storedConversations = localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
@@ -344,6 +352,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(BLOCKED_USERS_KEY, JSON.stringify(blockedUsers));
   }, [blockedUsers]);
+  
+  useEffect(() => {
+    localStorage.setItem(SAVED_JOBS_KEY, JSON.stringify(savedJobs));
+  }, [savedJobs]);
+
+  const saveJob = (jobId: string) => {
+    setSavedJobs(prev => [...new Set([...prev, jobId])]);
+  };
+  
+  const unsaveJob = (jobId: string) => {
+    setSavedJobs(prev => prev.filter(id => id !== jobId));
+  };
 
 
   const addNotification = (jobTitle: string, company: string) => {
@@ -526,8 +546,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
     } else if (user?.role === 'user') {
         // For users, if there's nothing in storage, use their specific mock data.
-       if (storedConversations === mockConvos) {
-         setConversations(getMockConversations('user'));
+       const roleSpecificMock = getMockConversations('user');
+       if (JSON.stringify(storedConversations) === JSON.stringify(getMockConversations('recruiter'))) {
+         setConversations(roleSpecificMock);
        } else {
          setConversations(storedConversations);
        }
@@ -536,7 +557,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, savedJobs, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );

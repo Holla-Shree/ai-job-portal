@@ -1,11 +1,12 @@
 
+
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Search, Briefcase, Building, MapPin, LocateFixed, Clock, ArrowLeft, MessageSquare, Bookmark } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import GoogleMapsProvider from '@/components/GoogleMapsProvider';
@@ -21,9 +22,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, initiateConversation } = useNotifications();
+    const { addNotification, initiateConversation, savedJobs, saveJob, unsaveJob } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
+
+    const isSaved = savedJobs.includes(job.id);
 
     const handleApply = () => {
         if (!user) {
@@ -51,6 +54,21 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
         });
         router.push(`/dashboard/messaging?open=${conversationId}`);
     }
+
+    const handleToggleSave = () => {
+        if (!user) {
+            router.push('/login?redirect=/dashboard/map');
+            toast({ title: 'Please log in to save jobs', variant: 'destructive' });
+            return;
+        }
+        if (isSaved) {
+            unsaveJob(job.id);
+            toast({ title: 'Job Unsaved' });
+        } else {
+            saveJob(job.id);
+            toast({ title: 'Job Saved!' });
+        }
+    };
     
     return (
         <div className="h-full flex flex-col">
@@ -103,6 +121,9 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
+                <Button variant="outline" size="icon" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                    <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
+                </Button>
             </div>
         </div>
     )
@@ -112,8 +133,8 @@ function JobMapPage() {
     const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // Centered on India
     const { jobs } = useNotifications();
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-    const [hoveredJobId, setHoveredJobId] = useState<number | null>(null);
-    const jobListRef = useRef<Record<number, HTMLDivElement | null>>({});
+    const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
+    const jobListRef = useRef<Record<string, HTMLDivElement | null>>({});
 
     useEffect(() => {
         if (selectedJob && jobListRef.current[selectedJob.id]) {
@@ -169,7 +190,7 @@ function JobMapPage() {
                             <Separator />
                             <ScrollArea className="flex-1">
                                 <div className="p-2 space-y-2">
-                                    {jobs.filter(job => job.position && job.position.lat && job.position.lng).map(job => (
+                                    {jobs.filter(job => job.position?.lat && job.position?.lng).map(job => (
                                         <div
                                             key={job.id}
                                             ref={el => jobListRef.current[job.id] = el}
@@ -209,7 +230,7 @@ function JobMapPage() {
                         disableDefaultUI={true}
                         className="h-full w-full"
                     >
-                        {jobs.filter(job => job.position && job.position.lat && job.position.lng).map((job) => (
+                        {jobs.filter(job => job.position?.lat && job.position?.lng).map((job) => (
                              <AdvancedMarker
                                 key={job.id}
                                 position={job.position}

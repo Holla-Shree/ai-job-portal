@@ -1,10 +1,11 @@
 
+
 'use client';
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, UserCircle, Search, MessageSquare, Settings, ListChecks } from "lucide-react";
+import { ArrowRight, UserCircle, Search, MessageSquare, Settings, ListChecks, Bookmark } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -29,7 +30,14 @@ const dashboardItems = [
     description: "Track the status of all your job applications and manage your job-seeking journey in one place.",
     link: "/dashboard/user/applications",
     linkText: "View Applications"
-    },
+  },
+  {
+    icon: <Bookmark className="h-10 w-10 text-primary" />,
+    title: "Saved Jobs",
+    description: "Review and manage the jobs you've saved for later consideration.",
+    link: "/dashboard/user/saved-jobs",
+    linkText: "View Saved Jobs"
+  },
   {
     icon: <MessageSquare className="h-10 w-10 text-primary" />,
     title: "Interview Prep Chatbot",
