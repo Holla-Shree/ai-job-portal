@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import { useNotifications, Conversation } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function MessagingPage() {
@@ -29,7 +29,9 @@ function MessagingPage() {
     const { 
         conversations, 
         markAsRead, 
-        toggleMute
+        toggleMute,
+        deleteConversation,
+        clearConversationMessages
     } = useNotifications();
     const searchParams = useSearchParams();
     
@@ -51,7 +53,7 @@ function MessagingPage() {
     
     useEffect(() => {
         const handleNewConversation = async () => {
-            if (!user?.id || !user.name) return; // Ensure user name is loaded
+            if (!user?.id || !user.name) return;
     
             const jobTitle = searchParams.get('jobTitle');
             const company = searchParams.get('company');
@@ -80,7 +82,7 @@ function MessagingPage() {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name, // Use loaded user name
+                        candidateName: user.name,
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
@@ -98,16 +100,14 @@ function MessagingPage() {
                     setMessageInput(decodeURIComponent(suggestedMessage));
                 }
     
-                // Clean up URL params to prevent re-triggering
                 const newPath = window.location.pathname;
                 router.replace(newPath, { scroll: false });
             }
         };
 
-        if (user?.id && user?.name && searchParams.get('jobTitle')) {
+        if (user?.id && user?.name && searchParams.has('jobTitle')) {
             handleNewConversation();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, user, router]);
 
 
@@ -195,9 +195,8 @@ function MessagingPage() {
 
     const handleClearMessages = async () => {
         if (!conversationToClear) return;
-        const convoRef = doc(db, "conversations", conversationToClear.id);
         try {
-            await updateDoc(convoRef, { messages: [] });
+            await clearConversationMessages(conversationToClear.id);
             toast({ title: "Messages Cleared", description: "The chat history has been cleared." });
         } catch (error) {
             console.error("Error clearing messages:", error);
@@ -210,7 +209,7 @@ function MessagingPage() {
     const handleDeleteConversation = async () => {
         if (!conversationToDelete) return;
         try {
-            await deleteDoc(doc(db, "conversations", conversationToDelete.id));
+            await deleteConversation(conversationToDelete.id);
             if (selectedConversationId === conversationToDelete.id) {
                 setSelectedConversationId(null);
             }
@@ -732,6 +731,3 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
-
-    
-    

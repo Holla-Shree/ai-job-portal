@@ -55,6 +55,8 @@ interface NotificationContextType {
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  deleteConversation: (conversationId: string) => Promise<void>;
+  clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
   addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
@@ -98,7 +100,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const { user, setUser } = useAuth();
-  const router = useRouter();
 
 
   useEffect(() => {
@@ -133,11 +134,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
-        // Sync user profile data from Firestore to AuthContext state
         if (user) {
             const currentUserData = candidatesData.find(c => c.id === user.id);
             if (currentUserData) {
-                // Combine auth data with Firestore profile data
                 setUser(prevUser => {
                     if (!prevUser) return null;
                     const updatedUser = {
@@ -145,8 +144,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                         name: currentUserData.name,
                         savedJobs: currentUserData.savedJobs || []
                     };
-                    // Only update if there's a meaningful change to avoid loops
-                    if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
+                     if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
                         return updatedUser;
                     }
                     return prevUser;
@@ -155,7 +154,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
     });
 
-    // Firestore real-time listener for conversations
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (snapshot) => {
         const convosData = snapshot.docs.map(doc => {
@@ -181,7 +179,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setConversations(convosData);
     });
 
-    // Firestore real-time listener for applications
     const applicationsQuery = user.role === 'user' 
         ? query(collection(db, "applications"), where("candidateId", "==", user.id))
         : collection(db, "applications");
@@ -212,7 +209,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user || user.role !== 'user') return;
     const userDocRef = doc(db, 'candidates', user.id);
     
-    // Optimistically update local state for immediate UI feedback
     const newSavedJobs = [...(user.savedJobs || []), jobId];
     setUser(prev => prev ? { ...prev, savedJobs: newSavedJobs } : null);
 
@@ -222,7 +218,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         });
     } catch (e) {
         console.error("Error saving job: ", e);
-        // Revert local state if DB update fails
          setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
     }
   };
@@ -231,7 +226,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user || user.role !== 'user') return;
      const userDocRef = doc(db, 'candidates', user.id);
 
-    // Optimistically update local state
     const oldSavedJobs = user.savedJobs || [];
     setUser(prev => prev ? { ...prev, savedJobs: prev.savedJobs.filter(id => id !== jobId) } : null);
 
@@ -241,7 +235,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         });
     } catch (e) {
         console.error("Error unsaving job: ", e);
-        // Revert local state if DB update fails
         setUser(prev => prev ? { ...prev, savedJobs: oldSavedJobs } : null);
     }
   };
@@ -314,7 +307,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
         await addDoc(collection(db, "jobs"), {
             ...job,
-            position: { lat: 20.5937, lng: 78.9629 }, // Default position, can be updated later
+            position: { lat: 20.5937, lng: 78.9629 }, 
         });
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -330,6 +323,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         throw e;
     }
   };
+  
+  const deleteConversation = async (conversationId: string) => {
+    try {
+        await deleteDoc(doc(db, "conversations", conversationId));
+    } catch (e) {
+        console.error("Error deleting conversation: ", e);
+        throw e;
+    }
+  };
+
+  const clearConversationMessages = async (conversationId: string) => {
+    try {
+        const convoRef = doc(db, "conversations", conversationId);
+        await updateDoc(convoRef, { messages: [] });
+    } catch (e) {
+        console.error("Error clearing messages: ", e);
+        throw e;
+    }
+  };
+
 
   const updateCandidateProfile = async (candidateId: string, profileData: Partial<Candidate>) => {
     try {
@@ -347,7 +360,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
       {children}
     </NotificationContext.Provider>
   );
