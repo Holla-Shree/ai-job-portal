@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -363,7 +363,7 @@ function RecruiterPortalPage() {
                                      </div>
                                    )}
                                    <div className="flex items-center gap-2 pt-2 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle") || "the open position")}>
+                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle") || "the open")}>
                                             <MessageSquare className="mr-2 h-4 w-4" />
                                             Message
                                         </Button>
@@ -433,7 +433,7 @@ function RecruiterPortalPage() {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
                             <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name, "the open position")}>
+                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name, "the open")}>
                                     <MessageSquare className="mr-2 h-3 w-3" />
                                     Message
                                 </Button>
