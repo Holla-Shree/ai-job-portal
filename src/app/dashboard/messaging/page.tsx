@@ -82,7 +82,7 @@ function MessagingPage() {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name, // Use loaded user name
+                        candidateName: user.name || "A Job Seeker", // Use loaded user name
                         lastMessage: suggestedMessage || "Conversation started.",
                         messages: [],
                         pinned: false,
