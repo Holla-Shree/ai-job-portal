@@ -5,6 +5,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { collection, addDoc, getDocs, onSnapshot } from "firebase/firestore"; 
+import { db } from '@/lib/firebase';
 
 export interface Message {
   id: string;
@@ -48,7 +50,7 @@ interface ConversationStub {
 }
 
 export type Job = { 
-    id: number; 
+    id: string; 
     title: string; 
     company: string; 
     city: string; 
@@ -76,7 +78,7 @@ interface NotificationContextType {
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   jobs: Job[];
-  addJob: (job: Omit<Job, 'id' | 'position'>) => void;
+  addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
   candidates: Candidate[];
   addCandidate: (candidate: Omit<Candidate, 'id'>) => void;
 }
@@ -86,17 +88,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 const NOTIFICATIONS_STORAGE_KEY = 'jobApplicationNotifications';
 const CONVERSATIONS_STORAGE_KEY = 'jobMatchConversations';
 const APPLICATION_HISTORY_KEY = 'jobSeekerApplicationHistory';
-const JOBS_STORAGE_KEY = 'jobMatchJobs';
 const CANDIDATES_STORAGE_KEY = 'jobMatchCandidates';
-
-const mockJobs = [
-  { id: 1, title: "Senior Backend Engineer", company: "TekSystems India", city: "Mumbai", position: { lat: 19.0760, lng: 72.8777 }, type: "Full-time", domain: "Tech", salary: "₹20-25 LPA", description: "Design, build, and maintain scalable and reliable backend services. You will work with a team of talented engineers to develop new features and improve existing ones. The ideal candidate has strong experience with Node.js, microservices, and cloud platforms like AWS or GCP." },
-  { id: 2, title: "Data Scientist", company: "Google", city: "Bengaluru", position: { lat: 12.9716, lng: 77.5946 }, type: "Full-time", domain: "Tech", salary: "₹22-28 LPA", description: "Apply your expertise in quantitative analysis, data mining, and the presentation of data to see beyond the numbers and understand how our users interact with our products. You will work on projects that have a direct impact on our business and users. Proficiency in Python, R, and SQL is required." },
-  { id: 3, title: "Junior Frontend Developer", company: "Freshworks", city: "Chennai", position: { lat: 13.0827, lng: 80.2707 }, type: "Full-time", domain: "Tech", salary: "₹8-12 LPA", description: "We are looking for a passionate Junior Frontend Developer to join our team. You will be responsible for building and maintaining our web applications using modern technologies like React and TypeScript. This is a great opportunity to learn and grow in a fast-paced environment." },
-  { id: 4, title: "Product Manager", company: "PhonePe", city: "Bengaluru", position: { lat: 12.9268, lng: 77.6262 }, type: "Full-time", domain: "Fintech", salary: "₹30-35 LPA", description: "As a Product Manager, you will be responsible for the product planning and execution throughout the Product Lifecycle, including: gathering and prioritizing product and customer requirements, defining the product vision, and working closely with engineering, sales, marketing and support to ensure revenue and customer satisfaction goals are met." },
-  { id: 5, title: "Marketing Manager", company: "Zomato", city: "Gurugram", position: { lat: 28.4595, lng: 77.0266 }, type: "Full-time", domain: "Food Tech", salary: "₹15-20 LPA", description: "We're looking for an experienced and creative Marketing Manager to lead our marketing campaigns. You'll be responsible for developing, implementing and executing strategic marketing plans for an entire organization in order to attract potential customers and retain existing ones." },
-  { id: 6, title: "Remote React Developer", company: "Toptal", city: "Remote", position: { lat: 28.6139, lng: 77.2090 }, type: "Remote", domain: "Tech", salary: "$70-90k USD", description: "Join a network of the world's top talent in design, business, and technology. As a React Developer, you will work on challenging projects for leading companies. This is a remote position, so you can work from anywhere. Strong proficiency in React.js and its core principles is a must." },
-];
 
 const MOCK_CANDIDATES = [
     { id: 'cand1', name: 'Priya Patel', profile: 'Experienced Full Stack Developer with 5 years in React and Node.js. Led a team to build a high-traffic e-commerce platform. Skilled in AWS, Docker, and PostgreSQL. B.Sc. in Computer Science from IIT Bombay.' },
@@ -268,13 +260,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setConversations(getMockConversations(user.role));
       }
 
-      const storedJobs = localStorage.getItem(JOBS_STORAGE_KEY);
-      if (storedJobs) {
-        setJobs(JSON.parse(storedJobs));
-      } else {
-        setJobs(mockJobs);
-      }
-
       const storedCandidates = localStorage.getItem(CANDIDATES_STORAGE_KEY);
       if (storedCandidates) {
         setCandidates(JSON.parse(storedCandidates));
@@ -287,6 +272,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [user]);
 
+   useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, "jobs"), (querySnapshot) => {
+            const jobsData: Job[] = [];
+            querySnapshot.forEach((doc) => {
+                jobsData.push({ id: doc.id, ...doc.data() } as Job);
+            });
+            setJobs(jobsData);
+        });
+
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
+
   useEffect(() => {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
   }, [notifications]);
@@ -298,10 +296,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   useEffect(() => {
     localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }, [conversations]);
-
-  useEffect(() => {
-    localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
-  }, [jobs]);
 
   useEffect(() => {
     localStorage.setItem(CANDIDATES_STORAGE_KEY, JSON.stringify(candidates));
@@ -384,14 +378,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return newConversation.id;
   }
 
-  const addJob = (job: Omit<Job, 'id' | 'position'>) => {
-    // A real implementation would geocode the city to get lat/lng
-    const newJob: Job = {
-        ...job,
-        id: Date.now(),
-        position: { lat: 20.5937, lng: 78.9629 }, // Default to India center
-    };
-    setJobs(prev => [newJob, ...prev]);
+  const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
+    try {
+        await addDoc(collection(db, "jobs"), {
+            ...job,
+            position: { lat: 20.5937, lng: 78.9629 }, // Default to India center
+        });
+    } catch (e) {
+        console.error("Error adding document: ", e);
+    }
   };
 
   const addCandidate = (candidate: Omit<Candidate, 'id'>) => {
