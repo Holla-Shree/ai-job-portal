@@ -81,7 +81,6 @@ interface NotificationContextType {
   addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
-  addCandidate: (candidate: Omit<Candidate, 'id'>) => Promise<void>;
   updateCandidateProfile: (candidateId: string, profileData: { name: string, profile: string }) => Promise<void>;
 }
 
@@ -353,41 +352,56 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }
 
   const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
+    // Optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const newJob: Job = {
+        ...job,
+        id: tempId,
+        position: { lat: 20.5937, lng: 78.9629 } // Default to India center
+    };
+    setJobs(prevJobs => [newJob, ...prevJobs]);
+
     try {
-        await addDoc(collection(db, "jobs"), {
+        const docRef = await addDoc(collection(db, "jobs"), {
             ...job,
-            position: { lat: 20.5937, lng: 78.9629 }, // Default to India center
+            position: { lat: 20.5937, lng: 78.9629 },
         });
+        // Replace temp job with real one from Firestore
+        setJobs(prevJobs => prevJobs.map(j => j.id === tempId ? { ...j, id: docRef.id } : j));
     } catch (e) {
         console.error("Error adding document: ", e);
+        // Revert optimistic update on error
+        setJobs(prevJobs => prevJobs.filter(j => j.id !== tempId));
+        throw e; // Re-throw error to be caught in the component
     }
   };
 
   const deleteJob = async (jobId: string) => {
+    // Optimistic update
+    const originalJobs = jobs;
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+    
     try {
         await deleteDoc(doc(db, "jobs", jobId));
     } catch (e) {
         console.error("Error deleting document: ", e);
-    }
-  };
-
-  const addCandidate = async (candidate: Omit<Candidate, 'id'>) => {
-    try {
-        const newCandidateId = `cand-${Date.now()}`;
-        await setDoc(doc(db, "candidates", newCandidateId), {
-          ...candidate,
-          id: newCandidateId
-        });
-    } catch (e) {
-        console.error("Error adding candidate: ", e);
+        // Revert optimistic update on error
+        setJobs(originalJobs);
+        throw e;
     }
   };
 
   const updateCandidateProfile = async (candidateId: string, profileData: { name: string, profile: string }) => {
+    // Optimistic update
+    const originalCandidates = candidates;
+    setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, ...profileData } : c));
+    
     try {
       await setDoc(doc(db, "candidates", candidateId), profileData, { merge: true });
     } catch (e) {
       console.error("Error updating candidate profile: ", e);
+      setCandidates(originalCandidates);
+      throw e;
     }
   };
 
@@ -431,7 +445,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, addCandidate, updateCandidateProfile }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, markAsRead, toggleMute, initiateConversation, applicationHistory, updateApplicationStatus, conversations, setConversations, jobs, addJob, deleteJob, candidates, updateCandidateProfile }}>
       {children}
     </NotificationContext.Provider>
   );

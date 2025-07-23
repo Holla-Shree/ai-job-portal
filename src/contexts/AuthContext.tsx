@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNotifications } from './NotificationContext'; // Corrected import
 
 export type UserRole = 'user' | 'recruiter' | 'admin';
 
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = (role: UserRole, id?: string, email?: string) => {
-    const newUser: User = { role, id, email };
+    const newUser: User = { role, id, email, avatar: `https://placehold.co/40x40.png?text=${(email || 'U').charAt(0).toUpperCase()}` };
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     setLoading(false);

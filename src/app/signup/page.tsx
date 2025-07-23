@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -18,6 +19,8 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, "Full name must be at least 3 characters."),
@@ -32,12 +35,17 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function SignupPage() {
   const { login } = useAuth();
-  const { addCandidate } = useNotifications();
-  const router = useRouter();
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
+    defaultValues: {
+        fullName: '',
+        email: '',
+        password: '',
+        role: 'user',
+    }
   });
 
   const onSubmit = async (data: SignupFormValues) => {
@@ -47,11 +55,21 @@ export default function SignupPage() {
     const candidateId = `cand-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
 
     if (role === 'user') {
-        await addCandidate({
-            id: candidateId,
-            name: fullName,
-            profile: `Newly registered user. Please upload a resume to create a full profile.`
-        });
+        try {
+            await setDoc(doc(db, "candidates", candidateId), {
+                id: candidateId,
+                name: fullName,
+                profile: `Newly registered user. Please upload a resume to create a full profile.`
+            });
+        } catch (error) {
+            console.error("Error creating candidate profile in Firestore:", error);
+            toast({
+                title: 'Signup Failed',
+                description: 'Could not create your user profile. Please try again.',
+                variant: 'destructive',
+            });
+            return;
+        }
     }
 
     toast({
@@ -59,12 +77,12 @@ export default function SignupPage() {
       description: "You have been successfully signed up.",
     });
 
-    login(role as UserRole, candidateId);
+    login(role as UserRole, role === 'user' ? candidateId : undefined, email);
 
     // Redirect based on role
     switch (role) {
       case 'user':
-        router.push('/dashboard/user');
+        router.push('/dashboard/user/settings/profile');
         break;
       case 'recruiter':
         router.push('/dashboard/recruiter');
