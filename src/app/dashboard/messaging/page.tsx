@@ -659,5 +659,3 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
-
-    

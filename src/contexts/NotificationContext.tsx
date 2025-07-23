@@ -407,21 +407,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return existingConvo.id;
     }
 
-    const messages = stub.createEmpty ? [] : [
-        { id: `msg-${Date.now()}`, sender: 'me' as const, text: `Hi, I'd like to ask a question about the ${stub.jobTitle} position.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-    ];
-
-    const lastMessage = stub.createEmpty ? 'Conversation started.' : messages[0].text;
-
-
     const newConversation: Conversation = {
       id: `conv-${Date.now()}`,
       partnerName: stub.partnerName,
       partnerRole: user?.role === 'user' ? 'Recruiter' : 'Candidate',
       jobTitle: stub.jobTitle,
-      lastMessage: lastMessage,
+      lastMessage: 'Conversation started.',
       avatar: stub.partnerName.split(' ').map(n => n[0]).join(''),
-      messages: messages,
+      messages: [],
       pinned: false,
       favourited: false,
       unread: false,
@@ -500,7 +493,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             lastMessage: `New application from ${notif.candidateName}.`,
             avatar: 'Bell',
             messages: [
-                { id: `msg-${notif.id}`, sender: 'system', text: `A new candidate, ${notif.candidateName}, has applied for the ${notif.jobTitle} position at ${notif.company}. You can view their profile in the talent pool.`, timestamp: formatDistanceToNow(notif.timestamp) + ' ago' },
+                { id: `msg-${notif.id}`, sender: 'system', text: `A new candidate, ${notif.candidateName}, has applied for the ${notif.JobTitle} position at ${notif.company}. You can view their profile in the talent pool.`, timestamp: formatDistanceToNow(notif.timestamp) + ' ago' },
             ],
             pinned: true,
             favourited: false,
