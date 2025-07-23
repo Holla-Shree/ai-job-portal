@@ -96,7 +96,7 @@ function JobDetails({ job, onBack }: { job: RecommendedJob; onBack: () => void; 
                  <Button variant="outline" className="w-full" onClick={handleMessageRecruiter}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
+                <Button variant="outline" size="icon" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
             </CardFooter>
@@ -216,7 +216,7 @@ function UserProfileCard() {
 function UserProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { updateCandidateProfile } = useNotifications();
+  const { updateCandidateProfile, candidates } = useNotifications();
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
@@ -230,6 +230,17 @@ function UserProfilePage() {
   const jobForm = useForm<JobRecommendationFormValues>({
     resolver: zodResolver(jobRecommendationSchema),
   });
+
+  const currentUserProfile = React.useMemo(() => {
+    return candidates.find(c => c.id === user?.id);
+  }, [candidates, user]);
+
+  useEffect(() => {
+    if (currentUserProfile?.profile) {
+      jobForm.setValue('resumeText', currentUserProfile.profile);
+    }
+  }, [currentUserProfile, jobForm]);
+
 
   const handleResumeUpload: SubmitHandler<ResumeUploadFormValues> = async (data) => {
     if (!user?.id) {
@@ -256,11 +267,10 @@ function UserProfilePage() {
             
             // Update Firestore
             await updateCandidateProfile(user.id, {
-                name: "Job Seeker", // This should be ideally taken from user profile
+                name: currentUserProfile?.name || "Job Seeker",
                 profile: fullText,
             });
-
-            jobForm.setValue('resumeText', fullText);
+            
             toast({ title: "Resume Analyzed & Saved", description: "Your anonymized profile has been created and saved." });
           }
         };
