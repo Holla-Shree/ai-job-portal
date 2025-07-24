@@ -138,7 +138,11 @@ function RecruiterPortalContent() {
   
   const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
-    
+    // Optimistic UI update
+    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+    jobPostForm.reset();
+    setActiveTab("postings");
+
     addJob({
         title: data.jobTitle,
         company: data.companyName,
@@ -147,12 +151,10 @@ function RecruiterPortalContent() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
-    }).then(() => {
-        toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
-        jobPostForm.reset();
-        setActiveTab("postings");
     }).catch(err => {
-        toast({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
+        // If the background operation fails, inform the user.
+        toast({ variant: "destructive", title: "Posting Failed", description: "The job could not be saved to the database. Please try again." });
+        // Optionally, you could implement a retry mechanism or revert the UI changes.
     }).finally(() => {
         setIsPosting(false);
     });
@@ -540,7 +542,7 @@ function RecruiterPortalContent() {
                             <TableCell className="font-medium">
                                 <div className="flex items-center gap-3">
                                 <Avatar>
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
                                     <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
                                 </Avatar>
                                 <span>{candidate.name || 'Unnamed Candidate'}</span>
@@ -627,7 +629,7 @@ function RecruiterPortalContent() {
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
                               <Avatar>
-                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
                                 <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
                               </Avatar>
                               <span>{candidate.name || 'Unnamed Candidate'}</span>
