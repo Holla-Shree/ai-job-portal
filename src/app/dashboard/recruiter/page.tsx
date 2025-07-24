@@ -448,7 +448,7 @@ function RecruiterPortalContent() {
                         <Accordion type="single" collapsible className="w-full">
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                                <div className="flex items-center w-full px-4 py-0">
+                                <div className="flex items-center w-full px-4">
                                     <Button
                                         variant="ghost"
                                         size="icon"
