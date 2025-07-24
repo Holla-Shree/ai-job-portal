@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2 } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2, UserSearch } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,13 +22,13 @@ import { Badge } from "@/components/ui/badge";
 import { generateJobDescription } from '@/ai/flows/job-description-generator';
 import { screenCandidate, ScreenCandidateOutput } from '@/ai/flows/candidate-screener';
 import { Progress } from '@/components/ui/progress';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface ScoredCandidate extends ScreenCandidateOutput {
   candidate: { id: string; name: string; profile: string; };
@@ -65,13 +65,13 @@ function RecruiterPortalContent() {
   const [isScreening, setIsScreening] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
+  const [selectedCandidate, setSelectedCandidate] = useState<ScoredCandidate | null>(null);
   const [screeningProgress, setScreeningProgress] = useState(0);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
   const [talentSearchTerm, setTalentSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState("postJob");
   const [activeScreeningJobTitle, setActiveScreeningJobTitle] = useState<string | null>(null);
-  const [toastInfo, setToastInfo] = useState<{ title: string; description: string; } | null>(null);
-
+  
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
 
@@ -93,12 +93,6 @@ function RecruiterPortalContent() {
     }
   }, [shortlistedCandidates, isClient]);
   
-  useEffect(() => {
-    if (toastInfo) {
-      toast(toastInfo);
-      setToastInfo(null);
-    }
-  }, [toastInfo, toast]);
 
   const filteredTalentPool = useMemo(() => {
     if (!talentSearchTerm) return candidates;
@@ -168,12 +162,13 @@ function RecruiterPortalContent() {
       setActiveTab('screeningResults');
       setIsScreening(true);
       setScreeningResults([]);
+      setSelectedCandidate(null);
       setScreeningProgress(0);
       setActiveScreeningJobTitle(job.title);
       
       const results: ScoredCandidate[] = [];
       try {
-        setToastInfo({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
+        toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
         for (let i = 0; i < candidates.length; i++) {
           const candidate = candidates[i];
           const screeningResult = await screenCandidate({
@@ -185,7 +180,8 @@ function RecruiterPortalContent() {
         }
         results.sort((a, b) => b.score - a.score); // Sort by score descending
         setScreeningResults(results);
-        setToastInfo({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
+        setSelectedCandidate(results[0] || null);
+        toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
       } catch (error) {
          console.error("Error during auto-screening:", error);
          toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
@@ -421,105 +417,135 @@ function RecruiterPortalContent() {
           
            <TabsContent value="screeningResults">
                 <Card className="shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
-                    <CardDescription>
-                        {activeScreeningJobTitle 
-                            ? `Top candidates for "${activeScreeningJobTitle}", ranked by match score.`
-                            : "Select a job to screen from the 'My Postings' tab to see results here."
-                        }
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {isScreening && (
-                      <div className="space-y-2">
-                         <Progress value={screeningProgress} className="w-full" />
-                         <p className="text-sm text-muted-foreground text-center">Screening {candidates.length} candidates... ({Math.round(screeningProgress)}%)</p>
-                      </div>
-                    )}
-                    {!isScreening && screeningResults.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground h-48 flex flex-col items-center justify-center">
-                            <p>No screening results to display.</p>
-                            <Button variant="link" onClick={() => setActiveTab('postings')}>Go to My Postings to start screening</Button>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
+                        <CardDescription>
+                            {activeScreeningJobTitle 
+                                ? `Top candidates for "${activeScreeningJobTitle}", ranked by match score.`
+                                : "Select a job to screen from the 'My Postings' tab to see results here."
+                            }
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isScreening && (
+                        <div className="space-y-2">
+                            <Progress value={screeningProgress} className="w-full" />
+                            <p className="text-sm text-muted-foreground text-center">Screening {candidates.length} candidates... ({Math.round(screeningProgress)}%)</p>
                         </div>
-                    )}
-                    {screeningResults.length > 0 && (
-                      <ScrollArea className="h-[500px]">
-                        <Accordion type="single" collapsible className="w-full">
-                           {screeningResults.map((result) => (
-                            <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                                <div className="flex items-center w-full px-4">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 shrink-0"
-                                        onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
-                                    >
-                                        <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                    </Button>
-                                    <AccordionTrigger className="flex-1 p-4">
-                                        <div className="flex items-center justify-between w-full">
-                                            <div className="text-left">
-                                                <p className="font-semibold">{result.candidate.name || "Unnamed Candidate"}</p>
-                                                <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                      )}
+                      {!isScreening && screeningResults.length === 0 && (
+                          <div className="text-center text-sm text-muted-foreground h-48 flex flex-col items-center justify-center">
+                              <p>No screening results to display.</p>
+                              <Button variant="link" onClick={() => setActiveTab('postings')}>Go to My Postings to start screening</Button>
+                          </div>
+                      )}
+                      {screeningResults.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
+                            {/* Candidate List Panel */}
+                            <div className="md:col-span-1 border-r pr-2">
+                                <ScrollArea className="h-full">
+                                    <div className="space-y-2">
+                                        {screeningResults.map((result) => (
+                                            <Card 
+                                                key={result.candidate.id}
+                                                className={cn(
+                                                    "cursor-pointer hover:bg-muted/50 transition-colors",
+                                                    selectedCandidate?.candidate.id === result.candidate.id && "bg-muted border-primary"
+                                                )}
+                                                onClick={() => setSelectedCandidate(result)}
+                                            >
+                                                <CardContent className="p-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <p className="font-semibold text-sm">{result.candidate.name || "Unnamed Candidate"}</p>
+                                                            <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className={`text-xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                                            <p className="text-xs text-muted-foreground">Score</p>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                            {/* Details Panel */}
+                            <div className="md:col-span-2">
+                                <ScrollArea className="h-full">
+                                    {selectedCandidate ? (
+                                        <div className="space-y-6">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <h3 className="text-xl font-bold">{selectedCandidate.candidate.name}</h3>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Badge variant={getBadgeVariant(selectedCandidate.matchStrength)}>{selectedCandidate.matchStrength}</Badge>
+                                                        <span className={`font-semibold ${getScoreColor(selectedCandidate.score)}`}>Score: {selectedCandidate.score}</span>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleShortlistCandidate(selectedCandidate.candidate.id)}
+                                                    title={shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'Remove from shortlist' : 'Add to shortlist'}
+                                                >
+                                                    <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                                </Button>
                                             </div>
-                                            <div className="text-right">
-                                                <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                                <p className="text-xs text-muted-foreground">Match Score</p>
+                                            <Separator />
+                                            <div>
+                                                <h4 className="font-semibold mb-2">AI Rationale</h4>
+                                                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedCandidate.rationale}</p>
+                                            </div>
+                                            {selectedCandidate.missingQualifications && selectedCandidate.missingQualifications.length > 0 && (
+                                            <div>
+                                                <h4 className="font-semibold mb-2">Missing Qualifications</h4>
+                                                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                                    {selectedCandidate.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
+                                                </ul>
+                                            </div>
+                                            )}
+                                            <Separator />
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
+                                                    <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="default" size="sm">
+                                                            <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This will simulate sending an interview invitation to {selectedCandidate.candidate.name}.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleScheduleInterview(selectedCandidate.candidate.id, selectedCandidate.candidate.name)}>
+                                                                Confirm & Schedule
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </div>
                                         </div>
-                                    </AccordionTrigger>
-                                </div>
-                              <AccordionContent>
-                                 <div className="space-y-4 text-sm px-4 pb-4 ml-16">
-                                   <div>
-                                     <h4 className="font-semibold mb-1">Rationale</h4>
-                                     <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
-                                   </div>
-                                   {result.missingQualifications && result.missingQualifications.length > 0 && (
-                                     <div>
-                                       <h4 className="font-semibold mb-1">Missing Qualifications</h4>
-                                       <ul className="list-disc list-inside text-muted-foreground">
-                                         {result.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
-                                       </ul>
-                                     </div>
-                                   )}
-                                   <div className="flex items-center gap-2 pt-4 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
-                                            <MessageSquare className="mr-2 h-4 w-4" />
-                                            Message
-                                        </Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button variant="default" size="sm">
-                                              <CalendarPlus className="mr-2 h-4 w-4" />
-                                              Schedule Interview
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
-                                              <AlertDialogDescription>
-                                                This will simulate sending an interview invitation to {result.candidate.name}.
-                                              </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => handleScheduleInterview(result.candidate.id, result.candidate.name)}>
-                                                Confirm & Schedule
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                   </div>
-                                 </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                           ))}
-                        </Accordion>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
+                                            <UserSearch className="w-12 h-12 mb-4" />
+                                            <p className="font-semibold">Select a candidate</p>
+                                            <p className="text-sm">Click on a candidate from the list to see their detailed screening report.</p>
+                                        </div>
+                                    )}
+                                </ScrollArea>
+                            </div>
+                        </div>
+                      )}
+                    </CardContent>
                 </Card>
            </TabsContent>
 
