@@ -1,5 +1,22 @@
-# Firebase Studio
+# JobMatch AI Project
 
-This is a NextJS starter in Firebase Studio.
+This is the main repository for the JobMatch AI application.
+Developed using NextJS.
 
-To get started, take a look at src/app/page.tsx.
+## Getting Started
+
+[Add instructions here on how to run your project locally, e.g., `npm install`, `npm start`, etc.]
+
+## Features
+
+* [List some key features]
+
+## Technologies Used
+
+* Firebase (Firestore, Hosting, Functions)
+* [Your frontend framework/library, e.g., React, Angular, Vue]
+* [Other libraries like Tailwind CSS]
+
+## Contribution
+
+[Add info about contributing if applicable]
