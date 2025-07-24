@@ -144,7 +144,7 @@ function RecruiterPortalContent() {
     }
   };
   
-  const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
+ const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     const newJob: Job = {
         id: `temp-${Date.now()}`,
         title: data.jobTitle,
@@ -449,25 +449,25 @@ function RecruiterPortalContent() {
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
                                 <div className="flex items-center w-full">
-                                    <div className="px-4">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-10 w-10"
-                                            onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
-                                            >
-                                            <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                        </Button>
-                                    </div>
                                     <AccordionTrigger>
-                                        <div className="flex justify-between items-center w-full">
-                                            <div className="text-left">
-                                                <p className="font-semibold">{result.candidate.name}</p>
-                                                <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                                <p className="text-xs text-muted-foreground">Match Score</p>
+                                        <div className="flex items-center gap-4 w-full">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-10 w-10 shrink-0"
+                                                onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
+                                            >
+                                                <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                            </Button>
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className="text-left">
+                                                    <p className="font-semibold">{result.candidate.name || "Unnamed Candidate"}</p>
+                                                    <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                                    <p className="text-xs text-muted-foreground">Match Score</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </AccordionTrigger>
