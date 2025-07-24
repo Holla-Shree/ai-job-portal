@@ -59,7 +59,7 @@ interface NotificationContextType {
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
-  addJob: (job: Omit<Job, 'id' | 'position'>) => Promise<void>;
+  addJob: (job: Job) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
@@ -343,14 +343,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
   
 
-  const addJob = async (job: Omit<Job, 'id' | 'position'>) => {
+  const addJob = async (job: Job) => {
+    // Add to local state immediately for optimistic UI
+    setJobs(prevJobs => [...prevJobs, job]);
+    
+    // Add to Firestore in the background
     try {
-        await addDoc(collection(db, "jobs"), {
-            ...job,
-            position: { lat: 20.5937, lng: 78.9629 }, 
-        });
+        const { id, ...jobData } = job; // Exclude temporary id
+        await addDoc(collection(db, "jobs"), jobData);
     } catch (e) {
         console.error("Error adding document: ", e);
+        // Revert local state if Firestore write fails
+        setJobs(prevJobs => prevJobs.filter(j => j.id !== job.id));
         throw e;
     }
   };
@@ -413,5 +417,3 @@ export const useNotifications = () => {
   }
   return context;
 };
-
-    

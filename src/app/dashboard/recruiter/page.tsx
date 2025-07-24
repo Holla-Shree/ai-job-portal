@@ -97,7 +97,7 @@ function RecruiterPortalContent() {
     const lowercasedTerm = talentSearchTerm.toLowerCase();
     return candidates.filter(
       (candidate) =>
-        candidate.name.toLowerCase().includes(lowercasedTerm) ||
+        (candidate.name && candidate.name.toLowerCase().includes(lowercasedTerm)) ||
         candidate.profile.toLowerCase().includes(lowercasedTerm)
     );
   }, [talentSearchTerm, candidates]);
@@ -138,12 +138,10 @@ function RecruiterPortalContent() {
   
   const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
-    // Optimistic UI update
-    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
-    jobPostForm.reset();
-    setActiveTab("postings");
-
-    addJob({
+    
+    // Create a temporary job object for optimistic UI update
+    const newJob: Job = {
+        id: `temp-${Date.now()}`, // Temporary ID
         title: data.jobTitle,
         company: data.companyName,
         city: data.location,
@@ -151,7 +149,16 @@ function RecruiterPortalContent() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
-    }).catch(err => {
+        position: { lat: 20.5937, lng: 78.9629 }, // Default position
+    };
+
+    // Optimistically update the UI
+    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+    jobPostForm.reset();
+    setActiveTab("postings");
+    
+    // Call the context function to handle state update and background save
+    addJob(newJob).catch(err => {
         // If the background operation fails, inform the user.
         toast({ variant: "destructive", title: "Posting Failed", description: "The job could not be saved to the database. Please try again." });
         // Optionally, you could implement a retry mechanism or revert the UI changes.
@@ -550,7 +557,7 @@ function RecruiterPortalContent() {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
                             <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name, "this opportunity")}>
+                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name || 'this candidate', "this opportunity")}>
                                     <MessageSquare className="mr-2 h-3 w-3" />
                                     Message
                                 </Button>
@@ -570,7 +577,7 @@ function RecruiterPortalContent() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name)}>
+                                        <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate')}>
                                             Confirm
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
