@@ -29,6 +29,8 @@ import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 interface ScoredCandidate extends ScreenCandidateOutput {
   candidate: { id: string; name: string; profile: string; };
@@ -63,6 +65,8 @@ function RecruiterPortalContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
+  const [showScreeningStartToast, setShowScreeningStartToast] = useState(false);
+  const [showScreeningCompleteToast, setShowScreeningCompleteToast] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<ScoredCandidate | null>(null);
@@ -92,6 +96,20 @@ function RecruiterPortalContent() {
       localStorage.setItem('shortlistedCandidates', JSON.stringify(shortlistedCandidates));
     }
   }, [shortlistedCandidates, isClient]);
+
+  useEffect(() => {
+    if (showScreeningStartToast) {
+        toast({ title: `Screening for "${activeScreeningJobTitle}"`, description: "AI is now screening candidates..." });
+        setShowScreeningStartToast(false);
+    }
+  }, [showScreeningStartToast, activeScreeningJobTitle, toast]);
+
+  useEffect(() => {
+      if (showScreeningCompleteToast) {
+          toast({ title: "Screening Complete!", description: `Found and ranked ${screeningResults.length} candidates for "${activeScreeningJobTitle}".` });
+          setShowScreeningCompleteToast(false);
+      }
+  }, [showScreeningCompleteToast, screeningResults.length, activeScreeningJobTitle, toast]);
   
 
   const filteredTalentPool = useMemo(() => {
@@ -165,10 +183,10 @@ function RecruiterPortalContent() {
       setSelectedCandidate(null);
       setScreeningProgress(0);
       setActiveScreeningJobTitle(job.title);
+      setShowScreeningStartToast(true);
       
       const results: ScoredCandidate[] = [];
       try {
-        toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
         for (let i = 0; i < candidates.length; i++) {
           const candidate = candidates[i];
           const screeningResult = await screenCandidate({
@@ -181,7 +199,7 @@ function RecruiterPortalContent() {
         results.sort((a, b) => b.score - a.score); // Sort by score descending
         setScreeningResults(results);
         setSelectedCandidate(results[0] || null);
-        toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
+        setShowScreeningCompleteToast(true);
       } catch (error) {
          console.error("Error during auto-screening:", error);
          toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
@@ -557,71 +575,68 @@ function RecruiterPortalContent() {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Candidate</TableHead>
-                        <TableHead>Profile Summary</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {getShortlistedCandidatesDetails.length > 0 ? (
-                        getShortlistedCandidatesDetails.map((candidate) => (
-                            <TableRow key={candidate.id}>
-                            <TableCell className="font-medium">
-                                <div className="flex items-center gap-3">
-                                <Avatar>
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
-                                    <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
-                                </Avatar>
-                                <span>{candidate.name || 'Unnamed Candidate'}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
-                            <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name || 'this candidate', "this opportunity")}>
-                                    <MessageSquare className="mr-2 h-3 w-3" />
-                                    Message
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm">
-                                      <CalendarPlus className="mr-2 h-3 w-3" />
-                                      Schedule
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                        This will send an invitation to {candidate.name} and update their application status.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate')}>
-                                            Confirm
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                                <Button variant="ghost" size="icon" onClick={() => handleShortlistCandidate(candidate.id)}>
-                                    <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                                    <span className="sr-only">Remove from shortlist</span>
-                                </Button>
-                            </TableCell>
-                            </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                            <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                                No candidates have been shortlisted yet.
-                            </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                    {getShortlistedCandidatesDetails.length > 0 ? (
+                        <Accordion type="single" collapsible className="w-full">
+                            {getShortlistedCandidatesDetails.map((candidate) => (
+                                <AccordionItem value={candidate.id} key={candidate.id}>
+                                    <AccordionTrigger>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
+                                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-semibold">{candidate.name || 'Unnamed Candidate'}</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <div className="pl-4 space-y-4">
+                                            <div>
+                                                <h4 className="font-semibold mb-1 text-sm">Profile Summary</h4>
+                                                <p className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</p>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex items-center gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name || 'this candidate', "this opportunity")}>
+                                                    <MessageSquare className="mr-2 h-3 w-3" />
+                                                    Message
+                                                </Button>
+                                                <AlertDialog>
+                                                  <AlertDialogTrigger asChild>
+                                                    <Button size="sm">
+                                                      <CalendarPlus className="mr-2 h-3 w-3" />
+                                                      Schedule
+                                                    </Button>
+                                                  </AlertDialogTrigger>
+                                                  <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                        This will send an invitation to {candidate.name} and update their application status.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate')}>
+                                                            Confirm
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                  </AlertDialogContent>
+                                                </AlertDialog>
+                                                <Button variant="ghost" size="icon" onClick={() => handleShortlistCandidate(candidate.id)}>
+                                                    <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                                                    <span className="sr-only">Remove from shortlist</span>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <div className="h-24 flex items-center justify-center text-center text-muted-foreground">
+                            No candidates have been shortlisted yet.
+                        </div>
+                    )}
                 </ScrollArea>
               </CardContent>
             </Card>
