@@ -155,7 +155,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
     const unsubscribeConversations = onSnapshot(conversationsQuery, async (querySnapshot) => {
-        const allCandidates = (await getDocs(collection(db, "candidates"))).docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
+        const allCandidatesDocs = await getDocs(collection(db, "candidates"));
+        const allCandidates = allCandidatesDocs.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
 
         const convosData: Conversation[] = querySnapshot.docs.map(doc => {
             const data = doc.data();
@@ -173,7 +174,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                 partnerName = partnerCandidate?.name || 'A candidate';
                 partnerRole = 'Candidate';
                 avatar = (partnerCandidate?.name || 'C').charAt(0);
+            } else { // Admin view
+                const partnerCandidate = allCandidates.find(c => c.id === partnerId);
+                if (partnerCandidate) {
+                     partnerName = partnerCandidate?.name || 'A candidate';
+                     partnerRole = 'Candidate';
+                     avatar = (partnerCandidate?.name || 'C').charAt(0);
+                } else {
+                     partnerName = `Recruiter @ ${data.company || 'a company'}`;
+                     partnerRole = 'Recruiter';
+                     avatar = (data.company || 'R').charAt(0);
+                }
             }
+             if (partnerId === 'SYSTEM') {
+                partnerName = 'System Notifications';
+                partnerRole = 'System';
+                avatar = 'S';
+            }
+
 
             return {
                 id: doc.id,
@@ -203,7 +221,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user, setUser]);
+  }, [user?.id, setUser]);
 
 
   useEffect(() => {

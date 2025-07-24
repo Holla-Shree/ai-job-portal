@@ -185,7 +185,7 @@ function MessagingPage() {
                 messages: arrayUnion(newMessage),
                 lastMessage: newMessage.text,
                 timestamp: Date.now(),
-                unreadBy: arrayUnion(partnerId) // Mark as unread for the partner
+                unreadBy: arrayUnion(partnerId)
             });
             setMessageInput('');
         } catch (error) {
