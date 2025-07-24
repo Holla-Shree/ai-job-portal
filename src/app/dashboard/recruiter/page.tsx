@@ -56,7 +56,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { updateApplicationStatus, initiateConversation, candidates, addJob, jobs, deleteJob } = useNotifications();
+  const { updateApplicationStatus, conversations, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
@@ -210,16 +210,11 @@ function RecruiterPortalContent() {
   };
   
   const handleMessageCandidate = (candidateName: string, jobTitle: string) => {
-    const conversationId = initiateConversation({
-        jobTitle: jobTitle,
-        company: 'Your Company', // Or get from form
-        partnerName: candidateName,
-        createEmpty: true,
-    });
-    
-    const opportunity = jobTitle === 'this opportunity' ? 'this opportunity' : `the ${jobTitle} position`;
-    const message = `Hi ${candidateName}, I'm reaching out regarding ${opportunity}. I was impressed by your profile and would like to discuss this opportunity further.`;
-    router.push(`/dashboard/messaging?open=${conversationId}&message=${encodeURIComponent(message)}`);
+    const partnerName = candidateName || "a candidate";
+    const company = jobPostForm.getValues("companyName") || "your company";
+    const suggestedMessage = `Hi ${partnerName}, I'm reaching out regarding the ${jobTitle} position at ${company}. I was impressed by your profile and would like to discuss this opportunity further.`;
+
+    router.push(`/dashboard/messaging?jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(company)}&partnerName=${encodeURIComponent(partnerName)}&message=${encodeURIComponent(suggestedMessage)}`);
   };
 
   const handleDeleteJob = async (jobId: string) => {
@@ -484,7 +479,7 @@ function RecruiterPortalContent() {
                                      </div>
                                    )}
                                    <div className="flex items-center gap-2 pt-2 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, jobPostForm.getValues("jobTitle"))}>
+                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(result.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
                                             <MessageSquare className="mr-2 h-4 w-4" />
                                             Message
                                         </Button>
@@ -545,10 +540,10 @@ function RecruiterPortalContent() {
                             <TableCell className="font-medium">
                                 <div className="flex items-center gap-3">
                                 <Avatar>
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar"/>
-                                    <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                    <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
                                 </Avatar>
-                                <span>{candidate.name}</span>
+                                <span>{candidate.name || 'Unnamed Candidate'}</span>
                                 </div>
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</TableCell>
@@ -632,10 +627,10 @@ function RecruiterPortalContent() {
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
                               <Avatar>
-                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar"/>
-                                <AvatarFallback>{candidate.name.charAt(0)}</AvatarFallback>
+                                <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
                               </Avatar>
-                              <span>{candidate.name}</span>
+                              <span>{candidate.name || 'Unnamed Candidate'}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">{candidate.profile}</TableCell>
