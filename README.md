@@ -28,10 +28,11 @@ This project requires API keys for Google Maps and Google AI services.
 2.  Copy the following content into the `.env` file and replace the placeholder values with your actual API keys.
 
     ```env
-    # Get a key from the Google Cloud Console. Enable the "Maps JavaScript API".
+    # For the interactive job map feature, get an API key from the Google Cloud Console.
+    # You must enable the "Maps JavaScript API" for your project.
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
 
-    # Get a key from Google AI Studio.
+    # For the AI-powered features, get an API key from Google AI Studio.
     GEMINI_API_KEY=YOUR_GEMINI_API_KEY
     ```
 
