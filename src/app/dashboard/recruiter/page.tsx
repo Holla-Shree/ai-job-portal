@@ -56,7 +56,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { updateApplicationStatus, conversations, candidates, addJob, jobs, deleteJob } = useNotifications();
+  const { updateApplicationStatus, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
@@ -70,6 +70,9 @@ function RecruiterPortalContent() {
   const [talentSearchTerm, setTalentSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState("postJob");
   const [activeScreeningJobTitle, setActiveScreeningJobTitle] = useState<string | null>(null);
+  
+  // State for managing toasts to avoid "setState in render" error
+  const [toastInfo, setToastInfo] = useState<{ title: string; description: string; variant?: "default" | "destructive"; } | null>(null);
 
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
   const generatorForm = useForm<GeneratorFormValues>({ resolver: zodResolver(generatorSchema) });
@@ -91,6 +94,15 @@ function RecruiterPortalContent() {
       localStorage.setItem('shortlistedCandidates', JSON.stringify(shortlistedCandidates));
     }
   }, [shortlistedCandidates, isClient]);
+  
+  // useEffect to show toasts when toastInfo state changes
+  useEffect(() => {
+    if (toastInfo) {
+      toast(toastInfo);
+      setToastInfo(null); // Reset after showing
+    }
+  }, [toastInfo, toast]);
+
 
   const filteredTalentPool = useMemo(() => {
     if (!talentSearchTerm) return candidates;
@@ -122,7 +134,7 @@ function RecruiterPortalContent() {
       const result = await generateJobDescription({ jobTitle: data.jobTitle, notes: data.notes });
       if (result.jobDescription) {
         jobPostForm.setValue("jobDescription", result.jobDescription, { shouldValidate: true });
-        toast({ title: "Description Generated!", description: "The job description has been populated." });
+        setToastInfo({ title: "Description Generated!", description: "The job description has been populated." });
         setIsGeneratorOpen(false);
         generatorForm.reset();
       } else {
@@ -130,7 +142,7 @@ function RecruiterPortalContent() {
       }
     } catch (error) {
       console.error("Error generating job description:", error);
-      toast({ variant: "destructive", title: "Generation Failed", description: "Could not generate job description." });
+      setToastInfo({ variant: "destructive", title: "Generation Failed", description: "Could not generate job description." });
     } finally {
       setIsGenerating(false);
     }
@@ -148,15 +160,19 @@ function RecruiterPortalContent() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
-        position: { lat: 20.5937, lng: 78.9629 },
+        position: { lat: 20.5937, lng: 78.9629 }, // Default position
     };
-
-    addJob(newJob);
-
-    toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
-    jobPostForm.reset();
-    setActiveTab("postings");
-    setIsPosting(false);
+    
+    // Optimistic UI update
+    addJob(newJob).then(() => {
+      setToastInfo({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
+      jobPostForm.reset();
+      setActiveTab("postings");
+      setIsPosting(false);
+    }).catch(() => {
+      setToastInfo({ variant: "destructive", title: "Posting Failed", description: "Could not post the job." });
+      setIsPosting(false);
+    });
   };
 
   const handleScreeningForJob = async (job: Job) => {
@@ -168,7 +184,7 @@ function RecruiterPortalContent() {
       
       const results: ScoredCandidate[] = [];
       try {
-        toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
+        setToastInfo({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
         for (let i = 0; i < candidates.length; i++) {
           const candidate = candidates[i];
           const screeningResult = await screenCandidate({
@@ -180,10 +196,10 @@ function RecruiterPortalContent() {
         }
         results.sort((a, b) => b.score - a.score); // Sort by score descending
         setScreeningResults(results);
-        toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
+        setToastInfo({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
       } catch (error) {
          console.error("Error during auto-screening:", error);
-         toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
+         setToastInfo({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
       } finally {
          setIsScreening(false);
          setScreeningProgress(100);
@@ -196,7 +212,7 @@ function RecruiterPortalContent() {
       if (prev.includes(candidateId)) {
         return prev.filter(id => id !== candidateId); // Un-shortlist
       } else {
-        toast({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in the 'Shortlisted' tab." });
+        setToastInfo({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in the 'Shortlisted' tab." });
         return [...prev, candidateId]; // Shortlist
       }
     });
@@ -204,7 +220,7 @@ function RecruiterPortalContent() {
 
   const handleScheduleInterview = (candidateId: string, candidateName: string) => {
      updateApplicationStatus(candidateId, 'Interview');
-     toast({
+     setToastInfo({
         title: "Interview Scheduled",
         description: `An invitation has been sent to ${candidateName} and their application status has been updated.`,
      });
@@ -221,10 +237,10 @@ function RecruiterPortalContent() {
   const handleDeleteJob = async (jobId: string) => {
     try {
       await deleteJob(jobId);
-      toast({ title: "Job Deleted", description: "The job posting has been successfully removed." });
+      setToastInfo({ title: "Job Deleted", description: "The job posting has been successfully removed." });
     } catch (error) {
       console.error("Error deleting job:", error);
-      toast({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the job posting." });
+      setToastInfo({ variant: "destructive", title: "Deletion Failed", description: "Could not delete the job posting." });
     }
   };
 
@@ -443,28 +459,28 @@ function RecruiterPortalContent() {
                         <Accordion type="single" collapsible className="w-full">
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                              <div className="flex items-center w-full">
-                                  <Button
+                                <div className="flex items-center w-full">
+                                    <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-10 w-10 mr-2"
                                       onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
                                     >
                                       <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                  </Button>
-                                  <AccordionTrigger className="flex-1">
-                                     <div className="flex justify-between items-center w-full">
-                                       <div className="text-left">
-                                           <p className="font-semibold">{result.candidate.name}</p>
-                                           <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
-                                       </div>
-                                       <div className="text-right">
-                                          <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                          <p className="text-xs text-muted-foreground">Match Score</p>
-                                       </div>
-                                     </div>
-                                  </AccordionTrigger>
-                              </div>
+                                    </Button>
+                                    <AccordionTrigger>
+                                        <div className="flex justify-between items-center w-full">
+                                            <div className="text-left">
+                                                <p className="font-semibold">{result.candidate.name}</p>
+                                                <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                                <p className="text-xs text-muted-foreground">Match Score</p>
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                </div>
                               <AccordionContent>
                                  <div className="space-y-4 text-sm px-2 ml-12">
                                    <div>
