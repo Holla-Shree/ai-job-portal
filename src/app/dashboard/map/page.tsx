@@ -22,11 +22,19 @@ import { useAuth } from '@/contexts/AuthContext';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, saveJob, unsaveJob, expressInterest } = useNotifications();
+    const { addNotification, saveJob, unsaveJob, expressInterest, applicationHistory } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
 
-    const isSaved = user?.savedJobs.includes(job.id);
+    const isSaved = useMemo(() => {
+        if (!user) return false;
+        return applicationHistory.some(app => 
+            app.candidateId === user.id && 
+            app.jobTitle === job.title && 
+            app.company === job.company && 
+            app.status === 'Interested'
+        );
+    }, [applicationHistory, user, job]);
 
     const handleApply = () => {
         if (!user) {
@@ -64,7 +72,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             unsaveJob(job.id);
             toast({ title: 'Job Unsaved' });
         } else {
-            saveJob(job.id);
+            saveJob(job);
             toast({ title: 'Job Saved!' });
         }
     };
@@ -282,7 +290,6 @@ function JobMapPage() {
                      <Map
                         defaultCenter={defaultPosition}
                         defaultZoom={5}
-                        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
                         gestureHandling={'greedy'}
                         disableDefaultUI={true}
                         className="h-full w-full"

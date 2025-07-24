@@ -290,7 +290,6 @@ export default function JobMapPage() {
                          <Map
                             defaultCenter={defaultPosition}
                             defaultZoom={5}
-                            mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
                             gestureHandling={'greedy'}
                             disableDefaultUI={true}
                             className="h-full w-full"
