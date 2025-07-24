@@ -139,9 +139,8 @@ function RecruiterPortalContent() {
   const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
     setIsPosting(true);
     
-    // Create a temporary job object for optimistic UI update
     const newJob: Job = {
-        id: `temp-${Date.now()}`, // Temporary ID
+        id: `temp-${Date.now()}`,
         title: data.jobTitle,
         company: data.companyName,
         city: data.location,
@@ -149,22 +148,15 @@ function RecruiterPortalContent() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
-        position: { lat: 20.5937, lng: 78.9629 }, // Default position
+        position: { lat: 20.5937, lng: 78.9629 },
     };
 
-    // Optimistically update the UI
+    addJob(newJob);
+
     toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
     jobPostForm.reset();
     setActiveTab("postings");
-    
-    // Call the context function to handle state update and background save
-    addJob(newJob).catch(err => {
-        // If the background operation fails, inform the user.
-        toast({ variant: "destructive", title: "Posting Failed", description: "The job could not be saved to the database. Please try again." });
-        // Optionally, you could implement a retry mechanism or revert the UI changes.
-    }).finally(() => {
-        setIsPosting(false);
-    });
+    setIsPosting(false);
   };
 
   const handleScreeningForJob = async (job: Job) => {
@@ -451,30 +443,30 @@ function RecruiterPortalContent() {
                         <Accordion type="single" collapsible className="w-full">
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                              <AccordionTrigger>
-                                 <div className="flex justify-between items-center w-full pr-4">
-                                   <div className="text-left flex items-center gap-2">
-                                     <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7"
-                                          onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
-                                        >
-                                          <Star className={`h-4 w-4 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                      </Button>
-                                     <div>
-                                       <p className="font-semibold">{result.candidate.name}</p>
-                                       <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                              <div className="flex items-center w-full">
+                                  <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 mr-2"
+                                      onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
+                                    >
+                                      <Star className={`h-4 w-4 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                  </Button>
+                                  <AccordionTrigger className="flex-1">
+                                     <div className="flex justify-between items-center w-full">
+                                       <div className="text-left">
+                                           <p className="font-semibold">{result.candidate.name}</p>
+                                           <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                       </div>
+                                       <div className="text-right">
+                                          <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                          <p className="text-xs text-muted-foreground">Match Score</p>
+                                       </div>
                                      </div>
-                                   </div>
-                                   <div className="text-right">
-                                      <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                      <p className="text-xs text-muted-foreground">Match Score</p>
-                                   </div>
-                                 </div>
-                              </AccordionTrigger>
+                                  </AccordionTrigger>
+                              </div>
                               <AccordionContent>
-                                 <div className="space-y-4 text-sm px-2">
+                                 <div className="space-y-4 text-sm px-2 ml-9">
                                    <div>
                                      <h4 className="font-semibold mb-1">Rationale</h4>
                                      <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
