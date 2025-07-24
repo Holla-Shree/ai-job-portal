@@ -18,9 +18,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
-import { useNotifications, Conversation } from '@/contexts/NotificationContext';
+import { useNotifications, Conversation, Message } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function MessagingPage() {
@@ -164,11 +164,17 @@ function MessagingPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageInput.trim() || !selectedConversation || selectedConversation.partnerRole === 'System') return;
-
-        const newMessage = {
-            id: `msg${Date.now()}`,
-            sender: 'me' as const,
+        if (!messageInput.trim() || !selectedConversation || !user || selectedConversation.partnerRole === 'System') return;
+    
+        const partnerId = selectedConversation.participants.find(p => p !== user.id);
+        if (!partnerId) {
+            toast({ title: "Error", description: "Could not identify the recipient.", variant: "destructive" });
+            return;
+        }
+    
+        const newMessage: Message = {
+            id: `msg-${Date.now()}`,
+            senderId: user.id, // Use the actual user ID
             text: messageInput,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -176,9 +182,10 @@ function MessagingPage() {
         try {
             const convoRef = doc(db, "conversations", selectedConversationId!);
             await updateDoc(convoRef, {
-                messages: [...selectedConversation.messages, newMessage],
+                messages: arrayUnion(newMessage),
                 lastMessage: newMessage.text,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                unreadBy: arrayUnion(partnerId) // Mark as unread for the partner
             });
             setMessageInput('');
         } catch (error) {
@@ -610,19 +617,17 @@ function MessagingPage() {
                         <div className="space-y-4">
                         {selectedConversation.messages.map(msg => (
                             <div key={msg.id} className={cn("flex items-end gap-2", 
-                                msg.sender === 'me' ? 'justify-end' : 
-                                msg.sender === 'system' ? 'justify-center' :
-                                'justify-start'
+                                msg.senderId === user?.id ? 'justify-end' : 'justify-start'
                             )}>
-                                {isMessageSelectionMode && msg.sender !== 'system' && (
+                                {isMessageSelectionMode && (
                                 <Checkbox 
                                     id={`msg-select-${msg.id}`}
                                     checked={selectedMessages.includes(msg.id)}
                                     onCheckedChange={() => handleMessageSelection(msg.id)}
-                                    className={cn("self-center", msg.sender === 'me' ? 'order-last ml-2' : 'mr-2')}
+                                    className={cn("self-center", msg.senderId === user?.id ? 'order-last ml-2' : 'mr-2')}
                                 />
                                 )}
-                                {msg.sender === 'other' && (
+                                {msg.senderId !== user?.id && (
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
                                         <AvatarFallback>{selectedConversation.avatar}</AvatarFallback>
@@ -630,14 +635,13 @@ function MessagingPage() {
                                 )}
                                 <div className={cn(
                                     'max-w-[70%] p-3 rounded-xl text-sm',
-                                    msg.sender === 'me' ? 'bg-primary text-primary-foreground rounded-br-none' : 
-                                    msg.sender === 'system' ? 'bg-accent/20 text-accent-foreground w-full text-center italic' :
+                                    msg.senderId === user?.id ? 'bg-primary text-primary-foreground rounded-br-none' : 
                                     'bg-muted rounded-bl-none'
                                 )}>
                                     <p>{msg.text}</p>
                                     <p className="text-xs opacity-70 mt-1 text-right">{msg.timestamp}</p>
                                 </div>
-                                {msg.sender === 'me' && user && (
+                                {msg.senderId === user?.id && user && (
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user.avatar} alt="My Avatar" data-ai-hint="person avatar" />
                                         <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
@@ -657,7 +661,7 @@ function MessagingPage() {
                             onChange={(e) => setMessageInput(e.target.value)}
                             disabled={selectedConversation.partnerRole === 'System'}
                         />
-                        <Button type="submit" size="icon" disabled={selectedConversation.partnerRole === 'System'}>
+                        <Button type="submit" size="icon" disabled={selectedConversation.partnerRole === 'System' || !messageInput.trim()}>
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>

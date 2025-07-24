@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth, User } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy } from "firebase/firestore";
 import { db } from '@/lib/firebase';
@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 
 export interface Message {
   id: string;
-  sender: 'me' | 'other' | 'system';
+  senderId: string;
   text: string;
   timestamp: string;
 }
@@ -154,30 +154,36 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
-    const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
-        const convosData: Conversation[] = [];
-         querySnapshot.forEach(doc => {
+    const unsubscribeConversations = onSnapshot(conversationsQuery, async (querySnapshot) => {
+        const allCandidates = (await getDocs(collection(db, "candidates"))).docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
+
+        const convosData: Conversation[] = querySnapshot.docs.map(doc => {
             const data = doc.data();
-            const partnerRole = user.role === 'user' ? 'Recruiter' : 'Candidate';
-            
+            const partnerId = data.participants.find((p: string) => p !== user.id);
             let partnerName = 'A partner';
+            let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
+            let avatar = '';
+
             if (user.role === 'user') {
                 partnerName = `Recruiter @ ${data.company || 'a company'}`;
+                partnerRole = 'Recruiter';
+                avatar = (data.company || 'R').charAt(0);
             } else if (user.role === 'recruiter') {
-                partnerName = data.candidateName || 'A candidate';
+                const partnerCandidate = allCandidates.find(c => c.id === partnerId);
+                partnerName = partnerCandidate?.name || 'A candidate';
+                partnerRole = 'Candidate';
+                avatar = (partnerCandidate?.name || 'C').charAt(0);
             }
 
-
-            convosData.push({
+            return {
                 id: doc.id,
                 ...data,
-                partnerName: partnerName,
-                partnerRole: data.partnerRole || partnerRole,
-                avatar: partnerRole.charAt(0),
-            } as Conversation);
+                partnerName,
+                partnerRole,
+                avatar,
+            } as Conversation;
         });
 
-        // This replaces the entire state, ensuring deleted items are removed
         setConversations(convosData);
     });
 
