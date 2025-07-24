@@ -448,7 +448,7 @@ function RecruiterPortalContent() {
                         <Accordion type="single" collapsible className="w-full">
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                                <div className="flex items-center w-full px-4">
+                                <div className="flex items-center w-full px-4 py-0">
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -457,7 +457,7 @@ function RecruiterPortalContent() {
                                     >
                                         <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
                                     </Button>
-                                    <AccordionTrigger className="flex-1">
+                                    <AccordionTrigger className="flex-1 p-4">
                                         <div className="flex items-center justify-between w-full">
                                             <div className="text-left">
                                                 <p className="font-semibold">{result.candidate.name || "Unnamed Candidate"}</p>
@@ -663,5 +663,3 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
-
-    
