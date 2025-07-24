@@ -31,7 +31,8 @@ function MessagingPage() {
         markAsRead, 
         toggleMute,
         deleteConversation,
-        clearConversationMessages
+        clearConversationMessages,
+        sendMessage
     } = useNotifications();
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -50,28 +51,54 @@ function MessagingPage() {
     }, [selectedConversationId, conversations]);
 
     useEffect(() => {
-        const startConversationWith = searchParams.get('start_with_user');
-        if (startConversationWith && user) {
-            const existingConversation = conversations.find(c => c.participants.includes(startConversationWith));
-            if (existingConversation) {
-                setSelectedConversationId(existingConversation.id);
-            } else {
-                // In a real app, you might want to create a new conversation here.
-                // For now, we'll just log it.
-                console.log("No existing conversation found with user:", startConversationWith);
-                toast({
-                    title: "No conversation yet",
-                    description: "Send the first message to start a conversation.",
-                    variant: "default"
-                });
-            }
-        }
-    }, [searchParams, conversations, user, toast]);
-
-    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedConversation?.messages]);
 
+
+    useEffect(() => {
+        const startWithCandidate = searchParams.get('start_with_candidate');
+        const aboutJob = searchParams.get('about_job');
+
+        const findOrCreateConversation = async () => {
+            if (!startWithCandidate || !aboutJob || !user) return;
+
+            const participants = [user.id, startWithCandidate].sort();
+            
+            const q = query(
+                collection(db, "conversations"),
+                where("participants", "==", participants),
+                where("jobTitle", "==", aboutJob)
+            );
+
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                // Conversation exists
+                const convoDoc = querySnapshot.docs[0];
+                setSelectedConversationId(convoDoc.id);
+            } else {
+                // Conversation does not exist, create it
+                const newConversation = {
+                    participants: participants,
+                    jobTitle: aboutJob,
+                    lastMessage: "New conversation started.",
+                    messages: [],
+                    pinned: false,
+                    favourited: false,
+                    unreadBy: [],
+                    mutedBy: [],
+                    timestamp: Date.now(),
+                };
+                const newDocRef = await addDoc(collection(db, "conversations"), newConversation);
+                setSelectedConversationId(newDocRef.id);
+            }
+        };
+
+        if (startWithCandidate) {
+            findOrCreateConversation();
+        }
+
+    }, [searchParams, user, conversations]);
 
     const filteredConversations = useMemo(() => {
         if (!user) return [];
@@ -118,34 +145,17 @@ function MessagingPage() {
         }
     };
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!messageInput.trim() || !selectedConversation || !user || selectedConversation.partnerRole === 'System') return;
-    
-        const newMessage: Message = {
-            id: `msg-${Date.now()}`,
-            senderId: user.id, // Use the actual user ID
-            text: messageInput,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
         
-        // Optimistically update local state
-        const updatedConversations = conversations.map(c => {
-            if (c.id === selectedConversation.id) {
-                return {
-                    ...c,
-                    messages: [...c.messages, newMessage],
-                    lastMessage: newMessage.text,
-                    timestamp: Date.now()
-                };
-            }
-            return c;
-        });
-        // setConversations(updatedConversations); // This is now handled by the context
-        setMessageInput('');
-        
-        // Here you would send the message to your backend/Firebase
-        console.log("Sending message:", newMessage, "to conversation:", selectedConversation.id);
+        try {
+            await sendMessage(selectedConversation, messageInput);
+            setMessageInput('');
+        } catch (error) {
+            console.error("Error sending message:", error);
+            toast({ title: "Error", description: "Failed to send message.", variant: "destructive"});
+        }
     };
 
     const handleScheduleInterview = () => {
