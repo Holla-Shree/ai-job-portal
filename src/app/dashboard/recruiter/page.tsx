@@ -30,7 +30,6 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { useAuth } from '@/contexts/AuthContext';
 
 
 interface ScoredCandidate extends ScreenCandidateOutput {
@@ -59,7 +58,6 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const { updateApplicationStatus, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -235,10 +233,12 @@ function RecruiterPortalContent() {
      });
   };
   
-  const handleMessageCandidate = (candidateId: string, candidateName: string, jobTitle: string) => {
-    const partnerName = candidateName || "a candidate";
-    const company = user?.name || "your company";
-    router.push(`/dashboard/messaging?partnerId=${encodeURIComponent(candidateId)}&partnerName=${encodeURIComponent(partnerName)}&jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(company)}`);
+  const handleMessageCandidate = (candidateId: string, candidateName: string) => {
+    router.push(`/dashboard/messaging?start_with_user=${candidateId}`);
+    toast({
+      title: "Opening Chat",
+      description: `Starting a conversation with ${candidateName}.`
+    });
   };
 
   const handleDeleteJob = async (jobId: string) => {
@@ -530,7 +530,7 @@ function RecruiterPortalContent() {
                                             )}
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, selectedCandidate.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, selectedCandidate.candidate.name)}>
                                                     <MessageSquare className="mr-2 h-4 w-4" /> Message
                                                 </Button>
                                                 <AlertDialog>
@@ -600,7 +600,7 @@ function RecruiterPortalContent() {
                                             </div>
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, candidate.name || 'this candidate', "this opportunity")}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, candidate.name || 'this candidate')}>
                                                     <MessageSquare className="mr-2 h-3 w-3" />
                                                     Message
                                                 </Button>
@@ -708,5 +708,3 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
-
-    

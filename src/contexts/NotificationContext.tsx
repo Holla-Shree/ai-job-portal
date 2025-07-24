@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth, User } from './AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, deleteDoc, addDoc, query, where, getDocs, writeBatch, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -31,9 +31,6 @@ export interface Conversation {
   partnerName: string;
   partnerRole: 'Recruiter' | 'Candidate' | 'System';
   avatar: string;
-  company?: string;
-  candidateName?: string;
-  recruiterName?: string;
 }
 
 export interface ApplicationNotification {
@@ -154,7 +151,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
     });
 
-    const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
+    const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
         const convosData: Conversation[] = querySnapshot.docs.map(doc => {
             const data = doc.data();
@@ -164,13 +161,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             let avatar = '';
 
             if (user.role === 'user') {
-                partnerName = `Recruiter @ ${data.company || 'a company'}`;
+                partnerName = 'Recruiter';
                 partnerRole = 'Recruiter';
-                avatar = (data.company || 'R').charAt(0);
+                avatar = 'R';
             } else if (user.role === 'recruiter') {
-                partnerName = data.candidateName || 'A candidate';
+                partnerName = 'Candidate'; // In a real app, you'd fetch the user's name
                 partnerRole = 'Candidate';
-                avatar = (data.candidateName || 'C').charAt(0);
+                avatar = 'C';
             }
              if (partnerId === 'SYSTEM') {
                 partnerName = 'System Notifications';
@@ -188,6 +185,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             } as Conversation;
         });
 
+        // Sort conversations by timestamp
+        convosData.sort((a,b) => b.timestamp - a.timestamp);
         setConversations(convosData);
     });
 
@@ -207,7 +206,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, setUser]);
+  }, [user?.id]);
 
 
   useEffect(() => {
@@ -427,5 +426,3 @@ export const useNotifications = () => {
   }
   return context;
 };
-
-    
