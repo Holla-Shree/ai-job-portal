@@ -193,7 +193,9 @@ function RecruiterPortalContent() {
             jobDescription: job.description,
             candidateProfile: candidate.profile,
           });
-          results.push({ ...screeningResult, candidate });
+          if (candidate.name) {
+             results.push({ ...screeningResult, candidate });
+          }
           setScreeningProgress(((i + 1) / candidates.length) * 100);
         }
         results.sort((a, b) => b.score - a.score); // Sort by score descending
@@ -213,6 +215,7 @@ function RecruiterPortalContent() {
   const handleShortlistCandidate = (candidateId: string) => {
     setShortlistedCandidates(prev => {
       if (prev.includes(candidateId)) {
+        toast({ title: "Candidate Removed from Shortlist"});
         return prev.filter(id => id !== candidateId); // Un-shortlist
       } else {
         toast({ title: "Candidate Shortlisted!", description: "You can find all shortlisted candidates in the 'Shortlisted' tab." });
@@ -583,7 +586,7 @@ function RecruiterPortalContent() {
                                         <div className="flex items-center gap-3">
                                             <Avatar>
                                                 <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
-                                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
+                                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
                                             </Avatar>
                                             <span className="font-semibold">{candidate.name || 'Unnamed Candidate'}</span>
                                         </div>
@@ -675,7 +678,7 @@ function RecruiterPortalContent() {
                             <div className="flex items-center gap-3">
                               <Avatar>
                                 <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
-                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0) : 'C'}</AvatarFallback>
+                                <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
                               </Avatar>
                               <span>{candidate.name || 'Unnamed Candidate'}</span>
                             </div>
