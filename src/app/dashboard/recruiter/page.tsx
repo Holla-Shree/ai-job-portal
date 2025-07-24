@@ -448,26 +448,24 @@ function RecruiterPortalContent() {
                         <Accordion type="single" collapsible className="w-full">
                            {screeningResults.map((result) => (
                             <AccordionItem key={result.candidate.id} value={result.candidate.id}>
-                                <div className="flex items-center w-full">
-                                    <AccordionTrigger>
-                                        <div className="flex items-center gap-4 w-full">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 shrink-0"
-                                                onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
-                                            >
-                                                <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                            </Button>
-                                            <div className="flex items-center justify-between w-full">
-                                                <div className="text-left">
-                                                    <p className="font-semibold">{result.candidate.name || "Unnamed Candidate"}</p>
-                                                    <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                                    <p className="text-xs text-muted-foreground">Match Score</p>
-                                                </div>
+                                <div className="flex items-center w-full px-4">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 shrink-0"
+                                        onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
+                                    >
+                                        <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                    </Button>
+                                    <AccordionTrigger className="flex-1">
+                                        <div className="flex items-center justify-between w-full">
+                                            <div className="text-left">
+                                                <p className="font-semibold">{result.candidate.name || "Unnamed Candidate"}</p>
+                                                <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`text-2xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                                <p className="text-xs text-muted-foreground">Match Score</p>
                                             </div>
                                         </div>
                                     </AccordionTrigger>
@@ -665,3 +663,5 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
+
+    
