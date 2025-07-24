@@ -275,12 +275,12 @@ function RecruiterPortalContent() {
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="postJob"><PlusCircle className="mr-2" />Post a Job</TabsTrigger>
-            <TabsTrigger value="postings"><Briefcase className="mr-2" />My Postings</TabsTrigger>
-            <TabsTrigger value="screeningResults"><Sparkles className="mr-2" />Screening Results</TabsTrigger>
-            <TabsTrigger value="shortlisted"><Star className="mr-2" />Shortlisted</TabsTrigger>
-            <TabsTrigger value="talent"><Users className="mr-2" />Talent Pool</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
+            <TabsTrigger value="postJob" className="whitespace-normal"><PlusCircle className="mr-2" />Post a Job</TabsTrigger>
+            <TabsTrigger value="postings" className="whitespace-normal"><Briefcase className="mr-2" />My Postings</TabsTrigger>
+            <TabsTrigger value="screeningResults" className="whitespace-normal"><Sparkles className="mr-2" />Screening Results</TabsTrigger>
+            <TabsTrigger value="shortlisted" className="whitespace-normal"><Star className="mr-2" />Shortlisted</TabsTrigger>
+            <TabsTrigger value="talent" className="whitespace-normal"><Users className="mr-2" />Talent Pool</TabsTrigger>
           </TabsList>
           
           <TabsContent value="postJob">
