@@ -447,10 +447,10 @@ function RecruiterPortalContent() {
                                   <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 mr-2"
+                                      className="h-10 w-10 mr-2"
                                       onClick={(e) => { e.stopPropagation(); handleShortlistCandidate(result.candidate.id); }}
                                     >
-                                      <Star className={`h-4 w-4 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                      <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(result.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
                                   </Button>
                                   <AccordionTrigger className="flex-1">
                                      <div className="flex justify-between items-center w-full">
@@ -466,7 +466,7 @@ function RecruiterPortalContent() {
                                   </AccordionTrigger>
                               </div>
                               <AccordionContent>
-                                 <div className="space-y-4 text-sm px-2 ml-9">
+                                 <div className="space-y-4 text-sm px-2 ml-12">
                                    <div>
                                      <h4 className="font-semibold mb-1">Rationale</h4>
                                      <p className="text-muted-foreground whitespace-pre-wrap">{result.rationale}</p>
