@@ -33,6 +33,7 @@ export interface Conversation {
   avatar: string;
   company?: string;
   candidateName?: string;
+  recruiterName?: string;
 }
 
 export interface ApplicationNotification {
@@ -154,10 +155,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id), orderBy("timestamp", "desc"));
-    const unsubscribeConversations = onSnapshot(conversationsQuery, async (querySnapshot) => {
-        const allCandidatesDocs = await getDocs(collection(db, "candidates"));
-        const allCandidates = allCandidatesDocs.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
-
+    const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
         const convosData: Conversation[] = querySnapshot.docs.map(doc => {
             const data = doc.data();
             const partnerId = data.participants.find((p: string) => p !== user.id);
@@ -170,21 +168,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                 partnerRole = 'Recruiter';
                 avatar = (data.company || 'R').charAt(0);
             } else if (user.role === 'recruiter') {
-                const partnerCandidate = allCandidates.find(c => c.id === partnerId);
-                partnerName = partnerCandidate?.name || 'A candidate';
+                partnerName = data.candidateName || 'A candidate';
                 partnerRole = 'Candidate';
-                avatar = (partnerCandidate?.name || 'C').charAt(0);
-            } else { // Admin view
-                const partnerCandidate = allCandidates.find(c => c.id === partnerId);
-                if (partnerCandidate) {
-                     partnerName = partnerCandidate?.name || 'A candidate';
-                     partnerRole = 'Candidate';
-                     avatar = (partnerCandidate?.name || 'C').charAt(0);
-                } else {
-                     partnerName = `Recruiter @ ${data.company || 'a company'}`;
-                     partnerRole = 'Recruiter';
-                     avatar = (data.company || 'R').charAt(0);
-                }
+                avatar = (data.candidateName || 'C').charAt(0);
             }
              if (partnerId === 'SYSTEM') {
                 partnerName = 'System Notifications';
@@ -441,3 +427,5 @@ export const useNotifications = () => {
   }
   return context;
 };
+
+    

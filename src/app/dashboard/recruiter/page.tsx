@@ -30,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 interface ScoredCandidate extends ScreenCandidateOutput {
@@ -58,6 +59,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { updateApplicationStatus, candidates, addJob, jobs, deleteJob } = useNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,8 +189,9 @@ function RecruiterPortalContent() {
       
       const results: ScoredCandidate[] = [];
       try {
-        for (let i = 0; i < candidates.length; i++) {
-          const candidate = candidates[i];
+        const qualifiedCandidates = candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered'));
+        for (let i = 0; i < qualifiedCandidates.length; i++) {
+          const candidate = qualifiedCandidates[i];
           const screeningResult = await screenCandidate({
             jobDescription: job.description,
             candidateProfile: candidate.profile,
@@ -196,7 +199,7 @@ function RecruiterPortalContent() {
           if (candidate.name) {
              results.push({ ...screeningResult, candidate });
           }
-          setScreeningProgress(((i + 1) / candidates.length) * 100);
+          setScreeningProgress(((i + 1) / qualifiedCandidates.length) * 100);
         }
         results.sort((a, b) => b.score - a.score); // Sort by score descending
         setScreeningResults(results);
@@ -232,12 +235,10 @@ function RecruiterPortalContent() {
      });
   };
   
-  const handleMessageCandidate = (candidateName: string, jobTitle: string) => {
+  const handleMessageCandidate = (candidateId: string, candidateName: string, jobTitle: string) => {
     const partnerName = candidateName || "a candidate";
-    const company = jobPostForm.getValues("companyName") || "your company";
-    const suggestedMessage = `Hi ${partnerName}, I'm reaching out regarding the ${jobTitle} position at ${company}. I was impressed by your profile and would like to discuss this opportunity further.`;
-
-    router.push(`/dashboard/messaging?jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(company)}&partnerName=${encodeURIComponent(partnerName)}&message=${encodeURIComponent(suggestedMessage)}`);
+    const company = user?.name || "your company";
+    router.push(`/dashboard/messaging?partnerId=${encodeURIComponent(candidateId)}&partnerName=${encodeURIComponent(partnerName)}&jobTitle=${encodeURIComponent(jobTitle)}&company=${encodeURIComponent(company)}`);
   };
 
   const handleDeleteJob = async (jobId: string) => {
@@ -275,12 +276,12 @@ function RecruiterPortalContent() {
       <div className="container mx-auto py-8">
         <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Recruiter Portal</h1>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
-            <TabsTrigger value="postJob" className="whitespace-normal"><PlusCircle className="mr-2" />Post a Job</TabsTrigger>
-            <TabsTrigger value="postings" className="whitespace-normal"><Briefcase className="mr-2" />My Postings</TabsTrigger>
-            <TabsTrigger value="screeningResults" className="whitespace-normal"><Sparkles className="mr-2" />Screening Results</TabsTrigger>
-            <TabsTrigger value="shortlisted" className="whitespace-normal"><Star className="mr-2" />Shortlisted</TabsTrigger>
-            <TabsTrigger value="talent" className="whitespace-normal"><Users className="mr-2" />Talent Pool</TabsTrigger>
+           <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
+            <TabsTrigger value="postJob" className="whitespace-normal py-2"><PlusCircle className="mr-2 h-4 w-4" />Post a Job</TabsTrigger>
+            <TabsTrigger value="postings" className="whitespace-normal py-2"><Briefcase className="mr-2 h-4 w-4" />My Postings</TabsTrigger>
+            <TabsTrigger value="screeningResults" className="whitespace-normal py-2"><Sparkles className="mr-2 h-4 w-4" />Screening Results</TabsTrigger>
+            <TabsTrigger value="shortlisted" className="whitespace-normal py-2"><Star className="mr-2 h-4 w-4" />Shortlisted</TabsTrigger>
+            <TabsTrigger value="talent" className="whitespace-normal py-2"><Users className="mr-2 h-4 w-4" />Talent Pool</TabsTrigger>
           </TabsList>
           
           <TabsContent value="postJob">
@@ -451,7 +452,7 @@ function RecruiterPortalContent() {
                       {isScreening && (
                         <div className="space-y-2">
                             <Progress value={screeningProgress} className="w-full" />
-                            <p className="text-sm text-muted-foreground text-center">Screening {candidates.length} candidates... ({Math.round(screeningProgress)}%)</p>
+                            <p className="text-sm text-muted-foreground text-center">Screening {candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered')).length} candidates... ({Math.round(screeningProgress)}%)</p>
                         </div>
                       )}
                       {!isScreening && screeningResults.length === 0 && (
@@ -529,7 +530,7 @@ function RecruiterPortalContent() {
                                             )}
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, selectedCandidate.candidate.name, activeScreeningJobTitle || 'this opportunity')}>
                                                     <MessageSquare className="mr-2 h-4 w-4" /> Message
                                                 </Button>
                                                 <AlertDialog>
@@ -599,7 +600,7 @@ function RecruiterPortalContent() {
                                             </div>
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.name || 'this candidate', "this opportunity")}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, candidate.name || 'this candidate', "this opportunity")}>
                                                     <MessageSquare className="mr-2 h-3 w-3" />
                                                     Message
                                                 </Button>
@@ -707,3 +708,5 @@ function RecruiterPortalPage() {
 }
 
 export default withAuth(RecruiterPortalPage, ['recruiter', 'admin']);
+
+    

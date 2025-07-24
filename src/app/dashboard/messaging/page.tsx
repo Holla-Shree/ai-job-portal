@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
 import { useNotifications, Conversation, Message } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
-import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch, arrayUnion, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function MessagingPage() {
@@ -28,7 +28,7 @@ function MessagingPage() {
     const { toast } = useToast();
     const router = useRouter();
     const { 
-        conversations, 
+        conversations: initialConversations, 
         markAsRead, 
         toggleMute,
         deleteConversation,
@@ -36,6 +36,7 @@ function MessagingPage() {
     } = useNotifications();
     const searchParams = useSearchParams();
     
+    const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
     const [conversationToClear, setConversationToClear] = useState<Conversation | null>(null);
@@ -46,6 +47,11 @@ function MessagingPage() {
     const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const unsubscribeRef = useRef<Unsubscribe | null>(null);
+
+     useEffect(() => {
+        setConversations(initialConversations);
+    }, [initialConversations]);
 
     const selectedConversation = useMemo(() => {
         return conversations.find(c => c.id === selectedConversationId) || null;
@@ -56,14 +62,13 @@ function MessagingPage() {
         const handleNewConversation = async () => {
             if (!user?.id || !user.name) return;
     
+            const partnerId = searchParams.get('partnerId');
+            const partnerName = searchParams.get('partnerName');
             const jobTitle = searchParams.get('jobTitle');
             const company = searchParams.get('company');
-            const partnerName = searchParams.get('partnerName');
-            const suggestedMessage = searchParams.get('message');
-    
-            if (jobTitle && company && partnerName) {
-                const recruiterId = `recruiter@${company.toLowerCase().replace(/\s+/g, '')}.com`;
-                const participants = [user.id, recruiterId].sort();
+
+            if (partnerId && partnerName && jobTitle && company) {
+                const participants = [user.id, partnerId].sort();
     
                 const q = query(
                     collection(db, "conversations"),
@@ -79,37 +84,91 @@ function MessagingPage() {
                 if (!querySnapshot.empty) {
                     conversationId = querySnapshot.docs[0].id;
                 } else {
-                     const newConversation = {
+                     const newConversationData = {
                         participants,
                         jobTitle,
                         company,
-                        candidateName: user.name || "A Job Seeker",
-                        lastMessage: suggestedMessage || "Conversation started.",
+                        candidateName: user.role === 'user' ? user.name : partnerName,
+                        recruiterName: user.role === 'recruiter' ? user.name : partnerName,
+                        lastMessage: "Conversation started.",
                         messages: [],
                         pinned: false,
                         favourited: false,
-                        unreadBy: [recruiterId],
+                        unreadBy: [],
                         mutedBy: [],
                         timestamp: Date.now(),
                     };
-                    const docRef = await addDoc(collection(db, "conversations"), newConversation);
+                    const docRef = await addDoc(collection(db, "conversations"), newConversationData);
                     conversationId = docRef.id;
                 }
                 
                 setSelectedConversationId(conversationId);
-                if (suggestedMessage) {
-                    setMessageInput(decodeURIComponent(suggestedMessage));
-                }
     
                 const newPath = window.location.pathname;
                 router.replace(newPath, { scroll: false });
             }
         };
 
-        if (user?.id && user?.name && searchParams.has('jobTitle')) {
+        if (user?.id && user?.name && searchParams.has('partnerId')) {
             handleNewConversation();
         }
     }, [searchParams, user, router]);
+
+
+    useEffect(() => {
+        // Detach any existing listener
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+        }
+
+        if (selectedConversationId) {
+            const unsub = onSnapshot(doc(db, "conversations", selectedConversationId), (doc) => {
+                 if (doc.exists()) {
+                    const updatedConvo = { id: doc.id, ...doc.data() } as Conversation;
+                    
+                    // Logic to determine partner name, role, avatar (moved from context)
+                    const partnerId = updatedConvo.participants.find(p => p !== user?.id);
+                    let partnerName = 'A partner';
+                    let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
+                    let avatar = '';
+
+                    if (user?.role === 'user') {
+                        partnerName = `Recruiter @ ${updatedConvo.company || 'a company'}`;
+                        partnerRole = 'Recruiter';
+                        avatar = (updatedConvo.company || 'R').charAt(0);
+                    } else if (user?.role === 'recruiter') {
+                        partnerName = updatedConvo.candidateName || 'A candidate';
+                        partnerRole = 'Candidate';
+                        avatar = (updatedConvo.candidateName || 'C').charAt(0);
+                    }
+                    if (partnerId === 'SYSTEM') {
+                        partnerName = 'System Notifications';
+                        partnerRole = 'System';
+                        avatar = 'S';
+                    }
+                    
+                    const fullUpdatedConvo = { ...updatedConvo, partnerName, partnerRole, avatar };
+
+                    setConversations(prevConvos => {
+                        const index = prevConvos.findIndex(c => c.id === selectedConversationId);
+                        if (index > -1) {
+                            const newConvos = [...prevConvos];
+                            newConvos[index] = fullUpdatedConvo;
+                            return newConvos;
+                        }
+                        return [...prevConvos, fullUpdatedConvo]; // Add if not present
+                    });
+                }
+            });
+            unsubscribeRef.current = unsub;
+        }
+
+        return () => {
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current();
+            }
+        };
+    }, [selectedConversationId, user]);
 
 
     useEffect(() => {
@@ -736,3 +795,5 @@ function MessagingPageWrapper() {
 }
 
 export default withAuth(MessagingPageWrapper, ['user', 'recruiter', 'admin']);
+
+    
