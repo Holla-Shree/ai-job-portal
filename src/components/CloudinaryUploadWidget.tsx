@@ -38,6 +38,7 @@ export function CloudinaryUploadWidget({
 
   return (
     <CldUploadWidget
+      cloudName={process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
       uploadPreset="unsigned_preset"
       onSuccess={handleUploadSuccess}
       onError={handleUploadError}
@@ -50,7 +51,7 @@ export function CloudinaryUploadWidget({
     >
       {({ open }) => {
         return (
-          <div onClick={() => open()} className="cursor-pointer w-full">
+          <div onClick={() => open?.()} className="cursor-pointer w-full">
             {isUploading ? (
               <Button variant="outline" className="w-full" disabled>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
