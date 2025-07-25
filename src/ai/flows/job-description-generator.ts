@@ -36,9 +36,6 @@ export type GenerateJobDescriptionOutput = z.infer<
 export async function generateJobDescription(
   input: GenerateJobDescriptionInput
 ): Promise<GenerateJobDescriptionOutput> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('The GEMINI_API_KEY environment variable is not set. Please add it to your .env file.');
-  }
   return generateJobDescriptionFlow(input);
 }
 

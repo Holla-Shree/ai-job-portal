@@ -49,9 +49,6 @@ const RecommendJobsOutputSchema = z.object({
 export type RecommendJobsOutput = z.infer<typeof RecommendJobsOutputSchema>;
 
 export async function recommendJobs(input: RecommendJobsInput): Promise<RecommendJobsOutput> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('The GEMINI_API_KEY environment variable is not set. Please add it to your .env file.');
-  }
   return recommendJobsFlow(input);
 }
 

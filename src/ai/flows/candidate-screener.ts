@@ -10,6 +10,10 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+
 
 const ScreenCandidateInputSchema = z.object({
   jobDescription: z.string().describe('The full text of the job description.'),
@@ -48,14 +52,6 @@ export type ScreenCandidateOutput = z.infer<typeof ScreenCandidateOutputSchema>;
 export async function screenCandidate(
   input: ScreenCandidateInput
 ): Promise<ScreenCandidateOutput> {
-  if (!process.env.GEMINI_API_KEY) {
-      return {
-        matchStrength: 'Not a Fit',
-        score: 0,
-        rationale: 'The AI service is not configured. Please set the GEMINI_API_KEY in your environment variables to enable candidate screening.',
-        missingQualifications: ['AI service not configured.'],
-      };
-  }
   return screenCandidateFlow(input);
 }
 
