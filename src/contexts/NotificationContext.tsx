@@ -61,6 +61,8 @@ interface NotificationContextType {
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
+  recruiters: Recruiter[];
+  updateRecruiterProfile: (recruiterId: string, profileData: Partial<Recruiter>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
   saveJob: (job: Job) => void;
@@ -98,6 +100,9 @@ export type Recruiter = {
     name: string;
     email: string;
     avatar?: string;
+    companyName?: string;
+    companyWebsite?: string;
+    companyBio?: string;
 }
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -193,7 +198,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     const rec = recruiters.find(r => r.id === partnerId);
                     if(rec) {
                         partnerName = rec.name;
-                        avatar = rec.avatar || rec.name.charAt(0);
+                        avatar = rec.avatar || (rec.name ? rec.name.charAt(0) : 'R');
                     } else {
                         partnerName = "A Recruiter";
                         avatar = "R";
@@ -203,7 +208,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     const cand = candidates.find(c => c.id === partnerId);
                      if(cand){
                         partnerName = cand.name;
-                        avatar = cand.avatar || cand.name.charAt(0);
+                        avatar = cand.avatar || (cand.name ? cand.name.charAt(0) : 'C');
                      } else {
                         partnerName = "A Candidate";
                         avatar = "C";
@@ -383,14 +388,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   
 
   const addJob = async (job: Job) => {
-    setJobs(prevJobs => [...prevJobs, job]);
     
     try {
         const { id, ...jobData } = job;
-        await addDoc(collection(db, "jobs"), jobData);
+        const docRef = await addDoc(collection(db, "jobs"), jobData);
+        // After adding, update the local state with the actual ID from firestore
+        setJobs(prevJobs => [...prevJobs, { ...job, id: docRef.id }]);
     } catch (e) {
         console.error("Error adding document: ", e);
-        setJobs(prevJobs => prevJobs.filter(j => j.id !== job.id));
         throw e;
     }
   };
@@ -434,6 +439,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const updateRecruiterProfile = async (recruiterId: string, profileData: Partial<Recruiter>) => {
+    try {
+      const docRef = doc(db, "recruiters", recruiterId);
+      await setDoc(docRef, profileData, { merge: true });
+    } catch (e) {
+      console.error("Error updating recruiter profile: ", e);
+      throw e;
+    }
+  };
+
 
   const unblockUser = (userId: string) => {
     setBlockedUsers(prev => prev.filter(u => u.id !== userId));
@@ -462,7 +477,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, recruiters, updateRecruiterProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
       {children}
     </NotificationContext.Provider>
   );

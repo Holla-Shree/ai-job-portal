@@ -13,28 +13,41 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { CloudinaryUploadWidget } from '@/components/CloudinaryUploadWidget';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 
 export default function RecruiterProfilePage() {
     const { user, updateUserAvatar } = useAuth();
+    const { recruiters, updateRecruiterProfile } = useNotifications();
     const { toast } = useToast();
+    
     const [name, setName] = useState('');
+    const [companyName, setCompanyName] = useState('');
+    const [companyWebsite, setCompanyWebsite] = useState('');
+    const [companyBio, setCompanyBio] = useState('');
+    
+    const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
 
+    const currentRecruiterProfile = React.useMemo(() => {
+        return recruiters.find(r => r.id === user?.id);
+    }, [recruiters, user]);
+
     useEffect(() => {
-        // A real app would fetch this from a recruiter profile in the DB.
-        // We'll simulate it based on the user's email for now.
-        if (user?.email) {
+        if (currentRecruiterProfile) {
+            setName(currentRecruiterProfile.name || '');
+            setCompanyName(currentRecruiterProfile.companyName || '');
+            setCompanyWebsite(currentRecruiterProfile.companyWebsite || '');
+            setCompanyBio(currentRecruiterProfile.companyBio || '');
+        } else if (user?.email) {
             const simulatedName = user.email.split('@')[0].replace(/[^a-zA-Z]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             setName(simulatedName || 'Recruiter Admin');
-        } else {
-            setName('Recruiter Admin');
         }
-    }, [user?.email]);
+    }, [currentRecruiterProfile, user?.email]);
 
     const handleUploadSuccess = async (result: any) => {
         const secureUrl = result?.info?.secure_url;
-        if (secureUrl) {
+        if (secureUrl && user) {
             try {
                 await updateUserAvatar(secureUrl);
                 toast({
@@ -51,6 +64,32 @@ export default function RecruiterProfilePage() {
             }
         }
     };
+    
+    const handleSaveChanges = async () => {
+        if (!user) return;
+        setIsSaving(true);
+        try {
+            await updateRecruiterProfile(user.id, {
+                name,
+                companyName,
+                companyWebsite,
+                companyBio,
+            });
+            toast({
+                title: 'Profile Saved',
+                description: 'Your company profile has been successfully updated.',
+            });
+        } catch (error) {
+             console.error("Error saving recruiter profile:", error);
+             toast({
+                title: 'Save Failed',
+                description: 'Could not save your profile changes.',
+                variant: 'destructive',
+             });
+        } finally {
+            setIsSaving(false);
+        }
+    }
 
 
     return (
@@ -100,19 +139,38 @@ export default function RecruiterProfilePage() {
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="companyName">Company Name</Label>
-                    <Input id="companyName" defaultValue="Tech Solutions Inc." />
+                    <Input 
+                        id="companyName" 
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="e.g. Tech Solutions Inc."
+                    />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="companyWebsite">Company Website</Label>
-                    <Input id="companyWebsite" defaultValue="https://example.com" />
+                    <Input 
+                        id="companyWebsite" 
+                        value={companyWebsite}
+                        onChange={(e) => setCompanyWebsite(e.target.value)}
+                        placeholder="e.g. https://example.com"
+                    />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="recruiterBio">Company Bio</Label>
-                    <Textarea id="recruiterBio" rows={4} defaultValue="Tech Solutions Inc. is a leading provider of innovative technology solutions, specializing in cloud computing and enterprise software. We are always looking for talented individuals to join our team." />
+                    <Textarea 
+                        id="recruiterBio" 
+                        rows={4} 
+                        value={companyBio}
+                        onChange={(e) => setCompanyBio(e.target.value)}
+                        placeholder="e.g. Tech Solutions Inc. is a leading provider of innovative technology solutions..."
+                    />
                 </div>
             </CardContent>
             <CardFooter>
-                <Button>Save Changes</Button>
+                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                </Button>
             </CardFooter>
         </Card>
     );
