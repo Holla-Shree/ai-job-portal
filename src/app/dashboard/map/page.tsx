@@ -1,8 +1,7 @@
 
-
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { GoogleMap, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { GoogleMap, Map, Marker } from '@vis.gl/react-google-maps';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -295,24 +294,12 @@ function JobMapPage() {
                         className="h-full w-full"
                     >
                         {filteredJobs.map((job) => (
-                             <AdvancedMarker
+                             <Marker
                                 key={job.id}
                                 position={job.position as { lat: number, lng: number }}
                                 onClick={() => setSelectedJob(job)}
-                            >
-                               <div className={cn(
-                                   "transition-all duration-200",
-                                   (selectedJob?.id === job.id || hoveredJobId === job.id) ? 'scale-125 z-10' : 'scale-100'
-                                )}>
-                                    <div className={cn(
-                                        "rounded-full h-8 w-8 flex items-center justify-center shadow-lg",
-                                        selectedJob?.id === job.id ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'
-                                    )}>
-                                       <Briefcase className="h-4 w-4"/>
-                                    </div>
-                                    <div className="bg-background w-2 h-2 transform rotate-45 -mt-1 mx-auto shadow-lg"></div>
-                               </div>
-                            </AdvancedMarker>
+                                title={job.title}
+                            />
                         ))}
                     </Map>
 
