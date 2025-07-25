@@ -40,13 +40,16 @@ export default function LoginForm() {
     // In a real app, you'd validate credentials. Here, we'll assign roles based on email.
     let role: 'user' | 'recruiter' | 'admin' = 'user';
     let name = data.email.split('@')[0];
+    let idPrefix = 'user';
 
     if (data.email.includes('recruiter')) {
       role = 'recruiter';
       name = "Recruiter Admin";
+      idPrefix = 'recruiter';
     } else if (data.email.includes('admin')) {
       role = 'admin';
       name = "Platform Admin";
+      idPrefix = 'admin'
     }
 
     toast({
@@ -54,7 +57,7 @@ export default function LoginForm() {
       description: `Welcome! You are now logged in as a ${role}.`,
     });
     
-    const userId = `user-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const userId = `${idPrefix}-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
 
     login(role, userId, data.email, name);
 

@@ -49,24 +49,25 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     const { role, fullName, email } = data;
     
-    const candidateId = `user-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const entityId = `${role}-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const collectionName = role === 'user' ? 'candidates' : 'recruiters';
 
-    if (role === 'user') {
-        try {
-            await setDoc(doc(db, "candidates", candidateId), {
-                id: candidateId,
-                name: fullName,
-                profile: `Newly registered user. Please upload a resume to create a full profile.`
-            });
-        } catch (error) {
-            console.error("Error creating candidate profile in Firestore:", error);
-            toast({
-                title: 'Signup Failed',
-                description: 'Could not create your user profile. Please try again.',
-                variant: 'destructive',
-            });
-            return;
-        }
+    try {
+        await setDoc(doc(db, collectionName, entityId), {
+            id: entityId,
+            name: fullName,
+            email: email,
+            profile: `Newly registered ${role}. Please update your profile.`,
+            avatar: `https://placehold.co/40x40.png?text=${fullName.charAt(0).toUpperCase()}`
+        });
+    } catch (error) {
+        console.error(`Error creating ${role} profile in Firestore:`, error);
+        toast({
+            title: 'Signup Failed',
+            description: `Could not create your ${role} profile. Please try again.`,
+            variant: 'destructive',
+        });
+        return;
     }
 
     toast({
@@ -74,14 +75,14 @@ export default function SignupPage() {
       description: "You have been successfully signed up.",
     });
 
-    login(role as UserRole, candidateId, email, fullName);
+    login(role as UserRole, entityId, email, fullName);
 
     switch (role) {
       case 'user':
         router.push('/dashboard/user/settings/profile');
         break;
       case 'recruiter':
-        router.push('/dashboard/recruiter');
+        router.push('/dashboard/recruiter/settings/profile');
         break;
       default:
         router.push('/');

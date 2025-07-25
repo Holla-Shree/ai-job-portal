@@ -92,12 +92,21 @@ export type Candidate = {
     avatar?: string;
 };
 
+// Add a type for Recruiter as well
+export type Recruiter = {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+}
+
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const { user, setUser } = useAuth();
 
@@ -118,6 +127,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user?.id) {
         setJobs([]);
         setCandidates([]);
+        setRecruiters([]);
         setConversations([]);
         setApplicationHistory([]);
         return;
@@ -133,9 +143,26 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
-        // Logic to sync the logged-in user's profile if it has changed in the DB
         if (user && user.role === 'user') {
             const currentUserDataFromDb = candidatesData.find(c => c.id === user.id);
+            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
+                 const updatedUser = {
+                    ...user,
+                    name: currentUserDataFromDb.name,
+                    avatar: currentUserDataFromDb.avatar || user.avatar,
+                };
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }
+    });
+
+    const unsubscribeRecruiters = onSnapshot(collection(db, "recruiters"), (snapshot) => {
+        const recruitersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter));
+        setRecruiters(recruitersData);
+
+         if (user && user.role === 'recruiter') {
+            const currentUserDataFromDb = recruitersData.find(r => r.id === user.id);
             if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
                  const updatedUser = {
                     ...user,
@@ -163,11 +190,17 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     partnerRole = 'System';
                     avatar = 'S';
                 } else if (user.role === 'user') {
-                    partnerName = 'Recruiter'; // Placeholder
+                    const rec = recruiters.find(r => r.id === partnerId);
+                    if(rec) {
+                        partnerName = rec.name;
+                        avatar = rec.avatar || rec.name.charAt(0);
+                    } else {
+                        partnerName = "A Recruiter";
+                        avatar = "R";
+                    }
                     partnerRole = 'Recruiter';
-                    avatar = 'R';
                 } else if (user.role === 'recruiter') {
-                    const cand = candidates.find(c => c.id === partnerId) || candidates.find(c => c.id === partnerId);
+                    const cand = candidates.find(c => c.id === partnerId);
                      if(cand){
                         partnerName = cand.name;
                         avatar = cand.avatar || cand.name.charAt(0);
@@ -208,10 +241,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
+        unsubscribeRecruiters();
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, user?.role, setUser]); // Removed 'user' and 'candidates' from deps to break loop
+  }, [user?.id, user?.role, setUser]);
 
 
   useEffect(() => {
