@@ -128,9 +128,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setJobs(jobsData);
     });
     
+    // This listener now handles candidate list updates AND syncs the auth user's profile
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
+
+        // Logic to sync the logged-in user's profile if it has changed in the DB
+        if (user && user.role === 'user') {
+            const currentUserDataFromDb = candidatesData.find(c => c.id === user.id);
+            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
+                 const updatedUser = {
+                    ...user,
+                    name: currentUserDataFromDb.name,
+                    avatar: currentUserDataFromDb.avatar || user.avatar,
+                };
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
@@ -152,13 +167,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     partnerRole = 'Recruiter';
                     avatar = 'R';
                 } else if (user.role === 'recruiter') {
-                    // We need to fetch the candidate details if not already in state
-                     const cand = candidates.find(c => c.id === partnerId);
+                    const cand = candidates.find(c => c.id === partnerId) || candidates.find(c => c.id === partnerId);
                      if(cand){
                         partnerName = cand.name;
                         avatar = cand.avatar || cand.name.charAt(0);
                      } else {
-                        // fallback if candidate not yet in state
                         partnerName = "A Candidate";
                         avatar = "C";
                      }
@@ -198,31 +211,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, user?.role, candidates]);
-
-
-  // Separate effect to sync user profile to avoid loops
-  useEffect(() => {
-    if (user && user.role === 'user' && candidates.length > 0) {
-      const currentUserData = candidates.find(c => c.id === user.id);
-      if (currentUserData) {
-        setUser(prevUser => {
-          if (!prevUser) return null;
-          // Only update if there's an actual change
-          if (prevUser.name !== currentUserData.name || prevUser.avatar !== currentUserData.avatar) {
-            const updatedUser = {
-              ...prevUser,
-              name: currentUserData.name,
-              avatar: currentUserData.avatar || prevUser.avatar,
-            };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            return updatedUser;
-          }
-          return prevUser;
-        });
-      }
-    }
-  }, [user, candidates, setUser]);
+  }, [user?.id, user?.role, setUser]); // Removed 'user' and 'candidates' from deps to break loop
 
 
   useEffect(() => {
@@ -234,9 +223,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const saveJob = async (job: Job) => {
       if (!user?.id) return;
-      
-      // The `expressInterest` function is now the correct way to "save" a job
-      // as it adds it to the "Interested" column of the pipeline.
       await expressInterest(job.title, job.company);
   };
   
@@ -266,7 +252,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user?.id) return;
     const candidateId = user.id;
 
-    // Check if an application for this job already exists
     const q = query(
         collection(db, 'applications'), 
         where("candidateId", "==", candidateId),
@@ -276,11 +261,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
-        // Application exists, update its status to 'Applied'
         const docRef = querySnapshot.docs[0].ref;
         await updateDoc(docRef, { status: 'Applied', timestamp: Date.now() });
     } else {
-        // No application exists, create a new one with 'Applied' status
         const candidate = candidates.find(c => c.id === candidateId);
         const newApplication = {
           jobTitle,
@@ -299,7 +282,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user?.id) return;
     const candidateId = user.id;
 
-    // Check if an entry for this job already exists for this user
     const q = query(
         collection(db, 'applications'), 
         where("candidateId", "==", candidateId),
@@ -309,7 +291,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-        // Only create a new "Interested" record if one doesn't exist
         const candidate = candidates.find(c => c.id === candidateId);
         const newInterest = {
           jobTitle,
@@ -322,7 +303,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         };
         await addDoc(collection(db, 'applications'), newInterest);
     }
-    // If a record already exists (e.g., they are already interested or applied), do nothing.
   };
 
   const markAsRead = async (id: string) => {
@@ -369,16 +349,13 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   
 
   const addJob = async (job: Job) => {
-    // Add to local state immediately for optimistic UI
     setJobs(prevJobs => [...prevJobs, job]);
     
-    // Add to Firestore in the background
     try {
-        const { id, ...jobData } = job; // Exclude temporary id
+        const { id, ...jobData } = job;
         await addDoc(collection(db, "jobs"), jobData);
     } catch (e) {
         console.error("Error adding document: ", e);
-        // Revert local state if Firestore write fails
         setJobs(prevJobs => prevJobs.filter(j => j.id !== job.id));
         throw e;
     }
