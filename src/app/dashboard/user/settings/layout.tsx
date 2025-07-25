@@ -17,7 +17,7 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/layout/AppLogo';
-import { User, Lock, Bell, Shield, CreditCard } from 'lucide-react';
+import { User, Lock, Bell, Shield, CreditCard, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const settingsNav = [
@@ -73,7 +73,15 @@ export default function SettingsLayout({
         </Sidebar>
         <SidebarInset>
           <div className="p-4 sm:p-6 md:p-8 flex items-center justify-between border-b">
-              <h1 className="text-2xl font-bold font-headline">Settings</h1>
+              <div>
+                <Button asChild variant="ghost" className="mb-2 -ml-4">
+                  <Link href="/dashboard/user">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Dashboard
+                  </Link>
+                </Button>
+                <h1 className="text-2xl font-bold font-headline">Settings</h1>
+              </div>
               <SidebarTrigger className="hidden md:flex" />
           </div>
           <div className="p-4 sm:p-6 md:p-8">

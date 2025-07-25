@@ -17,7 +17,7 @@ import {
   SidebarGroupLabel,
 } from '@/components/ui/sidebar';
 import { AppLogo } from '@/components/layout/AppLogo';
-import { User, Lock, CreditCard } from 'lucide-react';
+import { User, Lock, CreditCard, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const settingsNav = [
@@ -71,7 +71,15 @@ export default function RecruiterSettingsLayout({
         </Sidebar>
         <SidebarInset>
           <div className="p-4 sm:p-6 md:p-8 flex items-center justify-between border-b">
-              <h1 className="text-2xl font-bold font-headline">Recruiter Settings</h1>
+              <div>
+                <Button asChild variant="ghost" className="mb-2 -ml-4">
+                  <Link href="/dashboard/recruiter">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Recruiter Portal
+                  </Link>
+                </Button>
+                <h1 className="text-2xl font-bold font-headline">Recruiter Settings</h1>
+              </div>
               <SidebarTrigger className="hidden md:flex" />
           </div>
           <div className="p-4 sm:p-6 md:p-8">
