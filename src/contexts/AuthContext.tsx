@@ -3,6 +3,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { db, storage } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export type UserRole = 'user' | 'recruiter' | 'admin';
 
@@ -19,7 +22,7 @@ interface AuthContextType {
   loading: boolean;
   login: (role: UserRole, id: string, email: string, name: string) => void;
   logout: () => void;
-  updateAvatar: (avatar: string) => void;
+  updateAvatar: (file: File) => Promise<void>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
@@ -70,12 +73,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.location.href = '/';
   };
   
-  const updateAvatar = (avatar: string) => {
-    if (user) {
-        const updatedUser = { ...user, avatar };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
+  const updateAvatar = async (file: File) => {
+    if (!user) throw new Error("User not authenticated");
+
+    const storageRef = ref(storage, `profile-pictures/${user.id}/${file.name}`);
+    
+    // Upload the file
+    await uploadBytes(storageRef, file);
+
+    // Get the download URL
+    const downloadURL = await getDownloadURL(storageRef);
+
+    // Update user's avatar in Firestore
+    // This assumes recruiters might have profiles elsewhere, so we check the role.
+    const collectionName = user.role === 'user' ? 'candidates' : 'recruiters'; // Example, adjust if needed
+    const userDocRef = doc(db, collectionName, user.id);
+    await setDoc(userDocRef, { avatar: downloadURL }, { merge: true });
+
+    // Update the local state and localStorage
+    const updatedUser = { ...user, avatar: downloadURL };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   }
 
   const value = { user, loading, login, logout, updateAvatar, setUser };

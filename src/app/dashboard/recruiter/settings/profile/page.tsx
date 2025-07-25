@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -10,12 +11,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function RecruiterProfilePage() {
     const { user, updateAvatar } = useAuth();
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [name, setName] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         // A real app would fetch this from a recruiter profile in the DB.
@@ -32,19 +35,26 @@ export default function RecruiterProfilePage() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                updateAvatar(dataUrl);
+            setIsUploading(true);
+            try {
+                await updateAvatar(file);
                 toast({
                     title: 'Profile Picture Updated',
                     description: 'Your new company logo has been saved.',
                 });
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                console.error("Error uploading avatar:", error);
+                toast({
+                    title: 'Upload Failed',
+                    description: 'Could not update your profile picture.',
+                    variant: 'destructive',
+                });
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -57,12 +67,21 @@ export default function RecruiterProfilePage() {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
-                        <AvatarImage src={user?.avatar} alt="Company Logo" data-ai-hint="company logo" />
-                        <AvatarFallback>R</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                        <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                            <AvatarImage src={user?.avatar} alt="Company Logo" data-ai-hint="company logo" />
+                            <AvatarFallback>R</AvatarFallback>
+                        </Avatar>
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        )}
+                    </div>
                     <div className="space-y-1">
-                        <Button variant="outline" onClick={handleAvatarClick}>Upload Logo</Button>
+                        <Button variant="outline" onClick={handleAvatarClick} disabled={isUploading}>
+                            {isUploading ? 'Uploading...' : 'Upload Logo'}
+                        </Button>
                         <p className="text-xs text-muted-foreground">Click the avatar or button to upload a new logo. (PNG, JPG)</p>
                         <Input 
                             type="file" 
@@ -70,6 +89,7 @@ export default function RecruiterProfilePage() {
                             onChange={handleFileChange}
                             className="hidden"
                             accept="image/png, image/jpeg"
+                            disabled={isUploading}
                         />
                     </div>
                 </div>

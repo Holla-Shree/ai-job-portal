@@ -2,12 +2,13 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
   projectId: "jobmatch-ai-m0vfq",
   appId: "1:683798418249:web:910f59bcc13c29505f4098",
-  storageBucket: "jobmatch-ai-m0vfq.firebasestorage.app",
+  storageBucket: "jobmatch-ai-m0vfq.appspot.com",
   apiKey: "AIzaSyCQJoZQ1hJp_jOhAIY9vG7dX_VLRgIduP8",
   authDomain: "jobmatch-ai-m0vfq.firebaseapp.com",
   messagingSenderId: "683798418249",
@@ -16,6 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Enable offline persistence, but handle errors gracefully
 if (typeof window !== 'undefined') {
@@ -38,4 +40,4 @@ if (typeof window !== 'undefined') {
 }
 
 
-export { app, db };
+export { app, db, storage };

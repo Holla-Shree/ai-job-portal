@@ -98,6 +98,7 @@ function UserProfileCard() {
     const [bio, setBio] = useState('');
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const currentUserProfile = React.useMemo(() => {
         return candidates.find(c => c.id === user?.id);
@@ -119,19 +120,26 @@ function UserProfileCard() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                updateAvatar(dataUrl);
+            setIsUploading(true);
+            try {
+                await updateAvatar(file);
                 toast({
                     title: 'Profile Picture Updated',
                     description: 'Your new profile picture has been saved.',
                 });
-            };
-            reader.readAsDataURL(file);
+            } catch (error) {
+                 console.error("Error uploading avatar:", error);
+                 toast({
+                    title: 'Upload Failed',
+                    description: 'Could not update your profile picture.',
+                    variant: 'destructive',
+                 });
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
     
@@ -163,18 +171,25 @@ function UserProfileCard() {
                         <AvatarImage src={user?.avatar} alt="User Avatar" data-ai-hint="person avatar" />
                         <AvatarFallback>{name ? name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                     </Avatar>
-                    <div 
-                        className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90"
-                        onClick={handleAvatarClick}
-                    >
-                        <Camera className="h-4 w-4" />
-                    </div>
+                     {isUploading ? (
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                     ) : (
+                        <div 
+                            className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90"
+                            onClick={handleAvatarClick}
+                        >
+                            <Camera className="h-4 w-4" />
+                        </div>
+                     )}
                     <Input 
                         type="file" 
                         ref={fileInputRef} 
                         onChange={handleFileChange}
                         className="hidden"
                         accept="image/png, image/jpeg"
+                        disabled={isUploading}
                     />
                 </div>
                  <Input 
