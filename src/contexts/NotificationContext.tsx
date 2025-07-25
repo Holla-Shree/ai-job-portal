@@ -115,7 +115,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
   
   useEffect(() => {
-    if (typeof window === 'undefined' || !user || !user.id) {
+    if (!user?.id) {
         setJobs([]);
         setCandidates([]);
         setConversations([]);
@@ -123,61 +123,48 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return;
     };
 
-
     const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
         const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         setJobs(jobsData);
     });
     
-    const candidatesCollectionRef = collection(db, "candidates");
-    const unsubscribeCandidates = onSnapshot(candidatesCollectionRef, (snapshot) => {
+    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
-
-        if (user && user.role === 'user') {
-            const currentUserData = candidatesData.find(c => c.id === user.id);
-            if (currentUserData) {
-                setUser(prevUser => {
-                    if (!prevUser) return null;
-                    const updatedUser = {
-                        ...prevUser,
-                        name: currentUserData.name,
-                        avatar: currentUserData.avatar || prevUser.avatar,
-                    };
-                     if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
-                        localStorage.setItem('user', JSON.stringify(updatedUser));
-                        return updatedUser;
-                    }
-                    return prevUser;
-                });
-            }
-        }
     });
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
-        const convosData: Conversation[] = querySnapshot.docs.map(doc => {
+        const convosDataPromises = querySnapshot.docs.map(async (doc) => {
             const data = doc.data();
             const partnerId = data.participants.find((p: string) => p !== user.id);
             let partnerName = 'A partner';
             let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
             let avatar = '';
-            
-            const partnerCandidate = candidates.find(c => c.id === partnerId);
 
-            if (user.role === 'user') {
-                partnerName = 'Recruiter'; // In a real app, this would come from a recruiters collection
-                partnerRole = 'Recruiter';
-                avatar = 'R';
-            } else if (user.role === 'recruiter') {
-                partnerName = partnerCandidate?.name || 'Candidate';
-                partnerRole = 'Candidate';
-                avatar = partnerCandidate?.avatar || 'C';
-            }
-             if (partnerId === 'SYSTEM') {
-                partnerName = 'System Notifications';
-                partnerRole = 'System';
-                avatar = 'S';
+            if (partnerId) {
+                if (partnerId === 'SYSTEM') {
+                    partnerName = 'System Notifications';
+                    partnerRole = 'System';
+                    avatar = 'S';
+                } else if (user.role === 'user') {
+                    partnerName = 'Recruiter'; // Placeholder
+                    partnerRole = 'Recruiter';
+                    avatar = 'R';
+                } else if (user.role === 'recruiter') {
+                    // We need to fetch the candidate details if not already in state
+                     const cand = candidates.find(c => c.id === partnerId);
+                     if(cand){
+                        partnerName = cand.name;
+                        avatar = cand.avatar || cand.name.charAt(0);
+                     } else {
+                        // fallback if candidate not yet in state
+                        partnerName = "A Candidate";
+                        avatar = "C";
+                     }
+
+                    partnerRole = 'Candidate';
+                }
             }
 
             return {
@@ -189,9 +176,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             } as Conversation;
         });
 
-        // Sort conversations by timestamp
-        convosData.sort((a,b) => b.timestamp - a.timestamp);
-        setConversations(convosData);
+        Promise.all(convosDataPromises).then(convosData => {
+            convosData.sort((a,b) => b.timestamp - a.timestamp);
+            setConversations(convosData);
+        });
     });
 
     const applicationsQuery = user.role === 'user' 
@@ -210,7 +198,31 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, user?.role, setUser, candidates]); // Add `candidates` to dependency array to re-evaluate convos
+  }, [user?.id, user?.role, candidates]);
+
+
+  // Separate effect to sync user profile to avoid loops
+  useEffect(() => {
+    if (user && user.role === 'user' && candidates.length > 0) {
+      const currentUserData = candidates.find(c => c.id === user.id);
+      if (currentUserData) {
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          // Only update if there's an actual change
+          if (prevUser.name !== currentUserData.name || prevUser.avatar !== currentUserData.avatar) {
+            const updatedUser = {
+              ...prevUser,
+              name: currentUserData.name,
+              avatar: currentUserData.avatar || prevUser.avatar,
+            };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            return updatedUser;
+          }
+          return prevUser;
+        });
+      }
+    }
+  }, [user, candidates, setUser]);
 
 
   useEffect(() => {
