@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent to help recruiters screen candidates.
@@ -47,6 +48,14 @@ export type ScreenCandidateOutput = z.infer<typeof ScreenCandidateOutputSchema>;
 export async function screenCandidate(
   input: ScreenCandidateInput
 ): Promise<ScreenCandidateOutput> {
+  if (!process.env.GEMINI_API_KEY) {
+      return {
+        matchStrength: 'Not a Fit',
+        score: 0,
+        rationale: 'The AI service is not configured. Please set the GEMINI_API_KEY in your environment variables to enable candidate screening.',
+        missingQualifications: ['AI service not configured.'],
+      };
+  }
   return screenCandidateFlow(input);
 }
 

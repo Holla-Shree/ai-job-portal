@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent to generate relevant interview questions.
@@ -31,6 +32,9 @@ export type GenerateInterviewQuestionsOutput = z.infer<
 export async function generateInterviewQuestions(
   input: GenerateInterviewQuestionsInput
 ): Promise<GenerateInterviewQuestionsOutput> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('The GEMINI_API_KEY environment variable is not set. Please add it to your .env file.');
+  }
   return generateInterviewQuestionsFlow(input);
 }
 

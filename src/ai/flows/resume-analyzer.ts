@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -57,6 +58,9 @@ const AnalyzeResumeOutputSchema = z.object({
 export type AnalyzeResumeOutput = z.infer<typeof AnalyzeResumeOutputSchema>;
 
 export async function analyzeResume(input: AnalyzeResumeInput): Promise<AnalyzeResumeOutput> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('The GEMINI_API_KEY environment variable is not set. Please add it to your .env file.');
+  }
   return analyzeResumeFlow(input);
 }
 

@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview An AI agent to help admins query system data.
  * This file defines the Genkit flow, tools, and prompts.
@@ -78,6 +79,11 @@ export const adminDataQueryFlow = ai.defineFlow(
     outputSchema: AdminDataQueryOutputSchema,
   },
   async (input) => {
+    if (!process.env.GEMINI_API_KEY) {
+        return {
+            answer: "I'm sorry, but the AI assistant is not configured. Please set the GEMINI_API_KEY in your environment variables to enable this feature. I can still provide some mock data if you ask for specific metrics like 'total users'."
+        };
+    }
     try {
         const llmResponse = await ai.generate({
           prompt: input.query,
