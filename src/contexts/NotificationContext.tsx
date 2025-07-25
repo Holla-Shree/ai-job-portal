@@ -65,6 +65,7 @@ interface NotificationContextType {
   unblockUser: (userId: string) => void;
   saveJob: (job: Job) => void;
   unsaveJob: (jobId: string) => void;
+  sendMessage: (conversation: Conversation, text: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -88,6 +89,7 @@ export type Candidate = {
     name: string;
     profile: string;
     resumeFilename?: string | null;
+    avatar?: string;
 };
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -132,7 +134,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
 
-        if (user) {
+        if (user && user.role === 'user') {
             const currentUserData = candidatesData.find(c => c.id === user.id);
             if (currentUserData) {
                 setUser(prevUser => {
@@ -140,6 +142,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     const updatedUser = {
                         ...prevUser,
                         name: currentUserData.name,
+                        avatar: currentUserData.avatar || prevUser.avatar,
                     };
                      if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
                         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -159,22 +162,23 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             let partnerName = 'A partner';
             let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
             let avatar = '';
+            
+            const partnerCandidate = candidates.find(c => c.id === partnerId);
 
             if (user.role === 'user') {
-                partnerName = 'Recruiter';
+                partnerName = 'Recruiter'; // In a real app, this would come from a recruiters collection
                 partnerRole = 'Recruiter';
                 avatar = 'R';
             } else if (user.role === 'recruiter') {
-                partnerName = 'Candidate'; // In a real app, you'd fetch the user's name
+                partnerName = partnerCandidate?.name || 'Candidate';
                 partnerRole = 'Candidate';
-                avatar = 'C';
+                avatar = partnerCandidate?.avatar || 'C';
             }
              if (partnerId === 'SYSTEM') {
                 partnerName = 'System Notifications';
                 partnerRole = 'System';
                 avatar = 'S';
             }
-
 
             return {
                 id: doc.id,
@@ -206,7 +210,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id]);
+  }, [user?.id, user?.role, setUser, candidates]); // Add `candidates` to dependency array to re-evaluate convos
 
 
   useEffect(() => {
@@ -411,9 +415,31 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const unblockUser = (userId: string) => {
     setBlockedUsers(prev => prev.filter(u => u.id !== userId));
   }
+  
+  const sendMessage = async (conversation: Conversation, text: string) => {
+    if (!user) return;
+
+    const newMessage: Message = {
+      id: `msg-${Date.now()}`,
+      senderId: user.id,
+      text,
+      timestamp: formatDistanceToNow(new Date(), { addSuffix: true }),
+    };
+
+    const conversationRef = doc(db, 'conversations', conversation.id);
+    const unreadRecipient = conversation.participants.find(p => p !== user.id);
+    const newUnreadBy = unreadRecipient ? [unreadRecipient] : [];
+
+    await updateDoc(conversationRef, {
+      messages: arrayUnion(newMessage),
+      lastMessage: text,
+      timestamp: Date.now(),
+      unreadBy: newUnreadBy,
+    });
+  };
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
       {children}
     </NotificationContext.Provider>
   );

@@ -32,7 +32,8 @@ function MessagingPage() {
         toggleMute,
         deleteConversation,
         clearConversationMessages,
-        sendMessage
+        sendMessage,
+        candidates
     } = useNotifications();
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -78,6 +79,7 @@ function MessagingPage() {
                 setSelectedConversationId(convoDoc.id);
             } else {
                 // Conversation does not exist, create it
+                const partner = candidates.find(c => c.id === startWithCandidate);
                 const newConversation = {
                     participants: participants,
                     jobTitle: aboutJob,
@@ -85,9 +87,12 @@ function MessagingPage() {
                     messages: [],
                     pinned: false,
                     favourited: false,
-                    unreadBy: [],
+                    unreadBy: [startWithCandidate],
                     mutedBy: [],
                     timestamp: Date.now(),
+                    partnerName: partner?.name || "A Candidate",
+                    partnerRole: "Candidate",
+                    avatar: partner?.avatar || 'C',
                 };
                 const newDocRef = await addDoc(collection(db, "conversations"), newConversation);
                 setSelectedConversationId(newDocRef.id);
@@ -98,7 +103,7 @@ function MessagingPage() {
             findOrCreateConversation();
         }
 
-    }, [searchParams, user, conversations]);
+    }, [searchParams, user, conversations, candidates]);
 
     const filteredConversations = useMemo(() => {
         if (!user) return [];
@@ -293,8 +298,8 @@ function MessagingPage() {
         }
         return (
             <Avatar className="h-10 w-10 border">
-                <AvatarImage src={`https://placehold.co/40x40.png?text=${convo.avatar}`} alt={convo.partnerName} data-ai-hint="person avatar" />
-                <AvatarFallback>{convo.avatar}</AvatarFallback>
+                <AvatarImage src={convo.avatar} alt={convo.partnerName} data-ai-hint="person avatar" />
+                <AvatarFallback>{convo.partnerName ? convo.partnerName.charAt(0).toUpperCase() : 'P'}</AvatarFallback>
             </Avatar>
         );
     }
@@ -584,8 +589,8 @@ function MessagingPage() {
                               )}
                               {msg.senderId !== user?.id && (
                                   <Avatar className="h-8 w-8">
-                                      <AvatarImage src={`https://placehold.co/40x40.png?text=${selectedConversation.avatar}`} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
-                                      <AvatarFallback>{selectedConversation.avatar}</AvatarFallback>
+                                      <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.partnerName} data-ai-hint="person avatar" />
+                                      <AvatarFallback>{selectedConversation.partnerName ? selectedConversation.partnerName.charAt(0).toUpperCase() : 'P'}</AvatarFallback>
                                   </Avatar>
                               )}
                               <div className={cn(

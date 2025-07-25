@@ -75,13 +75,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateUserAvatar = async (newUrl: string) => {
     if (!user) throw new Error("User not authenticated");
 
-    const collectionName = user.role === 'user' ? 'candidates' : 'recruiters';
+    const collectionName = user.role === 'recruiter' ? 'recruiters' : 'candidates';
     const userDocRef = doc(db, collectionName, user.id);
-    await setDoc(userDocRef, { avatar: newUrl }, { merge: true });
-
-    const updatedUser = { ...user, avatar: newUrl };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    try {
+        await setDoc(userDocRef, { avatar: newUrl }, { merge: true });
+        
+        const updatedUser = { ...user, avatar: newUrl };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch(error) {
+        console.error("Failed to update user avatar in Firestore:", error);
+        throw error;
+    }
   }
 
   const value = { user, loading, login, logout, updateUserAvatar, setUser };
