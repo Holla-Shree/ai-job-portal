@@ -22,10 +22,10 @@ npm install
 
 ### 2. Configure Environment Variables
 
-This project requires API keys for Google Maps and Google AI services.
+This project requires API keys for various services.
 
 1.  Create a file named `.env` in the root of the project directory.
-2.  Copy the following content into the `.env` file and replace the placeholder values with your actual API keys.
+2.  Copy the following content into the `.env` file and replace the placeholder values with your actual keys.
 
     ```env
     # For the interactive job map feature, get an API key from the Google Cloud Console.
@@ -34,6 +34,9 @@ This project requires API keys for Google Maps and Google AI services.
 
     # For the AI-powered features, get an API key from Google AI Studio.
     GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+    
+    # For image hosting with Cloudinary. Get your cloud name from your Cloudinary dashboard.
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=YOUR_CLOUDINARY_CLOUD_NAME
     ```
 
 ### 3. Run the Development Server
@@ -60,6 +63,7 @@ The application will be available at `http://localhost:9002`. The server support
 *   Next.js (with App Router)
 *   React & TypeScript
 *   Firebase (Firestore for the database)
+*   Cloudinary (for image hosting)
 *   Genkit & Google AI (for generative AI features)
 *   Tailwind CSS (for styling)
 *   Shadcn/ui (for UI components)

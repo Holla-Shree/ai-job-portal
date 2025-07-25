@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { CloudinaryUploadWidget } from '@/components/CloudinaryUploadWidget';
 
 
 const resumeUploadSchema = z.object({
@@ -92,12 +93,11 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
 }
 
 function UserProfileCard() {
-    const { user, updateAvatar } = useAuth();
+    const { user, updateUserAvatar } = useAuth();
     const { candidates, updateCandidateProfile } = useNotifications();
     const [name, setName] = useState('');
     const [bio, setBio] = useState('');
     const { toast } = useToast();
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
 
     const currentUserProfile = React.useMemo(() => {
@@ -116,29 +116,22 @@ function UserProfileCard() {
         }
     }, [currentUserProfile, user]);
 
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setIsUploading(true);
+    const handleUploadSuccess = async (result: any) => {
+        const secureUrl = result?.info?.secure_url;
+        if (secureUrl) {
             try {
-                await updateAvatar(file);
+                await updateUserAvatar(secureUrl);
                 toast({
                     title: 'Profile Picture Updated',
                     description: 'Your new profile picture has been saved.',
                 });
             } catch (error) {
-                 console.error("Error uploading avatar:", error);
+                 console.error("Error saving avatar url:", error);
                  toast({
-                    title: 'Upload Failed',
-                    description: 'Could not update your profile picture.',
+                    title: 'Update Failed',
+                    description: 'Could not save your new profile picture.',
                     variant: 'destructive',
                  });
-            } finally {
-                setIsUploading(false);
             }
         }
     };
@@ -167,30 +160,32 @@ function UserProfileCard() {
         <Card>
             <CardHeader className="items-center text-center">
                  <div className="relative">
-                    <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
-                        <AvatarImage src={user?.avatar} alt="User Avatar" data-ai-hint="person avatar" />
-                        <AvatarFallback>{name ? name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-                    </Avatar>
+                    <CloudinaryUploadWidget 
+                        onSuccess={handleUploadSuccess} 
+                        isUploading={isUploading} 
+                        setIsUploading={setIsUploading}
+                    >
+                        <Avatar className="h-24 w-24 cursor-pointer">
+                            <AvatarImage src={user?.avatar} alt="User Avatar" data-ai-hint="person avatar" />
+                            <AvatarFallback>{name ? name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                        </Avatar>
+                    </CloudinaryUploadWidget>
+
                      {isUploading ? (
-                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full">
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-full pointer-events-none">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
                      ) : (
-                        <div 
-                            className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90"
-                            onClick={handleAvatarClick}
-                        >
-                            <Camera className="h-4 w-4" />
-                        </div>
+                         <CloudinaryUploadWidget 
+                            onSuccess={handleUploadSuccess} 
+                            isUploading={isUploading} 
+                            setIsUploading={setIsUploading}
+                         >
+                            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90">
+                                <Camera className="h-4 w-4" />
+                            </div>
+                        </CloudinaryUploadWidget>
                      )}
-                    <Input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="image/png, image/jpeg"
-                        disabled={isUploading}
-                    />
                 </div>
                  <Input 
                     value={name || ''}

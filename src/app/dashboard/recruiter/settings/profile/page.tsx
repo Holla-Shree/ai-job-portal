@@ -12,11 +12,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { CloudinaryUploadWidget } from '@/components/CloudinaryUploadWidget';
+
 
 export default function RecruiterProfilePage() {
-    const { user, updateAvatar } = useAuth();
+    const { user, updateUserAvatar } = useAuth();
     const { toast } = useToast();
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [name, setName] = useState('');
     const [isUploading, setIsUploading] = useState(false);
 
@@ -31,29 +32,22 @@ export default function RecruiterProfilePage() {
         }
     }, [user?.email]);
 
-    const handleAvatarClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            setIsUploading(true);
+    const handleUploadSuccess = async (result: any) => {
+        const secureUrl = result?.info?.secure_url;
+        if (secureUrl) {
             try {
-                await updateAvatar(file);
+                await updateUserAvatar(secureUrl);
                 toast({
                     title: 'Profile Picture Updated',
                     description: 'Your new company logo has been saved.',
                 });
             } catch (error) {
-                console.error("Error uploading avatar:", error);
-                toast({
-                    title: 'Upload Failed',
-                    description: 'Could not update your profile picture.',
+                 console.error("Error saving avatar url:", error);
+                 toast({
+                    title: 'Update Failed',
+                    description: 'Could not save your new profile picture.',
                     variant: 'destructive',
-                });
-            } finally {
-                setIsUploading(false);
+                 });
             }
         }
     };
@@ -68,7 +62,7 @@ export default function RecruiterProfilePage() {
             <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                     <div className="relative">
-                        <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                        <Avatar className="h-20 w-20">
                             <AvatarImage src={user?.avatar} alt="Company Logo" data-ai-hint="company logo" />
                             <AvatarFallback>R</AvatarFallback>
                         </Avatar>
@@ -79,18 +73,16 @@ export default function RecruiterProfilePage() {
                         )}
                     </div>
                     <div className="space-y-1">
-                        <Button variant="outline" onClick={handleAvatarClick} disabled={isUploading}>
-                            {isUploading ? 'Uploading...' : 'Upload Logo'}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">Click the avatar or button to upload a new logo. (PNG, JPG)</p>
-                        <Input 
-                            type="file" 
-                            ref={fileInputRef} 
-                            onChange={handleFileChange}
-                            className="hidden"
-                            accept="image/png, image/jpeg"
-                            disabled={isUploading}
-                        />
+                        <CloudinaryUploadWidget 
+                            onSuccess={handleUploadSuccess}
+                            isUploading={isUploading}
+                            setIsUploading={setIsUploading}
+                        >
+                             <Button variant="outline">
+                                Upload Logo
+                            </Button>
+                        </CloudinaryUploadWidget>
+                        <p className="text-xs text-muted-foreground">Click the button to upload a new logo. (PNG, JPG)</p>
                     </div>
                 </div>
 

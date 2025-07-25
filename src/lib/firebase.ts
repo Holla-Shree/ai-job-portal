@@ -2,7 +2,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,7 +16,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 // Enable offline persistence, but handle errors gracefully
 if (typeof window !== 'undefined') {
@@ -40,4 +38,4 @@ if (typeof window !== 'undefined') {
 }
 
 
-export { app, db, storage };
+export { app, db };
