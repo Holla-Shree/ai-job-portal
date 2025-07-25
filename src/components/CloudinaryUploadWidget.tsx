@@ -38,8 +38,7 @@ export function CloudinaryUploadWidget({
 
   return (
     <CldUploadWidget
-      signatureEndpoint="/api/sign-cloudinary-params" // This endpoint needs to be created for signed uploads
-      uploadPreset="unsigned_preset" // Using an unsigned preset for simplicity. Create one in your Cloudinary settings.
+      uploadPreset="unsigned_preset"
       onSuccess={handleUploadSuccess}
       onError={handleUploadError}
       onUpload={(result) => setIsUploading(true)}
