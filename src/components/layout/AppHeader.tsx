@@ -9,7 +9,7 @@ import { AppLogo } from './AppLogo';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/mode-toggle';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,9 +26,9 @@ const navItems = [
   { href: '/dashboard/user', label: 'Dashboard', icon: User, roles: ['user'] },
   { href: '/dashboard/recruiter', label: 'Recruiter Portal', icon: Briefcase, roles: ['recruiter'] },
   { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield, roles: ['admin'] },
-  { href: '/dashboard/map', label: 'Job Map', icon: MapIcon, roles: ['user', 'recruiter', 'admin'] },
-  { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter', 'admin'] },
-  { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user', 'admin'] },
+  { href: '/dashboard/map', label: 'Job Map', icon: MapIcon, roles: ['user', 'recruiter'] },
+  { href: '/dashboard/messaging', label: 'Messages', icon: Send, roles: ['user', 'recruiter'] },
+  { href: '/dashboard/chatbot', label: 'AI Chatbot', icon: MessageSquare, roles: ['user'] },
 ];
 
 export function AppHeader() {
