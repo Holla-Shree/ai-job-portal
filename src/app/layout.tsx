@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 
 export const metadata: Metadata = {
-  title: 'JobMatch AI',
+  title: 'AI JobPortal',
   description: 'AI-powered job matching and career development platform',
 };
 

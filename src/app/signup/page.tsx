@@ -97,7 +97,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
-          <CardDescription>Join JobMatch AI to find your dream job or the perfect candidate.</CardDescription>
+          <CardDescription>Join AI JobPortal to find your dream job or the perfect candidate.</CardDescription>
         </CardHeader>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">

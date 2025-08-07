@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -86,7 +85,7 @@ export default function HomePage() {
             <div className="max-w-3xl mx-auto">
               <Briefcase className="h-20 w-20 text-primary mx-auto mb-6" />
               <h1 className="font-headline text-5xl md:text-6xl font-bold mb-6">
-                Welcome to <span className="text-primary">JobMatch AI</span>
+                Welcome to <span className="text-primary">AI JobPortal</span>
               </h1>
               <p className="text-xl text-muted-foreground mb-10">
                 Your intelligent partner in navigating the job market. Discover opportunities, enhance your skills, and land your dream job with the power of AI.
@@ -107,7 +106,7 @@ export default function HomePage() {
         <section className="py-16 md:py-24 bg-background">
           <div className="container">
             <h2 className="font-headline text-3xl md:text-4xl font-bold text-center mb-16">
-              Why Choose <span className="text-primary">JobMatch AI</span>?
+              Why Choose <span className="text-primary">AI JobPortal</span>?
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature) => (

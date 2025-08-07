@@ -84,7 +84,7 @@ export const adminDataQueryFlow = ai.defineFlow(
           prompt: input.query,
           model: 'googleai/gemini-2.0-flash',
           tools: [getSystemMetrics],
-          system: `You are an AI assistant for the admin of the JobMatch AI platform.
+          system: `You are an AI assistant for the admin of the AI JobPortal platform.
           Your role is to answer questions about the platform's usage and metrics.
           Use the getSystemMetrics tool to find the data you need to answer the user's question.
           Provide concise, clear answers. If the user asks for a comparison, calculate it.
