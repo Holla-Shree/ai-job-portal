@@ -39,7 +39,7 @@ interface ChatMessage {
     content: string;
 }
 
-type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter'; dateJoined: string; status: 'Active' | 'Suspended' };
+type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter'; dateJoined: string; status: 'Active' | 'Suspended'; email?: string; };
 
 
 function AdminPanelPage() {
@@ -84,7 +84,7 @@ function AdminPanelPage() {
     const filteredUsers = useMemo(() => {
         if (!userSearch) return allUsers;
         return allUsers.filter(u => 
-            u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+            (u.name && u.name.toLowerCase().includes(userSearch.toLowerCase())) ||
             (u.email && u.email.toLowerCase().includes(userSearch.toLowerCase()))
         );
     }, [allUsers, userSearch]);
@@ -344,10 +344,10 @@ function AdminPanelPage() {
                                                 <div className="flex items-center gap-3">
                                                     <Avatar>
                                                         <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
-                                                        <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                                        <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-medium">{user.name}</p>
+                                                        <p className="font-medium">{user.name || 'Unnamed User'}</p>
                                                         <p className="text-xs text-muted-foreground">{user.email}</p>
                                                     </div>
                                                 </div>
