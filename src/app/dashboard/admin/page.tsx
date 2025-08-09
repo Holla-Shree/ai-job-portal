@@ -265,255 +265,262 @@ function AdminPanelPage() {
     }
 
     return (
-        <div className="container mx-auto py-8">
-            <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Admin Dashboard</h1>
+        <Dialog>
+            <div className="container mx-auto py-8">
+                <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Admin Dashboard</h1>
 
-             <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
-                    <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                    <TabsTrigger value="users">User Management</TabsTrigger>
-                    <TabsTrigger value="reports">AI Monitoring & Reporting</TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="dashboard" className="w-full">
+                    <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+                        <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                        <TabsTrigger value="users">User Management</TabsTrigger>
+                        <TabsTrigger value="reports">AI Monitoring & Reporting</TabsTrigger>
+                    </TabsList>
 
-                <TabsContent value="dashboard">
-                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                        <Card className="shadow-lg">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{MOCK_STATS.totalUsers}</div>
-                                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="shadow-lg">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Jobs Posted</CardTitle>
-                                <Briefcase className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{MOCK_STATS.totalJobs}</div>
-                                <p className="text-xs text-muted-foreground">+15 from last month</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="shadow-lg">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{MOCK_STATS.totalApplications}</div>
-                                <p className="text-xs text-muted-foreground">+120 this week</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="shadow-lg">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">AI Resumes Parsed</CardTitle>
-                                <Activity className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{MOCK_STATS.resumesParsed}</div>
-                                <p className="text-xs text-muted-foreground">High accuracy rate</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <TabsContent value="dashboard">
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                            <Card className="shadow-lg">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{MOCK_STATS.totalUsers}</div>
+                                    <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-lg">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Jobs Posted</CardTitle>
+                                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{MOCK_STATS.totalJobs}</div>
+                                    <p className="text-xs text-muted-foreground">+15 from last month</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-lg">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{MOCK_STATS.totalApplications}</div>
+                                    <p className="text-xs text-muted-foreground">+120 this week</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-lg">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">AI Resumes Parsed</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{MOCK_STATS.resumesParsed}</div>
+                                    <p className="text-xs text-muted-foreground">High accuracy rate</p>
+                                </CardContent>
+                            </Card>
+                        </div>
                         
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
-                                <CardDescription>New users over the last 6 months.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
-                                    <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
-                                        <CartesianGrid vertical={false} />
-                                        <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis tickLine={false} axisLine={false} tickMargin={8} />
-                                        <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                                        <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
-                                    </AreaChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            
+                            <Card className="shadow-lg">
+                                <CardHeader>
+                                    <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>User Growth</CardTitle>
+                                    <CardDescription>New users over the last 6 months.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={userGrowthChartConfig} className="h-[250px] w-full">
+                                        <AreaChart data={MOCK_USER_GROWTH_DATA} margin={{ left: -20, right: 20, top: 5, bottom: 5 }}>
+                                            <CartesianGrid vertical={false} />
+                                            <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                                            <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                                            <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                            <Area dataKey="users" type="natural" fill="var(--color-users)" fillOpacity={0.4} stroke="var(--color-users)" />
+                                        </AreaChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
 
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
-                                <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
-                                    <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
-                                        <CartesianGrid horizontal={false} />
-                                        <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
-                                        <XAxis type="number" hide />
-                                        <Tooltip cursor={false} content={<ChartTooltipContent />} />
-                                        <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
-                                    </BarChart>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                        
-                    </div>
-                </TabsContent>
+                            <Card className="shadow-lg">
+                                <CardHeader>
+                                    <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2"/>AI Service Usage</CardTitle>
+                                    <CardDescription>Breakdown of AI features used across the platform.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ChartContainer config={aiUsageChartConfig} className="h-[250px] w-full">
+                                        <BarChart data={MOCK_AI_USAGE_DATA} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                                            <CartesianGrid horizontal={false} />
+                                            <YAxis dataKey="service" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} className="text-xs"/>
+                                            <XAxis type="number" hide />
+                                            <Tooltip cursor={false} content={<ChartTooltipContent />} />
+                                            <Bar dataKey="count" layout="vertical" fill="var(--color-count)" radius={4} />
+                                        </BarChart>
+                                    </ChartContainer>
+                                </CardContent>
+                            </Card>
+                            
+                        </div>
+                    </TabsContent>
 
-                <TabsContent value="users">
-                    <Card className="shadow-xl">
-                        <CardHeader>
-                            <CardTitle>User Management</CardTitle>
-                            <CardDescription>View, manage, and search all users on the platform.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="mb-4">
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input 
-                                        placeholder="Search by name or email..." 
-                                        className="pl-8"
-                                        value={userSearch}
-                                        onChange={(e) => setUserSearch(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>User</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Joined</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredUsers.map(user => (
-                                        <TableRow key={user.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar>
-                                                        <AvatarImage src={user.avatar} alt={user.name || 'User'} data-ai-hint="person avatar" />
-                                                        <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <div className="font-medium">{user.name || 'Unnamed User'}</div>
-                                                        <div className="text-xs text-muted-foreground">{user.email}</div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell><Badge variant={user.role === 'Candidate' ? 'secondary' : 'outline'}>{user.role}</Badge></TableCell>
-                                            <TableCell>{user.dateJoined}</TableCell>
-                                            <TableCell><div className="flex items-center"><Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>{user.status}</Badge></div></TableCell>
-                                            <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon">
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => handleViewProfile(user)}><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
-                                                            {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
-                                                            {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                 <TabsContent value="reports">
-                    <div className="grid grid-cols-1 gap-8">
+                    <TabsContent value="users">
                         <Card className="shadow-xl">
                             <CardHeader>
-                                <CardTitle>AI Match Monitoring</CardTitle>
-                                <CardDescription>Review and audit the outcomes of recent AI screening and recommendation tasks.</CardDescription>
+                                <CardTitle>User Management</CardTitle>
+                                <CardDescription>View, manage, and search all users on the platform.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {recentScreenings.length > 0 ? (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Candidate</TableHead>
-                                                <TableHead>Job</TableHead>
-                                                <TableHead>Company</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="text-right">AI Match Score</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {recentScreenings.map(app => (
-                                                <TableRow key={app.id}>
-                                                    <TableCell className="font-medium">{app.candidateName}</TableCell>
-                                                    <TableCell>{app.jobTitle}</TableCell>
-                                                    <TableCell>{app.company}</TableCell>
-                                                    <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
-                                                    <TableCell className="text-right flex items-center justify-end gap-2">
-                                                        {/* This is a mock score, as we don't store it */}
-                                                        <span className="font-semibold">{Math.floor(70 + Math.random() * 25)}</span>
-                                                        <Star className="h-4 w-4 text-amber-400" />
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                ) : (
-                                    <div className="text-center text-muted-foreground py-8">
-                                        <p>No recent applications to monitor.</p>
-                                        <p className="text-sm">As recruiters screen candidates, results will appear here.</p>
+                                <div className="mb-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input 
+                                            placeholder="Search by name or email..." 
+                                            className="pl-8"
+                                            value={userSearch}
+                                            onChange={(e) => setUserSearch(e.target.value)}
+                                        />
                                     </div>
-                                )}
+                                </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Joined</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredUsers.map(user => (
+                                            <TableRow key={user.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar>
+                                                            <AvatarImage src={user.avatar} alt={user.name || 'User'} data-ai-hint="person avatar" />
+                                                            <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <div className="font-medium">{user.name || 'Unnamed User'}</div>
+                                                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell><Badge variant={user.role === 'Candidate' ? 'secondary' : 'outline'}>{user.role}</Badge></TableCell>
+                                                <TableCell>{user.dateJoined}</TableCell>
+                                                <TableCell><div className="flex items-center"><Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>{user.status}</Badge></div></TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreVertical className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => handleViewProfile(user)}><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
+                                                                {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                                {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
-                         <Card className="shadow-xl">
-                            <CardHeader>
-                                <CardTitle>Data Export</CardTitle>
-                                <CardDescription>Download platform data as CSV files for external analysis.</CardDescription>
-                            </CardHeader>
-                             <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <Button variant="outline" onClick={() => handleDownloadReport('All Users Report')}>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    All Users
-                                </Button>
-                                <Button variant="outline" onClick={() => handleDownloadReport('All Jobs Report')}>
-                                     <Download className="mr-2 h-4 w-4" />
-                                    All Jobs
-                                </Button>
-                                <Button variant="outline" onClick={() => handleDownloadReport('Application History Report')}>
-                                     <Download className="mr-2 h-4 w-4" />
-                                    Applications
-                                </Button>
-                                <Button variant="outline" onClick={() => handleDownloadReport('AI Usage Report')}>
-                                     <Download className="mr-2 h-4 w-4" />
-                                    AI Usage
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-            </Tabs>
+                    </TabsContent>
 
-            {/* AI Assistant Dialog */}
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button
-                        variant="default"
-                        className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg"
-                        size="icon"
-                    >
-                        <Bot className="h-8 w-8" />
-                        <span className="sr-only">Open AI Assistant</span>
-                    </Button>
-                </DialogTrigger>
+                    <TabsContent value="reports">
+                        <div className="grid grid-cols-1 gap-8">
+                            <Card className="shadow-xl">
+                                <CardHeader>
+                                    <CardTitle>AI Match Monitoring</CardTitle>
+                                    <CardDescription>Review and audit the outcomes of recent AI screening and recommendation tasks.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {recentScreenings.length > 0 ? (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Candidate</TableHead>
+                                                    <TableHead>Job</TableHead>
+                                                    <TableHead>Company</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="text-right">AI Match Score</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {recentScreenings.map(app => (
+                                                    <TableRow key={app.id}>
+                                                        <TableCell className="font-medium">{app.candidateName}</TableCell>
+                                                        <TableCell>{app.jobTitle}</TableCell>
+                                                        <TableCell>{app.company}</TableCell>
+                                                        <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
+                                                        <TableCell className="text-right flex items-center justify-end gap-2">
+                                                            {/* This is a mock score, as we don't store it */}
+                                                            <span className="font-semibold">{Math.floor(70 + Math.random() * 25)}</span>
+                                                            <Star className="h-4 w-4 text-amber-400" />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    ) : (
+                                        <div className="text-center text-muted-foreground py-8">
+                                            <p>No recent applications to monitor.</p>
+                                            <p className="text-sm">As recruiters screen candidates, results will appear here.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                             <Card className="shadow-xl">
+                                <CardHeader>
+                                    <CardTitle>AI Admin Assistant</CardTitle>
+                                    <CardDescription>Ask questions about platform metrics using natural language.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex justify-center">
+                                     <DialogTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className="h-16 w-16 rounded-full shadow-lg"
+                                            size="icon"
+                                        >
+                                            <Bot className="h-8 w-8" />
+                                            <span className="sr-only">Open AI Assistant</span>
+                                        </Button>
+                                    </DialogTrigger>
+                                </CardContent>
+                            </Card>
+                             <Card className="shadow-xl">
+                                <CardHeader>
+                                    <CardTitle>Data Export</CardTitle>
+                                    <CardDescription>Download platform data as CSV files for external analysis.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Button variant="outline" onClick={() => handleDownloadReport('All Users Report')}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        All Users
+                                    </Button>
+                                    <Button variant="outline" onClick={() => handleDownloadReport('All Jobs Report')}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        All Jobs
+                                    </Button>
+                                    <Button variant="outline" onClick={() => handleDownloadReport('Application History Report')}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Applications
+                                    </Button>
+                                    <Button variant="outline" onClick={() => handleDownloadReport('AI Usage Report')}>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        AI Usage
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+
                 <DialogContent className="sm:max-w-2xl h-[70vh] flex flex-col p-0">
                     <DialogHeader className="p-6 pb-2">
                         <DialogTitle className="font-headline flex items-center"><Bot className="mr-2"/>AI Admin Assistant</DialogTitle>
@@ -582,76 +589,76 @@ function AdminPanelPage() {
                         </Button>
                     </form>
                 </DialogContent>
-            </Dialog>
 
-            {/* Dialog for Viewing User Profile */}
-            <Dialog open={isViewProfileOpen} onOpenChange={setIsViewProfileOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    {selectedUser && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-3">
-                                    <Avatar className="h-12 w-12">
-                                        <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} />
-                                        <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        {selectedUser.name}
-                                        <DialogDescription>{selectedUser.email}</DialogDescription>
+                {/* Dialog for Viewing User Profile */}
+                <Dialog open={isViewProfileOpen} onOpenChange={setIsViewProfileOpen}>
+                    <DialogContent className="sm:max-w-lg">
+                        {selectedUser && (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-3">
+                                        <Avatar className="h-12 w-12">
+                                            <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} />
+                                            <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            {selectedUser.name}
+                                            <DialogDescription>{selectedUser.email}</DialogDescription>
+                                        </div>
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4 space-y-4">
+                                    <div className="text-sm space-y-2">
+                                        <div><strong>Role:</strong> {selectedUser.role}</div>
+                                        <div><strong>Joined:</strong> {selectedUser.dateJoined}</div>
+                                        <div><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></div>
                                     </div>
-                                </DialogTitle>
-                            </DialogHeader>
-                            <div className="py-4 space-y-4">
-                                <div className="text-sm space-y-2">
-                                    <div><strong>Role:</strong> {selectedUser.role}</div>
-                                    <div><strong>Joined:</strong> {selectedUser.dateJoined}</div>
-                                    <div><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></div>
+                                    <Separator />
+                                    <h4 className="font-semibold">Profile Summary</h4>
+                                    <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                        {selectedUser.profile || "No profile summary available."}
+                                    </div>
                                 </div>
-                                <Separator />
-                                <h4 className="font-semibold">Profile Summary</h4>
-                                <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
-                                    {selectedUser.profile || "No profile summary available."}
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+                            </>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
-            {/* Alert Dialog for Suspension */}
-            <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will {selectedUser?.status === 'Active' ? 'suspend' : 'reactivate'} the account for {selectedUser?.name}. They will {selectedUser?.status === 'Active' ? 'not be able to log in' : 'be able to log in again'}.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmSuspendUser}>Confirm</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            
-            {/* Alert Dialog for Deletion */}
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the account for {selectedUser?.name} and all their associated data.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive hover:bg-destructive/90">
-                            Confirm Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </div>
+                {/* Alert Dialog for Suspension */}
+                <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will {selectedUser?.status === 'Active' ? 'suspend' : 'reactivate'} the account for {selectedUser?.name}. They will {selectedUser?.status === 'Active' ? 'not be able to log in' : 'be able to log in again'}.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmSuspendUser}>Confirm</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                
+                {/* Alert Dialog for Deletion */}
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the account for {selectedUser?.name} and all their associated data.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive hover:bg-destructive/90">
+                                Confirm Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+        </Dialog>
     );
 }
 
