@@ -48,7 +48,7 @@ export default function LoginForm() {
       idPrefix = 'recruiter';
     } else if (data.email.includes('admin')) {
       role = 'admin';
-      name = "Platform Admin";
+      name = "Admin";
       idPrefix = 'admin'
     }
 
