@@ -63,7 +63,7 @@ export function AppHeader() {
     switch (user.role) {
       case 'user': return '/dashboard/user/settings';
       case 'recruiter': return '/dashboard/recruiter/settings';
-      case 'admin': return '/dashboard/admin'; // Or a dedicated admin settings page
+      case 'admin': return '/dashboard/admin/settings';
       default: return '/login';
     }
   };
@@ -152,12 +152,14 @@ export function AppHeader() {
                         <span>Profile Settings</span>
                     </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                    <Link href="/dashboard/messaging/settings">
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        <span>Messaging Settings</span>
-                    </Link>
-                    </DropdownMenuItem>
+                    {user.role !== 'admin' && (
+                      <DropdownMenuItem asChild>
+                      <Link href="/dashboard/messaging/settings">
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          <span>Messaging Settings</span>
+                      </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
