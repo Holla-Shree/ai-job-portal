@@ -18,7 +18,7 @@ import { useNotifications, Candidate, Recruiter, ApplicationNotification } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 
 const userGrowthChartConfig = {
@@ -142,13 +142,74 @@ function AdminPanelPage() {
         toast({ title: 'Chat Cleared', description: 'You can start a new conversation now.' });
     };
 
-    const handleDownloadReport = (reportName: string) => {
+    const downloadCSV = (data: any[], filename: string) => {
+        if (!data || data.length === 0) {
+            toast({
+                variant: 'destructive',
+                title: 'No Data Available',
+                description: `There is no data to export for "${filename}".`,
+            });
+            return;
+        }
+
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => 
+                headers.map(header => {
+                    let cell = row[header];
+                    if (cell === null || cell === undefined) {
+                        return '';
+                    }
+                    if (typeof cell === 'object') {
+                        cell = JSON.stringify(cell).replace(/"/g, '""');
+                    }
+                    const stringCell = String(cell);
+                    if (stringCell.includes(',') || stringCell.includes('"') || stringCell.includes('\n')) {
+                        return `"${stringCell.replace(/"/g, '""')}"`;
+                    }
+                    return stringCell;
+                }).join(',')
+            )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
         toast({
-            title: 'Report Generating...',
-            description: `Your report "${reportName}" will be downloaded shortly.`,
+            title: 'Report Downloaded',
+            description: `Your report "${filename}" has been successfully downloaded.`,
         });
-        // In a real app, this would trigger a CSV export function.
-        console.log(`Downloading ${reportName}...`);
+    };
+    
+    const handleDownloadReport = (reportName: string) => {
+        switch (reportName) {
+            case 'All Users Report':
+                downloadCSV(allUsers, 'all_users_report.csv');
+                break;
+            case 'All Jobs Report':
+                downloadCSV(jobs, 'all_jobs_report.csv');
+                break;
+            case 'Application History Report':
+                downloadCSV(applicationHistory, 'application_history_report.csv');
+                break;
+            case 'AI Usage Report':
+                downloadCSV(MOCK_AI_USAGE_DATA, 'ai_usage_report.csv');
+                break;
+            default:
+                toast({
+                    variant: 'destructive',
+                    title: 'Unknown Report',
+                    description: 'The requested report type does not exist.',
+                });
+        }
     };
 
     // User action handlers
@@ -477,7 +538,10 @@ function AdminPanelPage() {
                                         </TableBody>
                                     </Table>
                                 ) : (
-                                    <p className="text-muted-foreground text-center py-8">No recent applications to monitor.</p>
+                                    <div className="text-center text-muted-foreground py-8">
+                                        <p>No recent applications to monitor.</p>
+                                        <p className="text-sm">As recruiters screen candidates, results will appear here.</p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
