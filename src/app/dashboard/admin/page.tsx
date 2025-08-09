@@ -18,7 +18,7 @@ import { useNotifications, Candidate, Recruiter, ApplicationNotification } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 
 const userGrowthChartConfig = {
@@ -265,7 +265,7 @@ function AdminPanelPage() {
     }
 
     return (
-        <Dialog>
+        <>
             <div className="container mx-auto py-8">
                 <h1 className="font-headline text-3xl font-bold mb-8 text-primary">Admin Dashboard</h1>
 
@@ -433,8 +433,8 @@ function AdminPanelPage() {
                     </TabsContent>
 
                     <TabsContent value="reports">
-                        <div className="grid grid-cols-1 gap-8">
-                            <Card className="shadow-xl">
+                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+                             <Card className="shadow-xl lg:col-span-2">
                                 <CardHeader>
                                     <CardTitle>AI Match Monitoring</CardTitle>
                                     <CardDescription>Review and audit the outcomes of recent AI screening and recommendation tasks.</CardDescription>
@@ -480,25 +480,79 @@ function AdminPanelPage() {
                                     <CardTitle>AI Admin Assistant</CardTitle>
                                     <CardDescription>Ask questions about platform metrics using natural language.</CardDescription>
                                 </CardHeader>
-                                <CardContent className="flex justify-center">
-                                     <DialogTrigger asChild>
-                                        <Button
-                                            variant="default"
-                                            className="h-16 w-16 rounded-full shadow-lg"
-                                            size="icon"
-                                        >
-                                            <Bot className="h-8 w-8" />
-                                            <span className="sr-only">Open AI Assistant</span>
-                                        </Button>
-                                    </DialogTrigger>
+                                <CardContent className="flex flex-col h-[400px]">
+                                     <div className="flex-1 overflow-y-auto p-4 space-y-4 border rounded-md bg-muted/50">
+                                        {chatHistory.length === 0 && (
+                                            <div className="text-center text-sm text-muted-foreground pt-10">
+                                                <p>Ask me things like:</p>
+                                                <ul className="mt-2 list-none">
+                                                    <li>"How many users do we have?"</li>
+                                                    <li>"What is the total number of jobs?"</li>
+                                                    <li>"Which AI service is used the most?"</li>
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {chatHistory.map((msg) => (
+                                            <div key={msg.id} className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                {msg.sender === 'bot' && (
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Assistant" data-ai-hint="robot avatar" />
+                                                        <AvatarFallback>AI</AvatarFallback>
+                                                    </Avatar>
+                                                )}
+                                                <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                                                    msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                                }`}>
+                                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                                </div>
+                                                {msg.sender === 'user' && (
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src="https://placehold.co/40x40.png" alt="Admin" data-ai-hint="person avatar" />
+                                                        <AvatarFallback>A</AvatarFallback>
+                                                    </Avatar>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {isChatLoading && (
+                                            <div className="flex items-center justify-start gap-2">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src="https://placehold.co/40x40.png" alt="AI Assistant" data-ai-hint="robot avatar" />
+                                                    <AvatarFallback>AI</AvatarFallback>
+                                                </Avatar>
+                                                <div className="p-3 bg-muted rounded-lg">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div ref={chatEndRef} />
+                                    </div>
                                 </CardContent>
+                                <CardFooter>
+                                    <form onSubmit={handleChatSubmit} className="w-full flex items-center gap-2">
+                                        <Input
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            placeholder="Ask about metrics..."
+                                            className="flex-1"
+                                            disabled={isChatLoading}
+                                        />
+                                        <Button type="button" variant="outline" size="icon" onClick={handleClearChat} disabled={isChatLoading || chatHistory.length === 0}>
+                                            <Eraser className="w-4 h-4" />
+                                            <span className="sr-only">Clear Chat</span>
+                                        </Button>
+                                        <Button type="submit" size="icon" disabled={isChatLoading}>
+                                            {isChatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                            <span className="sr-only">Send</span>
+                                        </Button>
+                                    </form>
+                                </CardFooter>
                             </Card>
                              <Card className="shadow-xl">
                                 <CardHeader>
                                     <CardTitle>Data Export</CardTitle>
                                     <CardDescription>Download platform data as CSV files for external analysis.</CardDescription>
                                 </CardHeader>
-                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Button variant="outline" onClick={() => handleDownloadReport('All Users Report')}>
                                         <Download className="mr-2 h-4 w-4" />
                                         All Users
@@ -521,75 +575,6 @@ function AdminPanelPage() {
                     </TabsContent>
                 </Tabs>
 
-                <DialogContent className="sm:max-w-2xl h-[70vh] flex flex-col p-0">
-                    <DialogHeader className="p-6 pb-2">
-                        <DialogTitle className="font-headline flex items-center"><Bot className="mr-2"/>AI Admin Assistant</DialogTitle>
-                        <DialogDescription>Ask questions about platform metrics.</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                        {chatHistory.length === 0 && (
-                            <div className="text-center text-sm text-muted-foreground pt-10">
-                                <p>Ask me things like:</p>
-                                <ul className="mt-2 list-none">
-                                    <li>"How many users do we have?"</li>
-                                    <li>"What is the total number of jobs?"</li>
-                                    <li>"Which AI service is used the most?"</li>
-                                </ul>
-                            </div>
-                        )}
-                        {chatHistory.map((msg) => (
-                            <div key={msg.id} className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.sender === 'bot' && (
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src="https://placehold.co/40x40.png" alt="AI Assistant" data-ai-hint="robot avatar" />
-                                        <AvatarFallback>AI</AvatarFallback>
-                                    </Avatar>
-                                )}
-                                <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                                    msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                                }`}>
-                                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                                </div>
-                                {msg.sender === 'user' && (
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src="https://placehold.co/40x40.png" alt="Admin" data-ai-hint="person avatar" />
-                                        <AvatarFallback>A</AvatarFallback>
-                                    </Avatar>
-                                )}
-                            </div>
-                        ))}
-                        {isChatLoading && (
-                            <div className="flex items-center justify-start gap-2">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src="https://placehold.co/40x40.png" alt="AI Assistant" data-ai-hint="robot avatar" />
-                                    <AvatarFallback>AI</AvatarFallback>
-                                </Avatar>
-                                <div className="p-3 bg-muted rounded-lg">
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                </div>
-                            </div>
-                        )}
-                        <div ref={chatEndRef} />
-                    </div>
-                    <form onSubmit={handleChatSubmit} className="border-t p-4 flex items-center gap-2 mt-auto bg-background">
-                        <Input
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            placeholder="Ask about metrics..."
-                            className="flex-1"
-                            disabled={isChatLoading}
-                        />
-                        <Button type="button" variant="outline" size="icon" onClick={handleClearChat} disabled={isChatLoading || chatHistory.length === 0}>
-                            <Eraser className="w-4 h-4" />
-                            <span className="sr-only">Clear Chat</span>
-                        </Button>
-                        <Button type="submit" size="icon" disabled={isChatLoading}>
-                            {isChatLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                            <span className="sr-only">Send</span>
-                        </Button>
-                    </form>
-                </DialogContent>
-
                 {/* Dialog for Viewing User Profile */}
                 <Dialog open={isViewProfileOpen} onOpenChange={setIsViewProfileOpen}>
                     <DialogContent className="sm:max-w-lg">
@@ -598,7 +583,7 @@ function AdminPanelPage() {
                                 <DialogHeader>
                                     <DialogTitle className="flex items-center gap-3">
                                         <Avatar className="h-12 w-12">
-                                            <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} />
+                                            <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} data-ai-hint="person avatar" />
                                             <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                                         </Avatar>
                                         <div>
@@ -658,7 +643,7 @@ function AdminPanelPage() {
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-        </Dialog>
+        </>
     );
 }
 
