@@ -491,10 +491,10 @@ function AdminPanelPage() {
                                 </DialogTitle>
                             </DialogHeader>
                             <div className="py-4 space-y-4">
-                                <div className="text-sm">
-                                    <p><strong>Role:</strong> {selectedUser.role}</p>
-                                    <p><strong>Joined:</strong> {selectedUser.dateJoined}</p>
-                                    <p><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></p>
+                                <div className="text-sm space-y-2">
+                                    <div><strong>Role:</strong> {selectedUser.role}</div>
+                                    <div><strong>Joined:</strong> {selectedUser.dateJoined}</div>
+                                    <div><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></div>
                                 </div>
                                 <Separator />
                                 <h4 className="font-semibold">Profile Summary</h4>
