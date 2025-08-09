@@ -204,7 +204,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                         avatar = "R";
                     }
                     partnerRole = 'Recruiter';
-                } else if (user.role === 'recruiter') {
+                } else if (user.role === 'recruiter' || user.role === 'admin') {
                     const cand = candidates.find(c => c.id === partnerId);
                      if(cand){
                         partnerName = cand.name;
@@ -250,7 +250,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeConversations();
         unsubscribeApplications();
     };
-  }, [user?.id, user?.role, setUser]);
+  }, [user?.id, user?.role, setUser, candidates, recruiters]);
 
 
   useEffect(() => {

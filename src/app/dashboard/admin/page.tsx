@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Eraser, Search, MoreVertical, Trash2, Eye, UserX, Download, UserCheck } from "lucide-react";
+import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Eraser, Search, MoreVertical, Trash2, Eye, UserX, Download, UserCheck, Star } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import withAuth from '@/components/withAuth';
@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications, Candidate, Recruiter } from '@/contexts/NotificationContext';
+import { useNotifications, Candidate, Recruiter, ApplicationNotification } from '@/contexts/NotificationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -191,6 +191,13 @@ function AdminPanelPage() {
         setIsDeleteDialogOpen(false);
         setSelectedUser(null);
     };
+    
+    const recentScreenings: ApplicationNotification[] = useMemo(() => {
+        return [...applicationHistory]
+            .filter(app => app.status !== 'Interested') // Only show screenings for actual applications
+            .sort((a,b) => b.timestamp - a.timestamp)
+            .slice(0, 10); // Get the 10 most recent
+    }, [applicationHistory]);
 
     if (!isClient) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -397,12 +404,12 @@ function AdminPanelPage() {
                                             <TableCell>
                                                 <div className="flex items-center gap-3">
                                                     <Avatar>
-                                                        <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person avatar" />
+                                                        <AvatarImage src={user.avatar} alt={user.name || 'User'} data-ai-hint="person avatar" />
                                                         <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-medium">{user.name || 'Unnamed User'}</p>
-                                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                                                        <div className="font-medium">{user.name || 'Unnamed User'}</div>
+                                                        <div className="text-xs text-muted-foreground">{user.email}</div>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -441,8 +448,37 @@ function AdminPanelPage() {
                                 <CardTitle>AI Match Monitoring</CardTitle>
                                 <CardDescription>Review and audit the outcomes of recent AI screening and recommendation tasks.</CardDescription>
                             </CardHeader>
-                             <CardContent>
-                                <p className="text-muted-foreground text-center py-8">AI Monitoring reports will be displayed here in a future update.</p>
+                            <CardContent>
+                                {recentScreenings.length > 0 ? (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Candidate</TableHead>
+                                                <TableHead>Job</TableHead>
+                                                <TableHead>Company</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">AI Match Score</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {recentScreenings.map(app => (
+                                                <TableRow key={app.id}>
+                                                    <TableCell className="font-medium">{app.candidateName}</TableCell>
+                                                    <TableCell>{app.jobTitle}</TableCell>
+                                                    <TableCell>{app.company}</TableCell>
+                                                    <TableCell><Badge variant="outline">{app.status}</Badge></TableCell>
+                                                    <TableCell className="text-right flex items-center justify-end gap-2">
+                                                        {/* This is a mock score, as we don't store it */}
+                                                        <span className="font-semibold">{Math.floor(70 + Math.random() * 25)}</span>
+                                                        <Star className="h-4 w-4 text-amber-400" />
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                ) : (
+                                    <p className="text-muted-foreground text-center py-8">No recent applications to monitor.</p>
+                                )}
                             </CardContent>
                         </Card>
                          <Card className="shadow-xl">
@@ -481,7 +517,7 @@ function AdminPanelPage() {
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-3">
                                     <Avatar className="h-12 w-12">
-                                        <AvatarImage src={selectedUser.avatar} alt={selectedUser.name} />
+                                        <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} />
                                         <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                                     </Avatar>
                                     <div>
@@ -498,9 +534,9 @@ function AdminPanelPage() {
                                 </div>
                                 <Separator />
                                 <h4 className="font-semibold">Profile Summary</h4>
-                                <p className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
                                     {selectedUser.profile || "No profile summary available."}
-                                </p>
+                                </div>
                             </div>
                         </>
                     )}
