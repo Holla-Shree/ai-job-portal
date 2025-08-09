@@ -34,6 +34,7 @@ const navItems = [
 export function AppHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const isAdminPage = pathname === '/dashboard/admin';
 
   const handleLogout = () => {
     logout();
@@ -41,7 +42,14 @@ export function AppHeader() {
   
   const getVisibleNavItems = () => {
     if (!user) return [];
-    return navItems.filter(item => user && item.roles.includes(user.role));
+    
+    let items = navItems.filter(item => user && item.roles.includes(user.role));
+    
+    if (user.role === 'admin') {
+      items = items.filter(item => !['/dashboard/map', '/dashboard/messaging', '/dashboard/chatbot'].includes(item.href));
+    }
+    
+    return items;
   }
   
   const getInitials = (role?: UserRole) => {
@@ -123,10 +131,11 @@ export function AppHeader() {
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-9 w-9">
+                    <Avatar className={cn("h-9 w-9", isAdminPage && "hidden")}>
                         <AvatarImage src={user.avatar} alt={user.role} data-ai-hint="person avatar"/>
                         <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
                     </Avatar>
+                    {isAdminPage && <span className="font-semibold text-sm">Admin</span>}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
