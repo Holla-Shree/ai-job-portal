@@ -34,7 +34,6 @@ const navItems = [
 export function AppHeader() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const isAdminPage = pathname === '/dashboard/admin';
 
   const handleLogout = () => {
     logout();
@@ -131,11 +130,10 @@ export function AppHeader() {
                 <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className={cn("h-9 w-9", isAdminPage && "hidden")}>
+                    <Avatar className="h-9 w-9">
                         <AvatarImage src={user.avatar} alt={user.role} data-ai-hint="person avatar"/>
                         <AvatarFallback>{getInitials(user.role)}</AvatarFallback>
                     </Avatar>
-                    {isAdminPage && <span className="font-semibold text-sm">Admin</span>}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
