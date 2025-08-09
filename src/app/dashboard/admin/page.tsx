@@ -5,7 +5,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Eraser, Search, MoreVertical, Trash2, Eye, UserX, Download } from "lucide-react";
+import { Users, Briefcase, FileText, BarChart2, Activity, Bot, Send, Loader2, Eraser, Search, MoreVertical, Trash2, Eye, UserX, Download, UserCheck } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import withAuth from '@/components/withAuth';
@@ -18,6 +18,8 @@ import { useNotifications, Candidate, Recruiter } from '@/contexts/NotificationC
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
 const userGrowthChartConfig = {
   users: {
@@ -39,7 +41,7 @@ interface ChatMessage {
     content: string;
 }
 
-type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter'; dateJoined: string; status: 'Active' | 'Suspended'; email?: string; };
+type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter'; dateJoined: string; status: 'Active' | 'Suspended'; email?: string; profile?: string; };
 
 
 function AdminPanelPage() {
@@ -51,6 +53,15 @@ function AdminPanelPage() {
     const [isChatLoading, setIsChatLoading] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const [userSearch, setUserSearch] = useState('');
+
+    const [allUsers, setAllUsers] = useState<CombinedUser[]>([]);
+    
+    // State for managing user actions
+    const [selectedUser, setSelectedUser] = useState<CombinedUser | null>(null);
+    const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
+    const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
 
     const MOCK_STATS = useMemo(() => ({
         totalUsers: candidates.length + recruiters.length,
@@ -74,11 +85,13 @@ function AdminPanelPage() {
         { service: 'Screening', count: 880 },
         { service: 'Chatbot', count: 1200 },
     ];
-
-    const allUsers: CombinedUser[] = useMemo(() => {
-        const candidateUsers = candidates.map(c => ({...c, role: 'Candidate', dateJoined: '2024-06-15', status: 'Active' as const }));
-        const recruiterUsers = recruiters.map(r => ({...r, role: 'Recruiter', dateJoined: '2024-05-20', status: 'Active' as const }));
-        return [...candidateUsers, ...recruiterUsers];
+    
+    useEffect(() => {
+        const combined = [
+            ...candidates.map(c => ({...c, role: 'Candidate' as const, dateJoined: '2024-06-15', status: 'Active' as const })),
+            ...recruiters.map(r => ({...r, role: 'Recruiter' as const, dateJoined: '2024-05-20', status: 'Active' as const }))
+        ];
+        setAllUsers(combined);
     }, [candidates, recruiters]);
 
     const filteredUsers = useMemo(() => {
@@ -136,6 +149,47 @@ function AdminPanelPage() {
         });
         // In a real app, this would trigger a CSV export function.
         console.log(`Downloading ${reportName}...`);
+    };
+
+    // User action handlers
+    const handleViewProfile = (user: CombinedUser) => {
+        setSelectedUser(user);
+        setIsViewProfileOpen(true);
+    };
+
+    const handleSuspendUser = (user: CombinedUser) => {
+        setSelectedUser(user);
+        setIsSuspendDialogOpen(true);
+    };
+
+    const handleDeleteUser = (user: CombinedUser) => {
+        setSelectedUser(user);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmSuspendUser = () => {
+        if (!selectedUser) return;
+        setAllUsers(users => users.map(u => 
+            u.id === selectedUser.id ? { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' } : u
+        ));
+        toast({
+            title: `User ${selectedUser.status === 'Active' ? 'Suspended' : 'Reactivated'}`,
+            description: `${selectedUser.name}'s status has been updated.`,
+        });
+        setIsSuspendDialogOpen(false);
+        setSelectedUser(null);
+    };
+
+    const confirmDeleteUser = () => {
+        if (!selectedUser) return;
+        setAllUsers(users => users.filter(u => u.id !== selectedUser.id));
+        toast({
+            title: 'User Deleted',
+            description: `${selectedUser.name} has been permanently removed from the system.`,
+            variant: 'destructive',
+        });
+        setIsDeleteDialogOpen(false);
+        setSelectedUser(null);
     };
 
     if (!isClient) {
@@ -363,9 +417,12 @@ function AdminPanelPage() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
-                                                        <DropdownMenuItem><UserX className="mr-2 h-4 w-4" /> Suspend</DropdownMenuItem>
-                                                        <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleViewProfile(user)}><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
+                                                            {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
+                                                            {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </TableCell>
@@ -415,11 +472,77 @@ function AdminPanelPage() {
                     </div>
                 </TabsContent>
             </Tabs>
+
+            {/* Dialog for Viewing User Profile */}
+            <Dialog open={isViewProfileOpen} onOpenChange={setIsViewProfileOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    {selectedUser && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-3">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={selectedUser.avatar} alt={selectedUser.name} />
+                                        <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        {selectedUser.name}
+                                        <DialogDescription>{selectedUser.email}</DialogDescription>
+                                    </div>
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4 space-y-4">
+                                <div className="text-sm">
+                                    <p><strong>Role:</strong> {selectedUser.role}</p>
+                                    <p><strong>Joined:</strong> {selectedUser.dateJoined}</p>
+                                    <p><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></p>
+                                </div>
+                                <Separator />
+                                <h4 className="font-semibold">Profile Summary</h4>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                    {selectedUser.profile || "No profile summary available."}
+                                </p>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Alert Dialog for Suspension */}
+            <AlertDialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will {selectedUser?.status === 'Active' ? 'suspend' : 'reactivate'} the account for {selectedUser?.name}. They will {selectedUser?.status === 'Active' ? 'not be able to log in' : 'be able to log in again'}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmSuspendUser}>Confirm</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
+            {/* Alert Dialog for Deletion */}
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the account for {selectedUser?.name} and all their associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteUser} className="bg-destructive hover:bg-destructive/90">
+                            Confirm Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
 
 
 export default withAuth(AdminPanelPage, ['admin']);
-
-    
