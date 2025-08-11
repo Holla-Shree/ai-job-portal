@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React from 'react';
@@ -50,7 +51,9 @@ export default function SignupPage() {
     const { role, fullName, email } = data;
     
     const entityId = `${role}-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
-    const collectionName = role === 'user' ? 'candidates' : 'recruiters';
+    let collectionName = role === 'user' ? 'candidates' : 'recruiters';
+    if(role === 'admin') collectionName = 'admins';
+
 
     try {
         await setDoc(doc(db, collectionName, entityId), {

@@ -63,6 +63,8 @@ interface NotificationContextType {
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
   recruiters: Recruiter[];
   updateRecruiterProfile: (recruiterId: string, profileData: Partial<Recruiter>) => Promise<void>;
+  admins: Admin[];
+  updateAdminProfile: (adminId: string, profileData: Partial<Admin>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
   saveJob: (job: Job) => void;
@@ -105,6 +107,13 @@ export type Recruiter = {
     companyBio?: string;
 }
 
+export type Admin = {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+}
+
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<ApplicationNotification[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
@@ -112,6 +121,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<{ id: string, name: string }[]>([]);
   const { user, setUser } = useAuth();
 
@@ -133,6 +143,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setJobs([]);
         setCandidates([]);
         setRecruiters([]);
+        setAdmins([]);
         setConversations([]);
         setApplicationHistory([]);
         return;
@@ -168,6 +179,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
          if (user && user.role === 'recruiter') {
             const currentUserDataFromDb = recruitersData.find(r => r.id === user.id);
+            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
+                 const updatedUser = {
+                    ...user,
+                    name: currentUserDataFromDb.name,
+                    avatar: currentUserDataFromDb.avatar || user.avatar,
+                };
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }
+    });
+
+    const unsubscribeAdmins = onSnapshot(collection(db, "admins"), (snapshot) => {
+        const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Admin));
+        setAdmins(adminsData);
+
+         if (user && user.role === 'admin') {
+            const currentUserDataFromDb = adminsData.find(r => r.id === user.id);
             if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
                  const updatedUser = {
                     ...user,
@@ -249,6 +278,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         unsubscribeRecruiters();
         unsubscribeConversations();
         unsubscribeApplications();
+        unsubscribeAdmins();
     };
   }, [user?.id, user?.role, setUser, candidates, recruiters]);
 
@@ -449,6 +479,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  const updateAdminProfile = async (adminId: string, profileData: Partial<Admin>) => {
+    try {
+      const docRef = doc(db, "admins", adminId);
+      await setDoc(docRef, profileData, { merge: true });
+    } catch (e) {
+      console.error("Error updating admin profile: ", e);
+      throw e;
+    }
+  };
+
 
   const unblockUser = (userId: string) => {
     setBlockedUsers(prev => prev.filter(u => u.id !== userId));
@@ -477,7 +517,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, recruiters, updateRecruiterProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
+    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, recruiters, updateRecruiterProfile, admins, updateAdminProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
       {children}
     </NotificationContext.Provider>
   );

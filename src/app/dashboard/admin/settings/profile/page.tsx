@@ -6,32 +6,52 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { CloudinaryUploadWidget } from '@/components/CloudinaryUploadWidget';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 
 export default function AdminProfilePage() {
-    const { user, updateUserAvatar, setUser } = useAuth();
+    const { user, updateUserAvatar } = useAuth();
     const { toast } = useToast();
+    const { updateAdminProfile, admins } = useNotifications();
     
-    const [name, setName] = useState(user?.name || 'Admin');
+    const [name, setName] = useState('Admin');
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+
+    const currentAdminProfile = React.useMemo(() => {
+        return admins.find(a => a.id === user?.id);
+    }, [admins, user]);
+    
+    useEffect(() => {
+        if (currentAdminProfile) {
+            setName(currentAdminProfile.name);
+        } else if (user?.name) {
+            setName(user.name);
+        }
+    }, [currentAdminProfile, user]);
 
     const handleUploadSuccess = async (result: any) => {
         const secureUrl = result?.info?.secure_url;
         if (secureUrl && user) {
-            // No need to write to DB for admin, just update context/local storage
-            const updatedUser = { ...user, avatar: secureUrl };
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            toast({
-                title: 'Profile Picture Updated',
-                description: 'Your new avatar has been saved.',
-            });
+            try {
+                await updateUserAvatar(secureUrl);
+                toast({
+                    title: 'Profile Picture Updated',
+                    description: 'Your new avatar has been saved.',
+                });
+            } catch (error) {
+                 console.error("Error saving avatar url:", error);
+                 toast({
+                    title: 'Update Failed',
+                    description: 'Could not save your new profile picture.',
+                    variant: 'destructive',
+                 });
+            }
         }
     };
     
@@ -39,19 +59,22 @@ export default function AdminProfilePage() {
         if (!user) return;
         setIsSaving(true);
 
-        // Simulate saving
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const updatedUser = { ...user, name: name };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        toast({
-            title: 'Profile Saved',
-            description: 'Your profile has been successfully updated.',
-        });
-        
-        setIsSaving(false);
+        try {
+            await updateAdminProfile(user.id, { name });
+            toast({
+                title: 'Profile Saved',
+                description: 'Your profile has been successfully updated.',
+            });
+        } catch (error) {
+            console.error("Error saving admin profile:", error);
+            toast({
+                title: 'Save Failed',
+                description: 'Could not save your profile changes.',
+                variant: 'destructive',
+             });
+        } finally {
+            setIsSaving(false);
+        }
     }
 
 
