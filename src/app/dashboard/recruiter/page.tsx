@@ -102,8 +102,6 @@ function RecruiterPortalContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isScreening, setIsScreening] = useState(false);
-  const [showScreeningStartToast, setShowScreeningStartToast] = useState(false);
-  const [showScreeningCompleteToast, setShowScreeningCompleteToast] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<ScoredCandidate | null>(null);
@@ -153,20 +151,6 @@ function RecruiterPortalContent() {
       localStorage.setItem('shortlistedCandidates', JSON.stringify(shortlistedCandidates));
     }
   }, [shortlistedCandidates, isClient]);
-
-  useEffect(() => {
-    if (showScreeningStartToast) {
-        toast({ title: `Screening for "${activeScreeningJobTitle}"`, description: "AI is now screening candidates..." });
-        setShowScreeningStartToast(false);
-    }
-  }, [showScreeningStartToast, activeScreeningJobTitle, toast]);
-
-  useEffect(() => {
-      if (showScreeningCompleteToast) {
-          toast({ title: "Screening Complete!", description: `Found and ranked ${screeningResults.length} candidates for "${activeScreeningJobTitle}".` });
-          setShowScreeningCompleteToast(false);
-      }
-  }, [showScreeningCompleteToast, screeningResults.length, activeScreeningJobTitle, toast]);
   
 
   const filteredTalentPool = useMemo(() => {
@@ -239,7 +223,7 @@ function RecruiterPortalContent() {
       setSelectedCandidate(null);
       setScreeningProgress(0);
       setActiveScreeningJobTitle(job.title);
-      setShowScreeningStartToast(true);
+      toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
       
       const results: ScoredCandidate[] = [];
       try {
@@ -256,9 +240,13 @@ function RecruiterPortalContent() {
           setScreeningProgress(((i + 1) / qualifiedCandidates.length) * 100);
         }
         results.sort((a, b) => b.score - a.score); // Sort by score descending
-        setScreeningResults(results);
-        setSelectedCandidate(results[0] || null);
-        setShowScreeningCompleteToast(true);
+        
+        setTimeout(() => {
+            setScreeningResults(results);
+            setSelectedCandidate(results[0] || null);
+            toast({ title: "Screening Complete!", description: `Found and ranked ${results.length} candidates for "${job.title}".` });
+        }, 0);
+
       } catch (error) {
          console.error("Error during auto-screening:", error);
          toast({ variant: "destructive", title: "Screening Failed", description: "An error occurred during the screening process." });
