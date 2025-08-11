@@ -15,19 +15,22 @@ import { useNotifications } from '@/contexts/NotificationContext';
 
 
 export default function AdminProfilePage() {
-    const { user, updateUserAvatar } = useAuth();
+    const { user, updateUserAvatar, loading: authLoading } = useAuth();
     const { toast } = useToast();
     const { updateAdminProfile, admins } = useNotifications();
     
     const [name, setName] = useState('Admin');
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isClient, setIsClient] = useState(false);
+
 
     const currentAdminProfile = React.useMemo(() => {
         return admins.find(a => a.id === user?.id);
     }, [admins, user]);
     
     useEffect(() => {
+        setIsClient(true);
         if (currentAdminProfile) {
             setName(currentAdminProfile.name);
         } else if (user?.name) {
@@ -77,6 +80,13 @@ export default function AdminProfilePage() {
         }
     }
 
+    if (!isClient || authLoading) {
+        return (
+             <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
 
     return (
         <Card>

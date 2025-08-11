@@ -75,7 +75,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateUserAvatar = async (newUrl: string) => {
     if (!user) throw new Error("User not authenticated");
 
-    const collectionName = user.role === 'recruiter' ? 'recruiters' : 'candidates';
+    let collectionName = 'candidates';
+    if (user.role === 'recruiter') {
+        collectionName = 'recruiters';
+    } else if (user.role === 'admin') {
+        collectionName = 'admins';
+    }
+    
     const userDocRef = doc(db, collectionName, user.id);
     
     try {
