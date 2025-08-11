@@ -118,11 +118,11 @@ export default function LoginForm() {
                     <LogIn className="mr-2 h-5 w-5" />
                     Sign In
                     </Button>
-                    <div className="text-center">
+                    {/* <div className="text-center">
                         <p className="text-xs text-muted-foreground">
                         Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
                         </p>
-                    </div>
+                    </div> */}
                     <Separator />
                     <div className="text-center">
                     <p className="text-sm text-muted-foreground">
