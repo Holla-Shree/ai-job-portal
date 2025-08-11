@@ -58,17 +58,13 @@ interface NotificationContextType {
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
-  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
   addJob: (job: Job) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
-  setCandidates: React.Dispatch<React.SetStateAction<Candidate[]>>;
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
   recruiters: Recruiter[];
-  setRecruiters: React.Dispatch<React.SetStateAction<Recruiter[]>>;
   updateRecruiterProfile: (recruiterId: string, profileData: Partial<Recruiter>) => Promise<void>;
   admins: Admin[];
-  setAdmins: React.Dispatch<React.SetStateAction<Admin[]>>;
   updateAdminProfile: (adminId: string, profileData: Partial<Admin>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
@@ -99,6 +95,7 @@ export type Candidate = {
     profile: string;
     resumeFilename?: string | null;
     avatar?: string;
+    email?: string;
 };
 
 // Add a type for Recruiter as well
@@ -144,15 +141,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
   
   useEffect(() => {
-    if (!user?.id) {
-        setJobs([]);
-        setCandidates([]);
-        setRecruiters([]);
-        setAdmins([]);
-        setConversations([]);
-        setApplicationHistory([]);
-        return;
-    };
+    if (!user?.id) return;
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
@@ -169,16 +158,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     partnerRole = 'System';
                     avatar = 'S';
                 } else if (user.role === 'user') {
-                    // In a larger app, you'd fetch this, but for now we rely on the recruiters list
-                    const rec = recruiters.find(r => r.id === partnerId) || {name: "A Recruiter", avatar: "R"};
-                    partnerName = rec.name;
-                    avatar = rec.avatar || (rec.name ? rec.name.charAt(0) : 'R');
+                    // This now fetches from firestore directly if needed.
+                    const recQuery = query(collection(db, 'recruiters'), where('id', '==', partnerId));
+                    const recSnapshot = await getDocs(recQuery);
+                    const rec = recSnapshot.empty ? null : recSnapshot.docs[0].data();
+                    partnerName = rec?.name || "A Recruiter";
+                    avatar = rec?.avatar || (rec?.name ? rec.name.charAt(0) : 'R');
                     partnerRole = 'Recruiter';
                 } else if (user.role === 'recruiter' || user.role === 'admin') {
-                     // In a larger app, you'd fetch this, but for now we rely on the candidates list
-                    const cand = candidates.find(c => c.id === partnerId) || {name: "A Candidate", avatar: "C"};
-                    partnerName = cand.name;
-                    avatar = cand.avatar || (cand.name ? cand.name.charAt(0) : 'C');
+                    const candQuery = query(collection(db, 'candidates'), where('id', '==', partnerId));
+                    const candSnapshot = await getDocs(candQuery);
+                    const cand = candSnapshot.empty ? null : candSnapshot.docs[0].data();
+                    partnerName = cand?.name || "A Candidate";
+                    avatar = cand?.avatar || (cand?.name ? cand.name.charAt(0) : 'C');
                     partnerRole = 'Candidate';
                 }
             }
@@ -198,26 +190,56 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         });
     });
 
-    // This listener now handles candidate list updates AND syncs the auth user's profile
-    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
-        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
-        setCandidates(candidatesData);
-        if (user && user.role === 'user') {
-            const currentUserDataFromDb = candidatesData.find(c => c.id === user.id);
-            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
-                 const updatedUser = { ...user, name: currentUserDataFromDb.name, avatar: currentUserDataFromDb.avatar || user.avatar };
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-        }
-    });
-
-
     return () => {
         unsubscribeConversations();
-        unsubscribeCandidates();
     };
-  }, [user?.id, user?.role, setUser, candidates, recruiters]);
+  }, [user?.id, user?.role]);
+
+  // Separate effect to sync user profile data
+  useEffect(() => {
+    if (!user) return;
+
+    let unsub;
+    if (user.role === 'user') {
+      unsub = onSnapshot(doc(db, "candidates", user.id), (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data() as Candidate;
+          if (user.name !== userData.name || user.avatar !== userData.avatar) {
+            const updatedUser = { ...user, name: userData.name, avatar: userData.avatar || user.avatar };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
+        }
+      });
+    } else if (user.role === 'recruiter') {
+        unsub = onSnapshot(doc(db, "recruiters", user.id), (doc) => {
+            if (doc.exists()) {
+                const userData = doc.data() as Recruiter;
+                 if (user.name !== userData.name || user.avatar !== userData.avatar) {
+                    const updatedUser = { ...user, name: userData.name, avatar: userData.avatar || user.avatar };
+                    setUser(updatedUser);
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+            }
+        });
+    } else if (user.role === 'admin') {
+        unsub = onSnapshot(doc(db, "admins", user.id), (doc) => {
+            if (doc.exists()) {
+                const userData = doc.data() as Admin;
+                 if (user.name !== userData.name || user.avatar !== userData.avatar) {
+                    const updatedUser = { ...user, name: userData.name, avatar: userData.avatar || user.avatar };
+                    setUser(updatedUser);
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+            }
+        });
+    }
+
+    return () => {
+      if (unsub) unsub();
+    };
+
+  }, [user, setUser]);
 
 
   useEffect(() => {
@@ -234,19 +256,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   
   const unsaveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
-     const jobDetails = jobs.find(j => j.id === jobId);
-     if (!jobDetails) return;
+     const q = query(collection(db, 'jobs'), where('id', '==', jobId));
+     const jobSnapshot = await getDocs(q);
+     if (jobSnapshot.empty) return;
+     const jobDetails = {id: jobSnapshot.docs[0].id, ...jobSnapshot.docs[0].data()} as Job;
+     
 
-     const appToDelete = applicationHistory.find(app => 
-        app.candidateId === user.id &&
-        app.jobTitle === jobDetails.title &&
-        app.company === jobDetails.company &&
-        app.status === 'Interested'
-     );
-
-    if (appToDelete) {
+     const appQuery = query(collection(db, "applications"), 
+        where("candidateId", "==", user.id),
+        where("jobTitle", "==", jobDetails.title),
+        where("company", "==", jobDetails.company),
+        where("status", "==", 'Interested')
+    );
+    const appSnapshot = await getDocs(appQuery);
+    
+    if (!appSnapshot.empty) {
+        const appToDeleteId = appSnapshot.docs[0].id;
         try {
-            await deleteDoc(doc(db, "applications", appToDelete.id));
+            await deleteDoc(doc(db, "applications", appToDeleteId));
         } catch (e) {
             console.error("Error removing 'Interested' application: ", e);
         }
@@ -270,11 +297,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const docRef = querySnapshot.docs[0].ref;
         await updateDoc(docRef, { status: 'Applied', timestamp: Date.now() });
     } else {
-        const candidate = candidates.find(c => c.id === candidateId);
         const newApplication = {
           jobTitle,
           company,
-          candidateName: candidate?.name || user.name || 'A Job Seeker',
+          candidateName: user.name || 'A Job Seeker',
           timestamp: Date.now(),
           read: false,
           status: 'Applied' as const,
@@ -297,11 +323,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-        const candidate = candidates.find(c => c.id === candidateId);
         const newInterest = {
           jobTitle,
           company,
-          candidateName: candidate?.name || user.name || 'A Job Seeker',
+          candidateName: user.name || 'A Job Seeker',
           timestamp: Date.now(),
           read: false,
           status: 'Interested' as const,
@@ -359,7 +384,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
         const { id, ...jobData } = job;
         const docRef = await addDoc(collection(db, "jobs"), jobData);
-        // After adding, update the local state with the actual ID from firestore
         setJobs(prevJobs => [...prevJobs, { ...job, id: docRef.id }]);
     } catch (e) {
         console.error("Error adding document: ", e);
@@ -458,10 +482,10 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         notifications, addNotification, expressInterest, markAsRead, toggleMute, 
         applicationHistory, setApplicationHistory, updateApplicationStatus, 
         conversations, setConversations, deleteConversation, clearConversationMessages, 
-        jobs, setJobs, addJob, deleteJob, 
-        candidates, setCandidates, updateCandidateProfile, 
-        recruiters, setRecruiters, updateRecruiterProfile, 
-        admins, setAdmins, updateAdminProfile, 
+        jobs, addJob, deleteJob, 
+        candidates, updateCandidateProfile, 
+        recruiters, updateRecruiterProfile, 
+        admins, updateAdminProfile, 
         blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage 
     }}>
       {children}
