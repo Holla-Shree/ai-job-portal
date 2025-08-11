@@ -19,7 +19,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (role: UserRole, id: string, email: string, name: string) => void;
+  login: (role: UserRole, id: string, email: string, name: string, avatar?: string) => void;
   logout: () => void;
   updateUserAvatar: (newUrl: string) => Promise<void>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -49,16 +49,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeUser();
   }, []);
 
-  const login = (role: UserRole, id: string, email: string, name: string) => {
+  const login = (role: UserRole, id: string, email: string, name: string, avatar?: string) => {
     setLoading(true);
-    const avatarText = name.charAt(0).toUpperCase();
+    const avatarText = name ? name.charAt(0).toUpperCase() : 'U';
     
     const newUser: User = { 
       role, 
       id, 
       email, 
       name,
-      avatar: `https://placehold.co/40x40.png?text=${avatarText}`, 
+      avatar: avatar || `https://placehold.co/40x40.png?text=${avatarText}`, 
     };
     
     setUser(newUser);

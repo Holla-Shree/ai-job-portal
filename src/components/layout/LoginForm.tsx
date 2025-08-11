@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -36,44 +38,81 @@ export default function LoginForm() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    // In a real app, you'd validate credentials. Here, we'll assign roles based on email.
+  const onSubmit = async (data: LoginFormValues) => {
     let role: 'user' | 'recruiter' | 'admin' = 'user';
     let name = data.email.split('@')[0];
-    let idPrefix = 'user';
+    let id: string | null = null;
+    let avatar: string | undefined = undefined;
 
-    if (data.email.includes('recruiter')) {
-      role = 'recruiter';
-      name = "Recruiter Admin";
-      idPrefix = 'recruiter';
-    } else if (data.email.includes('admin')) {
-      role = 'admin';
-      name = "Admin";
-      idPrefix = 'admin'
-    }
+    try {
+        // Check if user is an admin
+        let q = query(collection(db, 'admins'), where('email', '==', data.email));
+        let querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            const adminData = querySnapshot.docs[0].data();
+            role = 'admin';
+            id = querySnapshot.docs[0].id;
+            name = adminData.name;
+            avatar = adminData.avatar;
+        } else {
+            // Check if user is a recruiter
+            q = query(collection(db, 'recruiters'), where('email', '==', data.email));
+            querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const recruiterData = querySnapshot.docs[0].data();
+                role = 'recruiter';
+                id = querySnapshot.docs[0].id;
+                name = recruiterData.name;
+                avatar = recruiterData.avatar;
+            } else {
+                // Default to user role, check if they exist
+                 q = query(collection(db, 'candidates'), where('email', '==', data.email));
+                 querySnapshot = await getDocs(q);
+                 if (!querySnapshot.empty) {
+                    const candidateData = querySnapshot.docs[0].data();
+                    role = 'user';
+                    id = querySnapshot.docs[0].id;
+                    name = candidateData.name;
+                    avatar = candidateData.avatar;
+                 } else {
+                    toast({
+                        title: 'Login Failed',
+                        description: 'No account found with this email.',
+                        variant: 'destructive',
+                    });
+                    return;
+                 }
+            }
+        }
+        
+        toast({
+            title: 'Login Successful',
+            description: `Welcome back, ${name}! You are now logged in as a ${role}.`,
+        });
 
-    toast({
-      title: 'Login Successful',
-      description: `Welcome! You are now logged in as a ${role}.`,
-    });
-    
-    const userId = `${idPrefix}-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
+        login(role, id, data.email, name, avatar);
 
-    login(role, userId, data.email, name);
+        switch (role) {
+            case 'user':
+            router.push('/dashboard/user');
+            break;
+            case 'recruiter':
+            router.push('/dashboard/recruiter');
+            break;
+            case 'admin':
+            router.push('/dashboard/admin');
+            break;
+            default:
+            router.push('/');
+        }
 
-    // Redirect based on role
-    switch (role) {
-      case 'user':
-        router.push('/dashboard/user');
-        break;
-      case 'recruiter':
-        router.push('/dashboard/recruiter');
-        break;
-      case 'admin':
-        router.push('/dashboard/admin');
-        break;
-      default:
-        router.push('/');
+    } catch (error) {
+        console.error("Login error:", error);
+        toast({
+            title: 'Login Error',
+            description: 'An unexpected error occurred. Please try again.',
+            variant: 'destructive',
+        });
     }
   };
 
@@ -118,11 +157,6 @@ export default function LoginForm() {
                     <LogIn className="mr-2 h-5 w-5" />
                     Sign In
                     </Button>
-                    {/* <div className="text-center">
-                        <p className="text-xs text-muted-foreground">
-                        Hint: use 'recruiter@example.com' or 'admin@example.com' to log in as other roles.
-                        </p>
-                    </div> */}
                     <Separator />
                     <div className="text-center">
                     <p className="text-sm text-muted-foreground">
