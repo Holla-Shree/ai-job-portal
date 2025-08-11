@@ -25,12 +25,12 @@ import { Progress } from '@/components/ui/progress';
 import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNotifications, Job, Candidate } from '@/contexts/NotificationContext';
+import { useNotifications, Job, Candidate, ApplicationNotification } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, where, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -95,6 +95,7 @@ function RecruiterPortalContent() {
   const { updateApplicationStatus } = useNotifications();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
@@ -124,22 +125,28 @@ function RecruiterPortalContent() {
     if (storedShortlisted) {
       setShortlistedCandidates(JSON.parse(storedShortlisted));
     }
+  }, [searchParams]);
 
-     const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
-        const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
-        setJobs(jobsData);
+  useEffect(() => {
+    const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+        setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)));
     });
 
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
-        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
-        setCandidates(candidatesData);
+        setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
     });
+
+    const unsubscribeApplications = onSnapshot(collection(db, "applications"), (snapshot) => {
+        setApplicationHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification)));
+    });
+
 
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
+        unsubscribeApplications();
     };
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     if (isClient) {
