@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleMap, Map, Marker } from '@vis.gl/react-google-maps';
@@ -18,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useNotifications, Job } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
@@ -138,7 +141,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
 
 function JobMapPage() {
     const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // Centered on India
-    const { jobs } = useNotifications();
+    const { jobs, setJobs } = useNotifications();
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
     const jobListRef = useRef<Record<string, HTMLDivElement | null>>({});
@@ -150,9 +153,14 @@ function JobMapPage() {
     const [searchDomain, setSearchDomain] = useState('all');
 
     useEffect(() => {
-        // Initially, show all jobs that have a valid position
-        setFilteredJobs(jobs.filter(job => job.position?.lat && job.position?.lng));
-    }, [jobs]);
+        const unsubscribe = onSnapshot(collection(db, "jobs"), (snapshot) => {
+            const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+            setJobs(jobsData);
+            setFilteredJobs(jobsData.filter(job => job.position?.lat && job.position?.lng));
+        });
+        return () => unsubscribe();
+    }, [setJobs]);
+
 
     useEffect(() => {
         if (selectedJob && jobListRef.current[selectedJob.id]) {

@@ -51,19 +51,24 @@ interface NotificationContextType {
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
   applicationHistory: ApplicationNotification[];
+  setApplicationHistory: React.Dispatch<React.SetStateAction<ApplicationNotification[]>>;
   updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
   jobs: Job[];
+  setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
   addJob: (job: Job) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
+  setCandidates: React.Dispatch<React.SetStateAction<Candidate[]>>;
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
   recruiters: Recruiter[];
+  setRecruiters: React.Dispatch<React.SetStateAction<Recruiter[]>>;
   updateRecruiterProfile: (recruiterId: string, profileData: Partial<Recruiter>) => Promise<void>;
   admins: Admin[];
+  setAdmins: React.Dispatch<React.SetStateAction<Admin[]>>;
   updateAdminProfile: (adminId: string, profileData: Partial<Admin>) => Promise<void>;
   blockedUsers: { id: string, name: string }[];
   unblockUser: (userId: string) => void;
@@ -149,66 +154,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         return;
     };
 
-    const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
-        const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
-        setJobs(jobsData);
-    });
-    
-    // This listener now handles candidate list updates AND syncs the auth user's profile
-    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
-        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
-        setCandidates(candidatesData);
-
-        if (user && user.role === 'user') {
-            const currentUserDataFromDb = candidatesData.find(c => c.id === user.id);
-            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
-                 const updatedUser = {
-                    ...user,
-                    name: currentUserDataFromDb.name,
-                    avatar: currentUserDataFromDb.avatar || user.avatar,
-                };
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-        }
-    });
-
-    const unsubscribeRecruiters = onSnapshot(collection(db, "recruiters"), (snapshot) => {
-        const recruitersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter));
-        setRecruiters(recruitersData);
-
-         if (user && user.role === 'recruiter') {
-            const currentUserDataFromDb = recruitersData.find(r => r.id === user.id);
-            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
-                 const updatedUser = {
-                    ...user,
-                    name: currentUserDataFromDb.name,
-                    avatar: currentUserDataFromDb.avatar || user.avatar,
-                };
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-        }
-    });
-
-    const unsubscribeAdmins = onSnapshot(collection(db, "admins"), (snapshot) => {
-        const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Admin));
-        setAdmins(adminsData);
-
-         if (user && user.role === 'admin') {
-            const currentUserDataFromDb = adminsData.find(r => r.id === user.id);
-            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
-                 const updatedUser = {
-                    ...user,
-                    name: currentUserDataFromDb.name,
-                    avatar: currentUserDataFromDb.avatar || user.avatar,
-                };
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-        }
-    });
-
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
     const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
         const convosDataPromises = querySnapshot.docs.map(async (doc) => {
@@ -224,25 +169,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
                     partnerRole = 'System';
                     avatar = 'S';
                 } else if (user.role === 'user') {
-                    const rec = recruiters.find(r => r.id === partnerId);
-                    if(rec) {
-                        partnerName = rec.name;
-                        avatar = rec.avatar || (rec.name ? rec.name.charAt(0) : 'R');
-                    } else {
-                        partnerName = "A Recruiter";
-                        avatar = "R";
-                    }
+                    // In a larger app, you'd fetch this, but for now we rely on the recruiters list
+                    const rec = recruiters.find(r => r.id === partnerId) || {name: "A Recruiter", avatar: "R"};
+                    partnerName = rec.name;
+                    avatar = rec.avatar || (rec.name ? rec.name.charAt(0) : 'R');
                     partnerRole = 'Recruiter';
                 } else if (user.role === 'recruiter' || user.role === 'admin') {
-                    const cand = candidates.find(c => c.id === partnerId);
-                     if(cand){
-                        partnerName = cand.name;
-                        avatar = cand.avatar || (cand.name ? cand.name.charAt(0) : 'C');
-                     } else {
-                        partnerName = "A Candidate";
-                        avatar = "C";
-                     }
-
+                     // In a larger app, you'd fetch this, but for now we rely on the candidates list
+                    const cand = candidates.find(c => c.id === partnerId) || {name: "A Candidate", avatar: "C"};
+                    partnerName = cand.name;
+                    avatar = cand.avatar || (cand.name ? cand.name.charAt(0) : 'C');
                     partnerRole = 'Candidate';
                 }
             }
@@ -262,23 +198,24 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         });
     });
 
-    const applicationsQuery = user.role === 'user' 
-        ? query(collection(db, "applications"), where("candidateId", "==", user.id))
-        : collection(db, "applications");
-
-    const unsubscribeApplications = onSnapshot(applicationsQuery, (snapshot) => {
-        const appsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
-        setApplicationHistory(appsData);
+    // This listener now handles candidate list updates AND syncs the auth user's profile
+    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
+        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
+        setCandidates(candidatesData);
+        if (user && user.role === 'user') {
+            const currentUserDataFromDb = candidatesData.find(c => c.id === user.id);
+            if (currentUserDataFromDb && (user.name !== currentUserDataFromDb.name || user.avatar !== currentUserDataFromDb.avatar)) {
+                 const updatedUser = { ...user, name: currentUserDataFromDb.name, avatar: currentUserDataFromDb.avatar || user.avatar };
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+        }
     });
 
 
     return () => {
-        unsubscribeJobs();
-        unsubscribeCandidates();
-        unsubscribeRecruiters();
         unsubscribeConversations();
-        unsubscribeApplications();
-        unsubscribeAdmins();
+        unsubscribeCandidates();
     };
   }, [user?.id, user?.role, setUser, candidates, recruiters]);
 
@@ -517,7 +454,16 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <NotificationContext.Provider value={{ notifications, addNotification, expressInterest, markAsRead, toggleMute, applicationHistory, updateApplicationStatus, conversations, setConversations, deleteConversation, clearConversationMessages, jobs, addJob, deleteJob, candidates, updateCandidateProfile, recruiters, updateRecruiterProfile, admins, updateAdminProfile, blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage }}>
+    <NotificationContext.Provider value={{ 
+        notifications, addNotification, expressInterest, markAsRead, toggleMute, 
+        applicationHistory, setApplicationHistory, updateApplicationStatus, 
+        conversations, setConversations, deleteConversation, clearConversationMessages, 
+        jobs, setJobs, addJob, deleteJob, 
+        candidates, setCandidates, updateCandidateProfile, 
+        recruiters, setRecruiters, updateRecruiterProfile, 
+        admins, setAdmins, updateAdminProfile, 
+        blockedUsers, unblockUser, saveJob, unsaveJob, sendMessage 
+    }}>
       {children}
     </NotificationContext.Provider>
   );

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
@@ -14,12 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications, Candidate, Recruiter, ApplicationNotification } from '@/contexts/NotificationContext';
+import { useNotifications, Candidate, Recruiter, ApplicationNotification, Job, Admin } from '@/contexts/NotificationContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const userGrowthChartConfig = {
   users: {
@@ -46,8 +49,15 @@ type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter';
 
 function AdminPanelPage() {
     const { toast } = useToast();
-    const { candidates, jobs, applicationHistory, recruiters } = useNotifications();
-    const [isClient, setIsClient] = useState(false);
+    const { 
+        candidates, setCandidates,
+        jobs, setJobs,
+        applicationHistory, setApplicationHistory,
+        recruiters, setRecruiters,
+    } = useNotifications();
+
+    const [isDataLoading, setIsDataLoading] = useState(true);
+
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isChatLoading, setIsChatLoading] = useState(false);
@@ -56,11 +66,24 @@ function AdminPanelPage() {
 
     const [allUsers, setAllUsers] = useState<CombinedUser[]>([]);
     
-    // State for managing user actions
     const [selectedUser, setSelectedUser] = useState<CombinedUser | null>(null);
     const [isViewProfileOpen, setIsViewProfileOpen] = useState(false);
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    useEffect(() => {
+        setIsDataLoading(true);
+        const unsubscribes = [
+            onSnapshot(collection(db, "jobs"), (snapshot) => setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)))),
+            onSnapshot(collection(db, "candidates"), (snapshot) => setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)))),
+            onSnapshot(collection(db, "recruiters"), (snapshot) => setRecruiters(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter)))),
+            onSnapshot(collection(db, "applications"), (snapshot) => setApplicationHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification)))),
+        ];
+        
+        Promise.all(unsubscribes).then(() => setIsDataLoading(false));
+
+        return () => unsubscribes.forEach(unsub => unsub());
+    }, [setJobs, setCandidates, setRecruiters, setApplicationHistory]);
 
 
     const MOCK_STATS = useMemo(() => ({
@@ -101,10 +124,6 @@ function AdminPanelPage() {
             (u.email && u.email.toLowerCase().includes(userSearch.toLowerCase()))
         );
     }, [allUsers, userSearch]);
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -260,7 +279,7 @@ function AdminPanelPage() {
             .slice(0, 10); // Get the 10 most recent
     }, [applicationHistory]);
 
-    if (!isClient) {
+    if (isDataLoading) {
         return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 

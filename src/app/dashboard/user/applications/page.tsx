@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,9 @@ import { ArrowLeft, Star, Briefcase, Building, Clock, MapPin, Trash2 } from 'luc
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 
 type StatusColumn = 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Offer' | 'Rejected';
 
@@ -99,12 +103,30 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
 
 
 function ApplicationPipelinePage() {
-    const { applicationHistory, jobs } = useNotifications();
+    const { applicationHistory, setApplicationHistory, jobs, setJobs } = useNotifications();
+    const { user } = useAuth();
     const [isClient, setIsClient] = React.useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setIsClient(true);
-    }, []);
+        if (user?.id && user.role === 'user') {
+            const applicationsQuery = query(collection(db, "applications"), where("candidateId", "==", user.id));
+            const unsubscribeApps = onSnapshot(applicationsQuery, (snapshot) => {
+                const appsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
+                setApplicationHistory(appsData);
+            });
+
+            const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+                const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+                setJobs(jobsData);
+            });
+
+            return () => {
+                unsubscribeApps();
+                unsubscribeJobs();
+            };
+        }
+    }, [user, setApplicationHistory, setJobs]);
 
     const applicationsByStatus = useMemo(() => {
         const grouped = {} as Record<StatusColumn, ApplicationNotification[]>;
@@ -174,5 +196,3 @@ function ApplicationPipelinePage() {
 }
 
 export default withAuth(ApplicationPipelinePage, ['user', 'admin']);
-
-    

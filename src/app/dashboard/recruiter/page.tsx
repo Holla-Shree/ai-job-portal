@@ -30,6 +30,8 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 interface ScoredCandidate extends ScreenCandidateOutput {
@@ -58,7 +60,7 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { updateApplicationStatus, candidates, addJob, jobs, deleteJob } = useNotifications();
+  const { updateApplicationStatus, candidates, addJob, jobs, setJobs, deleteJob } = useNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
@@ -89,7 +91,15 @@ function RecruiterPortalContent() {
     if (storedShortlisted) {
       setShortlistedCandidates(JSON.parse(storedShortlisted));
     }
-  }, [searchParams]);
+
+     const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+        const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+        setJobs(jobsData);
+    });
+
+    return () => unsubscribeJobs();
+
+  }, [searchParams, setJobs]);
 
   useEffect(() => {
     if (isClient) {
