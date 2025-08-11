@@ -49,13 +49,12 @@ type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter';
 
 function AdminPanelPage() {
     const { toast } = useToast();
-    const { 
-        candidates, setCandidates,
-        jobs, setJobs,
-        applicationHistory, setApplicationHistory,
-        recruiters, setRecruiters,
-    } = useNotifications();
-
+    
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
+    const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
+    
     const [isDataLoading, setIsDataLoading] = useState(true);
 
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -80,10 +79,15 @@ function AdminPanelPage() {
             onSnapshot(collection(db, "applications"), (snapshot) => setApplicationHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification)))),
         ];
         
-        Promise.all(unsubscribes).then(() => setIsDataLoading(false));
+        // This is a simplified check. In a real app, you'd want a more robust way 
+        // to know when all initial data is loaded.
+        const loadingTimeout = setTimeout(() => setIsDataLoading(false), 2000); // Failsafe to hide loader
 
-        return () => unsubscribes.forEach(unsub => unsub());
-    }, [setJobs, setCandidates, setRecruiters, setApplicationHistory]);
+        return () => {
+            unsubscribes.forEach(unsub => unsub());
+            clearTimeout(loadingTimeout);
+        };
+    }, []);
 
 
     const MOCK_STATS = useMemo(() => ({

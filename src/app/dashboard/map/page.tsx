@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { useNotifications, Job } from '@/contexts/NotificationContext';
+import { useNotifications, Job, ApplicationNotification } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { collection, onSnapshot } from 'firebase/firestore';
@@ -24,7 +24,7 @@ import { db } from '@/lib/firebase';
 
 function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
     const { toast } = useToast();
-    const { addNotification, saveJob, unsaveJob, expressInterest, applicationHistory } = useNotifications();
+    const { addNotification, saveJob, unsaveJob, applicationHistory } = useNotifications();
     const { user } = useAuth();
     const router = useRouter();
 
@@ -50,19 +50,6 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             description: `Your application for the ${job.title} role at ${job.company} has been sent.`,
         });
     };
-
-    const handleExpressInterest = () => {
-        if (!user) {
-            router.push('/login?redirect=/dashboard/map');
-            toast({ title: 'Please log in to express interest', variant: 'destructive' });
-            return;
-        }
-        expressInterest(job.title, job.company);
-        toast({
-            title: "Interest Expressed!",
-            description: `The recruiter for the ${job.title} role has been notified of your interest.`,
-        });
-    }
 
     const handleToggleSave = () => {
         if (!user) {
@@ -127,10 +114,6 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             </ScrollArea>
              <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                <Button variant="outline" className="w-full" onClick={handleExpressInterest}>
-                     <Star className="mr-2 h-4 w-4" />
-                     Express Interest
-                </Button>
                 <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>
@@ -141,7 +124,7 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
 
 function JobMapPage() {
     const defaultPosition = { lat: 20.5937, lng: 78.9629 }; // Centered on India
-    const { jobs, setJobs } = useNotifications();
+    const [jobs, setJobs] = useState<Job[]>([]);
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
     const jobListRef = useRef<Record<string, HTMLDivElement | null>>({});
@@ -159,7 +142,7 @@ function JobMapPage() {
             setFilteredJobs(jobsData.filter(job => job.position?.lat && job.position?.lng));
         });
         return () => unsubscribe();
-    }, [setJobs]);
+    }, []);
 
 
     useEffect(() => {

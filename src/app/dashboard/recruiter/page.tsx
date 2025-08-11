@@ -25,12 +25,12 @@ import { Progress } from '@/components/ui/progress';
 import withAuth from '@/components/withAuth';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNotifications, Job } from '@/contexts/NotificationContext';
+import { useNotifications, Job, Candidate } from '@/contexts/NotificationContext';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 
@@ -60,7 +60,9 @@ type GeneratorFormValues = z.infer<typeof generatorSchema>;
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { updateApplicationStatus, candidates, addJob, jobs, setJobs, deleteJob } = useNotifications();
+  const { updateApplicationStatus } = useNotifications();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isClient, setIsClient] = useState(false);
@@ -97,9 +99,16 @@ function RecruiterPortalContent() {
         setJobs(jobsData);
     });
 
-    return () => unsubscribeJobs();
+    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
+        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
+        setCandidates(candidatesData);
+    });
 
-  }, [searchParams, setJobs]);
+    return () => {
+        unsubscribeJobs();
+        unsubscribeCandidates();
+    };
+  }, [searchParams]);
 
   useEffect(() => {
     if (isClient) {
@@ -166,9 +175,8 @@ function RecruiterPortalContent() {
     }
   };
   
- const handlePostJob: SubmitHandler<JobPostingFormValues> = (data) => {
-    const newJob: Job = {
-        id: `temp-${Date.now()}`,
+ const handlePostJob: SubmitHandler<JobPostingFormValues> = async (data) => {
+    const newJob: Omit<Job, 'id'> = {
         title: data.jobTitle,
         company: data.companyName,
         city: data.location,
@@ -179,7 +187,7 @@ function RecruiterPortalContent() {
         position: { lat: 20.5937, lng: 78.9629 }, // Default position
     };
     
-    addJob(newJob);
+    await addDoc(collection(db, "jobs"), newJob);
     
     toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
     jobPostForm.reset();
@@ -243,17 +251,13 @@ function RecruiterPortalContent() {
      });
   };
   
-  const handleMessageCandidate = (candidateId: string, candidateName: string) => {
-    router.push(`/dashboard/messaging?start_with_user=${candidateId}`);
-    toast({
-      title: "Opening Chat",
-      description: `Starting a conversation with ${candidateName}.`
-    });
+  const handleMessageCandidate = (candidateId: string, jobTitle: string) => {
+    router.push(`/dashboard/messaging?start_with_candidate=${candidateId}&about_job=${encodeURIComponent(jobTitle)}`);
   };
 
   const handleDeleteJob = async (jobId: string) => {
     try {
-      await deleteJob(jobId);
+      await deleteDoc(doc(db, "jobs", jobId));
       toast({ title: "Job Deleted", description: "The job posting has been successfully removed." });
     } catch (error) {
       console.error("Error deleting job:", error);
@@ -540,7 +544,7 @@ function RecruiterPortalContent() {
                                             )}
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, selectedCandidate.candidate.name)}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJobTitle || 'an open role')}>
                                                     <MessageSquare className="mr-2 h-4 w-4" /> Message
                                                 </Button>
                                                 <AlertDialog>
@@ -610,7 +614,7 @@ function RecruiterPortalContent() {
                                             </div>
                                             <Separator />
                                             <div className="flex items-center gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, candidate.name || 'this candidate')}>
+                                                <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, 'a role you have shortlisted them for')}>
                                                     <MessageSquare className="mr-2 h-3 w-3" />
                                                     Message
                                                 </Button>
