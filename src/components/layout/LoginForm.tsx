@@ -49,8 +49,12 @@ export default function LoginForm() {
     let avatar: string | undefined = undefined;
 
     let collectionName: 'candidates' | 'recruiters' | 'admins' = 'candidates';
-    if (data.role === 'recruiter') collectionName = 'recruiters';
-    if (data.role === 'admin') collectionName = 'admins';
+    if (data.role === 'recruiter') {
+        collectionName = 'recruiters';
+    } else if (data.role === 'admin') {
+        collectionName = 'admins';
+    }
+
 
     try {
         const q = query(collection(db, collectionName), where('email', '==', data.email));
