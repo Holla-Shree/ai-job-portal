@@ -1,11 +1,10 @@
 
-
 'use client';
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, UserCircle, Search, MessageSquare, Settings, ListChecks, Bookmark } from "lucide-react";
+import { ArrowRight, UserCircle, Search, MessageSquare, ListChecks } from "lucide-react";
 import withAuth from '@/components/withAuth';
 import { useAuth } from '@/contexts/AuthContext';
 
