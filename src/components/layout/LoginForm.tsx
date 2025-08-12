@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -33,6 +33,11 @@ export default function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -79,7 +84,7 @@ export default function LoginForm() {
             description: `Welcome back, ${name}!`,
         });
 
-        login(data.role as UserRole, id, data.email, name, avatar);
+        await login(data.role as UserRole, id, data.email, name, avatar);
 
         switch (data.role) {
             case 'user':
@@ -104,6 +109,37 @@ export default function LoginForm() {
         });
     }
   };
+
+  if (!isClient) {
+    return (
+        <Card className="w-full max-w-md shadow-2xl">
+            <CardHeader className="text-center space-y-2">
+                <CardTitle className="font-headline text-3xl">Sign In</CardTitle>
+                <CardDescription>Enter your credentials to access your account.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="flex items-center justify-center h-48">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+                 <Button type="submit" className="w-full" size="lg" disabled>
+                    <LogIn className="mr-2 h-5 w-5" />
+                    Sign In
+                </Button>
+                <Separator />
+                <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                        Don't have an account?{' '}
+                        <Link href="/signup" className="font-semibold text-primary hover:underline">
+                            Sign Up
+                        </Link>
+                    </p>
+                </div>
+            </CardFooter>
+        </Card>
+    )
+  }
 
   return (
       <Card className="w-full max-w-md shadow-2xl">
