@@ -5,6 +5,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface CloudinaryUploadWidgetProps {
   onSuccess: (result: any) => void;
@@ -20,6 +21,12 @@ export function CloudinaryUploadWidget({
   children,
 }: CloudinaryUploadWidgetProps) {
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const handleUploadSuccess = (result: any) => {
     setIsUploading(false);
@@ -35,6 +42,10 @@ export function CloudinaryUploadWidget({
       variant: 'destructive',
     });
   };
+  
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <CldUploadWidget
