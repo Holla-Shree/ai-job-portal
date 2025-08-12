@@ -15,12 +15,16 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
   password: z.string().min(1, "Password is required."),
+  role: z.enum(['user', 'recruiter', 'admin'], {
+    required_error: "You must select a role to log in.",
+  }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -35,75 +39,56 @@ export default function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
+      role: 'user',
     },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    let role: 'user' | 'recruiter' | 'admin' = 'user';
     let name = data.email.split('@')[0];
     let id: string | null = null;
     let avatar: string | undefined = undefined;
 
+    let collectionName: 'candidates' | 'recruiters' | 'admins' = 'candidates';
+    if (data.role === 'recruiter') collectionName = 'recruiters';
+    if (data.role === 'admin') collectionName = 'admins';
+
     try {
-        // Check if user is an admin
-        let q = query(collection(db, 'admins'), where('email', '==', data.email));
-        let querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const adminData = querySnapshot.docs[0].data();
-            role = 'admin';
-            id = querySnapshot.docs[0].id;
-            name = adminData.name;
-            avatar = adminData.avatar;
-        } else {
-            // Check if user is a recruiter
-            q = query(collection(db, 'recruiters'), where('email', '==', data.email));
-            querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const recruiterData = querySnapshot.docs[0].data();
-                role = 'recruiter';
-                id = querySnapshot.docs[0].id;
-                name = recruiterData.name;
-                avatar = recruiterData.avatar;
-            } else {
-                // Default to user role, check if they exist
-                 q = query(collection(db, 'candidates'), where('email', '==', data.email));
-                 querySnapshot = await getDocs(q);
-                 if (!querySnapshot.empty) {
-                    const candidateData = querySnapshot.docs[0].data();
-                    role = 'user';
-                    id = querySnapshot.docs[0].id;
-                    name = candidateData.name;
-                    avatar = candidateData.avatar;
-                 } else {
-                    toast({
-                        title: 'Login Failed',
-                        description: 'No account found with this email.',
-                        variant: 'destructive',
-                    });
-                    return;
-                 }
-            }
+        const q = query(collection(db, collectionName), where('email', '==', data.email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            toast({
+                title: 'Login Failed',
+                description: `No ${data.role} account found with this email.`,
+                variant: 'destructive',
+            });
+            return;
         }
+
+        const userData = querySnapshot.docs[0].data();
+        id = querySnapshot.docs[0].id;
+        name = userData.name;
+        avatar = userData.avatar;
         
         toast({
             title: 'Login Successful',
-            description: `Welcome back, ${name}! You are now logged in as a ${role}.`,
+            description: `Welcome back, ${name}!`,
         });
 
-        login(role, id, data.email, name, avatar);
+        login(data.role as UserRole, id, data.email, name, avatar);
 
-        switch (role) {
+        switch (data.role) {
             case 'user':
-            router.push('/dashboard/user');
-            break;
+              router.push('/dashboard/user');
+              break;
             case 'recruiter':
-            router.push('/dashboard/recruiter');
-            break;
+              router.push('/dashboard/recruiter');
+              break;
             case 'admin':
-            router.push('/dashboard/admin');
-            break;
+              router.push('/dashboard/admin');
+              break;
             default:
-            router.push('/');
+              router.push('/');
         }
 
     } catch (error) {
@@ -123,7 +108,7 @@ export default function LoginForm() {
           <CardDescription>Enter your credentials to access your account.</CardDescription>
         </CardHeader>
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
@@ -146,6 +131,48 @@ export default function LoginForm() {
                           <FormLabel>Password</FormLabel>
                           <FormControl>
                             <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Log in as</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex gap-4"
+                            >
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="user" id="role-user" />
+                                </FormControl>
+                                <FormLabel htmlFor="role-user" className="font-normal">
+                                  Job Seeker
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="recruiter" id="role-recruiter" />
+                                </FormControl>
+                                <FormLabel htmlFor="role-recruiter" className="font-normal">
+                                  Recruiter
+                                </FormLabel>
+                              </FormItem>
+                               <FormItem className="flex items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="admin" id="role-admin" />
+                                </FormControl>
+                                <FormLabel htmlFor="role-admin" className="font-normal">
+                                  Admin
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
