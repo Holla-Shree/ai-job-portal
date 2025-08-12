@@ -17,7 +17,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 
 
 export default function RecruiterProfilePage() {
-    const { user, updateUserAvatar } = useAuth();
+    const { user, updateUserAvatar, loading: authLoading } = useAuth();
     const { recruiters, updateRecruiterProfile } = useNotifications();
     const { toast } = useToast();
     
@@ -28,12 +28,14 @@ export default function RecruiterProfilePage() {
     
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isClient, setIsClient] = useState(false);
 
     const currentRecruiterProfile = React.useMemo(() => {
         return recruiters.find(r => r.id === user?.id);
     }, [recruiters, user]);
 
     useEffect(() => {
+        setIsClient(true);
         if (currentRecruiterProfile) {
             setName(currentRecruiterProfile.name || '');
             setCompanyName(currentRecruiterProfile.companyName || '');
@@ -89,6 +91,14 @@ export default function RecruiterProfilePage() {
         } finally {
             setIsSaving(false);
         }
+    }
+
+    if (!isClient || authLoading) {
+        return (
+             <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
     }
 
 
