@@ -16,7 +16,7 @@ import { LogIn, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const loginSchema = z.object({
@@ -60,8 +60,29 @@ export default function LoginForm() {
         collectionName = 'admins';
     }
 
-
     try {
+        // Special case for default admin user
+        if (data.role === 'admin' && data.email === 'admin@example.com') {
+            const adminQuery = query(collection(db, "admins"), where('email', '==', data.email));
+            const adminSnapshot = await getDocs(adminQuery);
+
+            if (adminSnapshot.empty) {
+                // Admin doesn't exist, so create it
+                const adminId = `admin-${data.email.replace(/[^a-zA-Z0-9]/g, '')}`;
+                const adminData = {
+                    id: adminId,
+                    name: 'Admin User',
+                    email: data.email,
+                    avatar: `https://placehold.co/40x40.png?text=A`
+                };
+                await setDoc(doc(db, "admins", adminId), adminData);
+                id = adminId;
+                name = adminData.name;
+                avatar = adminData.avatar;
+            }
+        }
+
+
         const q = query(collection(db, collectionName), where('email', '==', data.email));
         const querySnapshot = await getDocs(q);
 
