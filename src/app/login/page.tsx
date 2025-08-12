@@ -19,9 +19,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { AppLogo } from '@/components/layout/AppLogo';
-import { Loader2 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -33,8 +30,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-
-function LoginForm() {
+export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -111,6 +107,10 @@ function LoginForm() {
   };
 
   return (
+    <div className="flex items-center justify-center min-h-screen bg-muted/30">
+      <div className="absolute top-8 left-8">
+        <AppLogo />
+      </div>
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="font-headline text-3xl">Sign In</CardTitle>
@@ -206,22 +206,6 @@ function LoginForm() {
             </form>
         </Form>
       </Card>
-  );
-}
-
-const DynamicLoginForm = dynamic(() => Promise.resolve(LoginForm), {
-  ssr: false,
-  loading: () => <div className="h-[480px] w-full max-w-md flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin"/></div>
-});
-
-
-export default function LoginPage() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/30">
-      <div className="absolute top-8 left-8">
-        <AppLogo />
-      </div>
-      <DynamicLoginForm />
     </div>
   );
 }
