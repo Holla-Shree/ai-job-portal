@@ -229,7 +229,6 @@ function UserProfilePage() {
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
   const [jobRecommendations, setJobRecommendations] = useState<RecommendJobsOutput | null>(null);
   const [selectedJob, setSelectedJob] = useState<RecommendedJob | null>(null);
-  const [currentResumeFile, setCurrentResumeFile] = useState<string | null>(null);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
   const resumeForm = useForm<ResumeUploadFormValues>({
@@ -259,7 +258,6 @@ function UserProfilePage() {
       if (currentUserProfile.profile && !currentUserProfile.profile.startsWith('Newly registered')) {
         jobForm.setValue('resumeText', currentUserProfile.profile);
       }
-       setCurrentResumeFile(currentUserProfile.resumeFilename || null);
     }
   }, [currentUserProfile, jobForm]);
 
@@ -292,7 +290,6 @@ function UserProfilePage() {
             
             setResumeAnalysis(result);
             jobForm.setValue('resumeText', fullText);
-            setCurrentResumeFile(file.name);
             
             toast({ title: "Resume Analyzed & Saved", description: "Your anonymized profile has been created and saved." });
           }
@@ -338,7 +335,6 @@ function UserProfilePage() {
 
       setResumeAnalysis(null);
       jobForm.reset({ resumeText: '', keywords: '' });
-      setCurrentResumeFile(null);
 
       toast({
           title: "Resume Deleted",
@@ -347,9 +343,6 @@ function UserProfilePage() {
   }
 
   const getProfileText = () => {
-    if (resumeAnalysis) {
-        return `Summary: ${resumeAnalysis.anonymizedSummary}\n\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\n\nExperience:\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n') || 'N/A'}\n\nEducation:\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n') || 'N/A'}\n\nProjects:\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n') || 'N/A'}\n\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}`;
-    }
     if (currentUserProfile && currentUserProfile.profile && !currentUserProfile.profile.startsWith('Newly registered')) {
         return currentUserProfile.profile;
     }
@@ -377,11 +370,11 @@ function UserProfilePage() {
                           <CardDescription>Let AI extract key information from your resume, removing personal details to ensure fair matching.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                          {currentResumeFile ? (
+                          {currentUserProfile?.resumeFilename ? (
                               <div className="border rounded-lg p-4 flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                       <FileText className="h-6 w-6 text-muted-foreground" />
-                                      <span className="font-medium">{currentResumeFile}</span>
+                                      <span className="font-medium">{currentUserProfile.resumeFilename}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                        <Button variant="outline" size="sm" onClick={() => uploadInputRef.current?.click()}>

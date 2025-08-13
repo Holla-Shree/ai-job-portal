@@ -139,6 +139,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
     }
   }, []);
+
+  // Effect to listen for all candidates
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "candidates"), (snapshot) => {
+        const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
+        setCandidates(candidatesData);
+    });
+    return () => unsubscribe();
+  }, []);
   
   useEffect(() => {
     if (!user?.id) return;
