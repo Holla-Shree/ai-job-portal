@@ -355,9 +355,6 @@ function ChatbotPage() {
                     <div className="p-6 space-y-4">
                         {chatHistory.length === 0 && !isLoading && (
                             <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground pt-16">
-                                <MessageSquare className="w-16 h-16 mb-4" />
-                                <p>Welcome to your AI Interview Coach!</p>
-                                <p className="text-sm">Start by entering a job description below to begin.</p>
                             </div>
                         )}
                         {chatHistory.map((msg) => (
