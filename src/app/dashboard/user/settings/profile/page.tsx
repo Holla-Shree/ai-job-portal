@@ -284,7 +284,7 @@ function UserProfilePage() {
                 resumeFilename: file.name,
             });
 
-            setResumeAnalysis(result); // This line is crucial
+            setResumeAnalysis(result);
             jobForm.setValue('resumeText', fullText);
             setCurrentResumeFile(file.name);
             
