@@ -259,11 +259,7 @@ function UserProfilePage() {
       if (currentUserProfile.profile && !currentUserProfile.profile.startsWith('Newly registered')) {
         jobForm.setValue('resumeText', currentUserProfile.profile);
       }
-      if (currentUserProfile.resumeFilename) {
-          setCurrentResumeFile(currentUserProfile.resumeFilename);
-      } else {
-          setCurrentResumeFile(null);
-      }
+       setCurrentResumeFile(currentUserProfile.resumeFilename || null);
     }
   }, [currentUserProfile, jobForm]);
 
@@ -274,6 +270,7 @@ function UserProfilePage() {
         return;
     }
     setIsLoadingResume(true);
+    setResumeAnalysis(null);
     const file = data.resumeFile[0];
     if (file) {
       try {
@@ -282,7 +279,6 @@ function UserProfilePage() {
           const resumeDataUri = e.target?.result as string;
           if (resumeDataUri) {
             const result = await analyzeResume({ resumeDataUri });
-            setResumeAnalysis(result);
             
             const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n');
             const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n');
@@ -293,7 +289,8 @@ function UserProfilePage() {
                 profile: fullText,
                 resumeFilename: file.name,
             });
-
+            
+            setResumeAnalysis(result);
             jobForm.setValue('resumeText', fullText);
             setCurrentResumeFile(file.name);
             
@@ -347,6 +344,16 @@ function UserProfilePage() {
           title: "Resume Deleted",
           description: "Your resume and profile have been cleared."
       });
+  }
+
+  const getProfileText = () => {
+    if (resumeAnalysis) {
+        return `Summary: ${resumeAnalysis.anonymizedSummary}\n\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\n\nExperience:\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n') || 'N/A'}\n\nEducation:\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n') || 'N/A'}\n\nProjects:\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n') || 'N/A'}\n\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}`;
+    }
+    if (currentUserProfile && currentUserProfile.profile && !currentUserProfile.profile.startsWith('Newly registered')) {
+        return currentUserProfile.profile;
+    }
+    return '';
   }
 
 
@@ -404,8 +411,9 @@ function UserProfilePage() {
                                   </div>
                               </div>
                           ) : (
-                              <Button variant="outline" className="w-full" onClick={() => uploadInputRef.current?.click()}>
-                                  <Upload className="mr-2 h-4 w-4" /> Upload Resume to Get Started
+                              <Button variant="outline" className="w-full" onClick={() => uploadInputRef.current?.click()} disabled={isLoadingResume}>
+                                  {isLoadingResume ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                  {isLoadingResume ? "Analyzing..." : "Upload Resume to Get Started"}
                               </Button>
                           )}
                           <form onSubmit={resumeForm.handleSubmit(handleResumeUpload)}>
@@ -436,9 +444,9 @@ function UserProfilePage() {
                           <ScrollArea className="h-[400px]">
                           {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                           
-                          {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') && !isLoadingResume ? (
+                          {!isLoadingResume && getProfileText() ? (
                             <div className="space-y-4 pr-4 whitespace-pre-wrap text-sm text-muted-foreground">
-                                {resumeAnalysis ? `Summary: ${resumeAnalysis.anonymizedSummary}\\n\\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n') || 'N/A'}\\n\\nEducation:\\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n') || 'N/A'}\\n\\nProjects:\\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n') || 'N/A'}\\n\\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}` : currentUserProfile.profile}
+                                {getProfileText()}
                             </div>
                           ) : (
                             !isLoadingResume && <p className="text-sm text-muted-foreground">Upload and analyze your resume to see your anonymized profile here.</p>
