@@ -247,7 +247,7 @@ function UserProfilePage() {
 
   useEffect(() => {
     if (currentUserProfile) {
-      if (currentUserProfile.profile) {
+      if (currentUserProfile.profile && !currentUserProfile.profile.startsWith('Newly registered')) {
         jobForm.setValue('resumeText', currentUserProfile.profile);
       }
       if (currentUserProfile.resumeFilename) {
@@ -265,8 +265,6 @@ function UserProfilePage() {
         return;
     }
     setIsLoadingResume(true);
-    setResumeAnalysis(null);
-    setCurrentResumeFile(null);
     const file = data.resumeFile[0];
     if (file) {
       try {
@@ -275,7 +273,6 @@ function UserProfilePage() {
           const resumeDataUri = e.target?.result as string;
           if (resumeDataUri) {
             const result = await analyzeResume({ resumeDataUri });
-            setResumeAnalysis(result);
             
             const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n');
             const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n');
@@ -286,6 +283,8 @@ function UserProfilePage() {
                 profile: fullText,
                 resumeFilename: file.name,
             });
+
+            setResumeAnalysis(result); // This line is crucial
             jobForm.setValue('resumeText', fullText);
             setCurrentResumeFile(file.name);
             
@@ -328,11 +327,11 @@ function UserProfilePage() {
       
       await updateCandidateProfile(user.id, {
           profile: `Newly registered user. Please upload a resume to create a full profile.`,
-          resumeFilename: null, // or delete the field
+          resumeFilename: null,
       });
 
       setResumeAnalysis(null);
-      jobForm.reset({ resumeText: '' });
+      jobForm.reset({ resumeText: '', keywords: '' });
       setCurrentResumeFile(null);
 
       toast({
@@ -430,7 +429,7 @@ function UserProfilePage() {
                           
                           {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') && !isLoadingResume ? (
                             <div className="space-y-4 pr-4 whitespace-pre-wrap text-sm text-muted-foreground">
-                                {currentUserProfile.profile}
+                                {resumeAnalysis ? `Summary: ${resumeAnalysis.anonymizedSummary}\n\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\n\nExperience:\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n') || 'N/A'}\n\nEducation:\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n') || 'N/A'}\n\nProjects:\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n') || 'N/A'}\n\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}` : currentUserProfile.profile}
                             </div>
                           ) : (
                             !isLoadingResume && <p className="text-sm text-muted-foreground">Upload and analyze your resume to see your anonymized profile here.</p>
