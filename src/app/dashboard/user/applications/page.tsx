@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -103,7 +102,7 @@ const JobCard = ({ application, jobDetails }: { application: ApplicationNotifica
 
 
 function ApplicationPipelinePage() {
-    const { applicationHistory, setApplicationHistory, jobs, setJobs } = useNotifications();
+    const { applicationHistory, setApplicationHistory, jobs } = useNotifications();
     const { user } = useAuth();
     const [isClient, setIsClient] = React.useState(false);
 
@@ -116,17 +115,13 @@ function ApplicationPipelinePage() {
                 setApplicationHistory(appsData);
             });
 
-            const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
-                const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
-                setJobs(jobsData);
-            });
+            // The jobs are already being listened to in the NotificationContext, so we don't need a separate listener here.
 
             return () => {
                 unsubscribeApps();
-                unsubscribeJobs();
             };
         }
-    }, [user, setApplicationHistory, setJobs]);
+    }, [user, setApplicationHistory]);
 
     const applicationsByStatus = useMemo(() => {
         const grouped = {} as Record<StatusColumn, ApplicationNotification[]>;
