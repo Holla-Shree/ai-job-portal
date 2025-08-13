@@ -98,6 +98,11 @@ function UserProfileCard() {
     const [bio, setBio] = useState('');
     const { toast } = useToast();
     const [isUploading, setIsUploading] = useState(false);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const currentUserProfile = React.useMemo(() => {
         return candidates.find(c => c.id === user?.id);
@@ -153,6 +158,10 @@ function UserProfileCard() {
             title: 'Profile Saved',
             description: 'Your changes have been saved to your profile.',
         });
+    }
+
+    if (!isClient) {
+        return <Card><CardHeader><Loader2 className="h-8 w-8 animate-spin mx-auto" /></CardHeader></Card>
     }
 
     return (
@@ -273,18 +282,18 @@ function UserProfilePage() {
           const resumeDataUri = e.target?.result as string;
           if (resumeDataUri) {
             const result = await analyzeResume({ resumeDataUri });
+            setResumeAnalysis(result);
             
-            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n');
-            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n');
-            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n');
-            const fullText = `Summary: ${result.anonymizedSummary}\n\nSkills: ${result.skills.join(', ') || 'N/A'}\n\nExperience:\n${experienceText || 'N/A'}\n\nEducation:\n${educationText || 'N/A'}\n\nProjects:\n${projectsText || 'N/A'}\n\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
+            const experienceText = result.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n');
+            const educationText = result.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n');
+            const projectsText = result.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n');
+            const fullText = `Summary: ${result.anonymizedSummary}\\n\\nSkills: ${result.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${experienceText || 'N/A'}\\n\\nEducation:\\n${educationText || 'N/A'}\\n\\nProjects:\\n${projectsText || 'N/A'}\\n\\nCertifications: ${result.certifications.join(', ') || 'N/A'}`;
             
             await updateCandidateProfile(user.id, {
                 profile: fullText,
                 resumeFilename: file.name,
             });
 
-            setResumeAnalysis(result);
             jobForm.setValue('resumeText', fullText);
             setCurrentResumeFile(file.name);
             
@@ -429,7 +438,7 @@ function UserProfilePage() {
                           
                           {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') && !isLoadingResume ? (
                             <div className="space-y-4 pr-4 whitespace-pre-wrap text-sm text-muted-foreground">
-                                {resumeAnalysis ? `Summary: ${resumeAnalysis.anonymizedSummary}\n\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\n\nExperience:\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\n\n') || 'N/A'}\n\nEducation:\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\n') || 'N/A'}\n\nProjects:\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\n\n') || 'N/A'}\n\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}` : currentUserProfile.profile}
+                                {resumeAnalysis ? `Summary: ${resumeAnalysis.anonymizedSummary}\\n\\nSkills: ${resumeAnalysis.skills.join(', ') || 'N/A'}\\n\\nExperience:\\n${resumeAnalysis.experience.map(exp => `${exp.jobTitle} at ${exp.company} (${exp.duration}): ${exp.responsibilities.join('. ')}`).join('\\n\\n') || 'N/A'}\\n\\nEducation:\\n${resumeAnalysis.education.map(edu => `${edu.degree} in ${edu.fieldOfStudy} from ${edu.institution}`).join('\\n') || 'N/A'}\\n\\nProjects:\\n${resumeAnalysis.projects.map(p => `${p.title}: ${p.description} (Tech: ${p.technologies.join(', ')})`).join('\\n\\n') || 'N/A'}\\n\\nCertifications: ${resumeAnalysis.certifications.join(', ') || 'N/A'}` : currentUserProfile.profile}
                             </div>
                           ) : (
                             !isLoadingResume && <p className="text-sm text-muted-foreground">Upload and analyze your resume to see your anonymized profile here.</p>
