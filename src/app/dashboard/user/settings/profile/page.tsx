@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -267,6 +266,7 @@ function UserProfilePage() {
     }
     setIsLoadingResume(true);
     setResumeAnalysis(null);
+    setCurrentResumeFile(null);
     const file = data.resumeFile[0];
     if (file) {
       try {
@@ -287,6 +287,7 @@ function UserProfilePage() {
                 resumeFilename: file.name,
             });
             jobForm.setValue('resumeText', fullText);
+            setCurrentResumeFile(file.name);
             
             toast({ title: "Resume Analyzed & Saved", description: "Your anonymized profile has been created and saved." });
           }
@@ -332,6 +333,7 @@ function UserProfilePage() {
 
       setResumeAnalysis(null);
       jobForm.reset({ resumeText: '' });
+      setCurrentResumeFile(null);
 
       toast({
           title: "Resume Deleted",
@@ -424,9 +426,9 @@ function UserProfilePage() {
                         </CardHeader>
                         <CardContent>
                           <ScrollArea className="h-[400px]">
-                          {(isLoadingResume || (currentResumeFile && !currentUserProfile?.profile)) && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
+                          {isLoadingResume && <div className="flex justify-center items-center h-32"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
                           
-                          {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') ? (
+                          {currentUserProfile && !currentUserProfile.profile.startsWith('Newly registered') && !isLoadingResume ? (
                             <div className="space-y-4 pr-4 whitespace-pre-wrap text-sm text-muted-foreground">
                                 {currentUserProfile.profile}
                             </div>
