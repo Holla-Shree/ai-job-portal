@@ -354,7 +354,7 @@ function ChatbotPage() {
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-4">
                         {chatHistory.length === 0 && !isLoading && (
-                            <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground pt-16">
+                            <div className="flex flex-col items-center justify-center text-center h-full text-muted-foreground">
                             </div>
                         )}
                         {chatHistory.map((msg) => (
