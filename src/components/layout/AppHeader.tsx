@@ -3,7 +3,7 @@
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Briefcase, User, MessageSquare, Shield, LogOut, LogIn, UserCircle, Send, Settings, Map as MapIcon, UserPlus } from 'lucide-react';
 import { AppLogo } from './AppLogo';
 import { usePathname } from 'next/navigation';
@@ -82,9 +82,11 @@ export function AppHeader() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[300px] sm:w-[300px] bg-sidebar text-sidebar-foreground p-0">
-                <div className="p-4">
-                <AppLogo />
-                </div>
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SheetDescription className="sr-only">Main navigation links for the application.</SheetDescription>
+                  <AppLogo />
+                </SheetHeader>
                 <nav className="flex flex-col gap-2 p-4">
                 {visibleNavItems.map((item) => (
                     <Link
