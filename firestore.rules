@@ -10,36 +10,31 @@ service cloud.firestore {
       allow create, update, delete: if request.auth != null && get(/databases/$(database)/documents/recruiters/$(request.auth.uid)).data.role == 'recruiter';
     }
 
-    // Allow users to manage their own profile, but let any logged-in user read it
+    // Allow any authenticated user to read candidate and recruiter profiles
     match /candidates/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Allow recruiters to manage their own profile, but let any logged-in user read it
+
     match /recruiters/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-
+    
     // Allow admins to manage their own profile
     match /admins/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Rules for applications
+    // Rules for applications. A user can read their own, a recruiter can read any.
     match /applications/{applicationId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (request.auth.uid == resource.data.candidateId || get(/databases/$(database)/documents/recruiters/$(request.auth.uid)).data.role == 'recruiter');
     }
 
     // Rules for conversations
     match /conversations/{conversationId} {
       allow read, write: if request.auth != null && request.auth.uid in resource.data.participants;
-    }
-
-    // Fallback for other collections - deny all access
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }
