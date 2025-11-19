@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2, UserSearch, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2, UserSearch, ArrowRight, ArrowLeft, MoreVertical, ThumbsDown, Gift } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -33,6 +33,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, where, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 interface ScoredCandidate extends ScreenCandidateOutput {
@@ -128,48 +129,41 @@ function RecruiterPortalContent() {
   useEffect(() => {
     if (!user) return;
 
-    // Listen to all candidates
-    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
-        setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
-    });
-
-    // Listen to this recruiter's jobs
     const jobsQuery = query(collection(db, "jobs"), where("recruiterId", "==", user.id));
     const unsubscribeJobs = onSnapshot(jobsQuery, (jobSnapshot) => {
         const recruiterJobs = jobSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         setJobs(recruiterJobs);
-
-        // Only proceed if there are jobs to filter by
+        
         if (recruiterJobs.length > 0) {
             const myJobIds = recruiterJobs.map(job => job.id);
-            // This is simplified, a more robust solution might need to query for applications matching recruiter ID instead
-            const myJobTitles = new Set(recruiterJobs.map(job => job.title));
             const myRecruiterId = user.id;
 
-            const applicationsQuery = query(collection(db, "applications"), where("jobTitle", "in", Array.from(myJobTitles)));
+            const applicationsQuery = query(collection(db, "applications"), where("jobId", "in", myJobIds));
             
             const unsubscribeApplications = onSnapshot(applicationsQuery, (appSnapshot) => {
                 const allApps = appSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
                 
                 const relevantApps = allApps.filter(app => {
-                    const job = recruiterJobs.find(j => j.title === app.jobTitle && j.company === app.company);
+                    const job = recruiterJobs.find(j => j.id === (app as any).jobId);
                     return job && job.recruiterId === myRecruiterId && app.status !== 'Interested';
                 });
-                
                 setApplicationHistory(relevantApps);
             });
             return () => unsubscribeApplications();
         } else {
-             // If the recruiter has no jobs, there are no applications to show.
             setApplicationHistory([]);
         }
+    });
+
+    const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
+        setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
     });
 
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
     };
-  }, [user]);
+}, [user]);
 
 
   useEffect(() => {
@@ -257,8 +251,7 @@ function RecruiterPortalContent() {
       try {
         const qualifiedCandidates = candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered'));
         
-        // Find all applications for this specific job and update their status to "Under Review"
-        const relevantApplications = applicationHistory.filter(app => app.jobTitle === job.title && app.company === job.company && app.status === 'Applied');
+        const relevantApplications = applicationHistory.filter(app => (app as any).jobId === job.id && app.status === 'Applied');
         relevantApplications.forEach(app => {
             if (app.candidateId) {
                 updateApplicationStatus(app.candidateId, app.jobTitle, 'Under Review');
@@ -306,11 +299,11 @@ function RecruiterPortalContent() {
     });
   };
 
-  const handleScheduleInterview = (candidateId: string, candidateName: string, jobTitle: string) => {
-     updateApplicationStatus(candidateId, jobTitle, 'Interview');
+  const handleUpdateStatus = (candidateId: string, jobTitle: string, status: ApplicationNotification['status']) => {
+     updateApplicationStatus(candidateId, jobTitle, status);
      toast({
-        title: "Interview Scheduled",
-        description: `An invitation has been sent to ${candidateName} and their application status has been updated.`,
+        title: "Application Updated",
+        description: `Candidate's status has been changed to "${status}".`,
      });
   };
   
@@ -584,7 +577,7 @@ function RecruiterPortalContent() {
                                     {applicationHistory.length > 0 ? (
                                         applicationHistory.map((app) => {
                                             const candidateDetails = candidates.find(c => c.id === app.candidateId);
-                                            const jobDetails = jobs.find(j => j.title === app.jobTitle);
+                                            const jobDetails = jobs.find(j => j.id === (app as any).jobId);
                                             return (
                                                 <TableRow key={app.id}>
                                                     <TableCell>
@@ -600,17 +593,36 @@ function RecruiterPortalContent() {
                                                     <TableCell>
                                                         <Badge variant={getStatusBadgeVariant(app.status)}>{app.status}</Badge>
                                                     </TableCell>
-                                                    <TableCell className="text-right space-x-2">
-                                                        {app.candidateId && jobDetails?.id && (
-                                                            <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(app.candidateId!, jobDetails.id)}>
-                                                                <MessageSquare className="mr-2 h-3 w-3" /> Message
-                                                            </Button>
-                                                        )}
-                                                         {app.candidateId && (
-                                                            <Button size="sm" onClick={() => handleScheduleInterview(app.candidateId!, app.candidateName, app.jobTitle)}>
-                                                                <CalendarPlus className="mr-2 h-3 w-3" /> Schedule
-                                                            </Button>
-                                                        )}
+                                                    <TableCell className="text-right">
+                                                         <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                {app.candidateId && jobDetails?.id && (
+                                                                    <DropdownMenuItem onClick={() => handleMessageCandidate(app.candidateId!, jobDetails.id)}>
+                                                                        <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                {app.candidateId && (
+                                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Interview')}>
+                                                                        <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                 {app.candidateId && (
+                                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Offer')}>
+                                                                        <Gift className="mr-2 h-4 w-4" /> Make Offer
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                {app.candidateId && (
+                                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Rejected')}>
+                                                                        <ThumbsDown className="mr-2 h-4 w-4" /> Reject
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                     </TableCell>
                                                 </TableRow>
                                             )
@@ -740,7 +752,7 @@ function RecruiterPortalContent() {
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleScheduleInterview(selectedCandidate.candidate.id, selectedCandidate.candidate.name, activeScreeningJob?.title || 'a role')}>
+                                                                <AlertDialogAction onClick={() => handleUpdateStatus(selectedCandidate.candidate.id, activeScreeningJob?.title || 'a role', 'Interview')}>
                                                                     Confirm & Schedule
                                                                 </AlertDialogAction>
                                                             </AlertDialogFooter>
@@ -812,7 +824,7 @@ function RecruiterPortalContent() {
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate', 'a role')}>
+                                                            <AlertDialogAction onClick={() => handleUpdateStatus(candidate.id, 'a role', 'Interview')}>
                                                                 Confirm
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
