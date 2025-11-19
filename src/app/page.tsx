@@ -44,6 +44,78 @@ const features = [
   }
 ];
 
+const Step1Icon = () => (
+  <svg width="100%" height="100%" viewBox="0 0 200 130" className="mt-4 rounded-md">
+    <g fill="none" stroke="hsl(var(--foreground))" strokeWidth="2">
+      {/* Document */}
+      <path d="M50 10 H120 V120 H50 Z" fill="hsl(var(--card))" />
+      <path d="M60 30 H110" />
+      <path d="M60 45 H110" />
+      <path d="M60 60 H90" />
+      <path d="M60 75 H110" />
+      <path d="M60 90 H100" />
+      
+      {/* Arrow */}
+      <path d="M125 65 H155" strokeWidth="3" stroke="hsl(var(--primary))"/>
+      <path d="M145 55 L155 65 L145 75" strokeWidth="3" stroke="hsl(var(--primary))"/>
+
+      {/* Brain/AI */}
+      <g transform="translate(160, 50)">
+        <path d="M15 0 C 25 0, 30 5, 30 15 S 25 30, 15 30 C 5 30, 0 25, 0 15 S 5 0, 15 0 Z" fill="hsl(var(--secondary))" stroke="hsl(var(--primary))"/>
+        <path d="M15 5 C 12 10, 12 20, 15 25" stroke="hsl(var(--primary))"/>
+        <path d="M10 8 C 5 15, 5 20, 10 27" stroke="hsl(var(--primary))"/>
+        <path d="M20 8 C 25 15, 25 20, 20 27" stroke="hsl(var(--primary))"/>
+      </g>
+    </g>
+  </svg>
+);
+
+const Step2Icon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 200 130" className="mt-4 rounded-md">
+    <g fill="none" stroke="hsl(var(--foreground))" strokeWidth="2">
+      {/* Candidate Profile */}
+      <circle cx="50" cy="65" r="20" fill="hsl(var(--secondary))" />
+      <path d="M30 95 C 30 80, 70 80, 70 95 Z" fill="hsl(var(--secondary))" />
+
+      {/* Dashed line */}
+      <path d="M80 65 H120" strokeDasharray="4 4" stroke="hsl(var(--muted-foreground))"/>
+      
+      {/* Job Icon */}
+      <rect x="130" y="45" width="40" height="40" rx="5" fill="hsl(var(--secondary))" />
+      <path d="M140 55 H160" />
+      <path d="M140 65 H155" />
+      <path d="M140 75 H160" />
+
+      {/* Sparkles for matching */}
+      <g fill="hsl(var(--primary))" stroke="none">
+          <path d="M95 50 L100 45 L105 50 L100 55 Z" />
+          <path d="M110 75 L115 70 L120 75 L115 80 Z" />
+          <path d="M85 80 L90 75 L95 80 L90 85 Z" />
+      </g>
+    </g>
+  </svg>
+);
+
+const Step3Icon = () => (
+    <svg width="100%" height="100%" viewBox="0 0 200 130" className="mt-4 rounded-md">
+    <g fill="none" stroke="hsl(var(--foreground))" strokeWidth="2">
+      {/* Chat bubble */}
+      <path d="M40 30 H110 V80 H70 L60 95 V80 H40 Z" fill="hsl(var(--card))" />
+      <path d="M50 45 H100" />
+      <path d="M50 60 H80" />
+
+      {/* Arrow path */}
+       <path d="M120 60 C 140 30, 160 30, 180 60" strokeDasharray="4 4" stroke="hsl(var(--primary))"/>
+       <path d="M175 50 L180 60 L170 60" fill="hsl(var(--primary))" stroke="none"/>
+
+      {/* Growth chart */}
+      <path d="M40 120 V90 H160" stroke="hsl(var(--muted-foreground))" />
+      <path d="M60 110 L80 100 L100 105 L120 95 L140 100" stroke="hsl(var(--primary))" strokeWidth="3"/>
+    </g>
+  </svg>
+);
+
+
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -143,7 +215,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Job seekers upload resumes, our AI parses skills and experience. Recruiters post detailed job descriptions.</p>
-                   <Image src="https://placehold.co/600x400.png" alt="Upload and Analyze" width={600} height={400} className="mt-4 rounded-md" data-ai-hint="resume upload" />
+                  <Step1Icon />
                 </CardContent>
               </Card>
               <Card className="shadow-lg">
@@ -155,7 +227,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Our intelligent algorithms match candidates to jobs based on deep analysis of requirements and profiles.</p>
-                  <Image src="https://placehold.co/600x400.png" alt="AI Matching" width={600} height={400} className="mt-4 rounded-md" data-ai-hint="connections network" />
+                  <Step2Icon />
                 </CardContent>
               </Card>
               <Card className="shadow-lg">
@@ -167,7 +239,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">Connect with opportunities, prepare with our AI chatbot, and track your application progress seamlessly.</p>
-                  <Image src="https://placehold.co/600x400.png" alt="Connect and Grow" width={600} height={400} className="mt-4 rounded-md" data-ai-hint="career growth" />
+                  <Step3Icon />
                 </CardContent>
               </Card>
             </div>
