@@ -38,7 +38,7 @@ const jobRecommendationSchema = z.object({
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
-type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string, originalJobId?: string };
+type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string };
 
 function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack: () => void; isInterested: boolean; }) {
     const { toast } = useToast();
@@ -49,21 +49,21 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
     const originalJob = jobs.find(j => j.id === job.originalJobId);
 
     const handleApply = () => {
-        addNotification(job.title, job.company);
+        if (!originalJob) return;
+        addNotification(originalJob.title, originalJob.company);
         toast({
             title: "Application Submitted!",
-            description: `Your application for the ${job.title} role at ${job.company} has been sent. The recruiter will be notified.`,
+            description: `Your application for the ${originalJob.title} role at ${originalJob.company} has been sent. The recruiter will be notified.`,
         });
     };
     
     const handleToggleInterest = () => {
+        if (!originalJob) return;
         if (isInterested) {
-            if (job.originalJobId) {
-                unsaveJob(job.originalJobId);
-            }
+            unsaveJob(originalJob.id);
             toast({ title: 'Removed from Interest List' });
         } else {
-            expressInterest(job.title, job.company);
+            expressInterest(originalJob.title, originalJob.company);
             toast({ title: 'Interest Expressed!' });
         }
     };
@@ -103,11 +103,11 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
                 </ScrollArea>
             </CardContent>
             <CardFooter className="flex items-center gap-2">
-                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+                 <Button className="w-full" onClick={handleApply} disabled={!originalJob}>Apply Now</Button>
                  <Button variant="secondary" className="w-full" onClick={handleMessageRecruiter} disabled={!originalJob?.recruiterId}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
-                <Button variant="outline" className="h-10 px-3" onClick={handleToggleInterest}>
+                <Button variant="outline" className="h-10 px-3" onClick={handleToggleInterest} disabled={!originalJob}>
                     <Star className={cn("h-5 w-5", isInterested && "fill-amber-400 text-amber-400")} /> 
                     <span className="sr-only">{isInterested ? 'Remove Interest' : 'Express Interest'}</span>
                 </Button>
@@ -339,15 +339,11 @@ function UserProfilePage() {
     setJobRecommendations(null);
     setSelectedJob(null);
     try {
-      const result = await recommendJobs(data);
-      const recommendedJobsWithIds = result.jobRecommendations.map((job, index) => {
-        const originalJob = jobs.find(j => j.title === job.title && j.company === job.company);
-        return {
-          ...job,
-          id: `rec-${index}`,
-          originalJobId: originalJob?.id
-        };
-      });
+      const result = await recommendJobs({ ...data, allJobs: jobs });
+      const recommendedJobsWithIds = result.jobRecommendations.map((job, index) => ({
+        ...job,
+        id: `rec-${index}-${Date.now()}`,
+      }));
 
       setJobRecommendations(recommendedJobsWithIds);
       toast({ title: "Jobs Recommended", description: "Found potential job matches for you." });

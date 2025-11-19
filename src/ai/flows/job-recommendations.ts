@@ -12,6 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { Job } from '@/contexts/NotificationContext';
 
 const RecommendJobsInputSchema = z.object({
   resumeText: z
@@ -21,6 +22,7 @@ const RecommendJobsInputSchema = z.object({
     .string()
     .optional()
     .describe('Preferred job keywords of the job seeker.'),
+  allJobs: z.array(z.any()).describe('A JSON array of all available jobs in the database. Use this to find an originalJobId.'),
 });
 export type RecommendJobsInput = z.infer<typeof RecommendJobsInputSchema>;
 
@@ -42,6 +44,7 @@ const RecommendJobsOutputSchema = z.object({
         description: z
             .string()
             .describe('A comprehensive, well-structured job description for the recommended role, including sections for responsibilities and qualifications.'),
+        originalJobId: z.string().optional().describe('The ID of the original job from the database that this recommendation is based on. This is crucial.'),
       })
     )
     .describe('A list of semantically matched job recommendations.'),
@@ -56,9 +59,11 @@ const prompt = ai.definePrompt({
   name: 'recommendJobsPrompt',
   input: {schema: RecommendJobsInputSchema},
   output: {schema: RecommendJobsOutputSchema},
-  prompt: `You are an expert career advisor and senior recruiter. Your task is to provide insightful, semantic job recommendations based on a user's resume and optional keywords.
+  prompt: `You are an expert career advisor and senior recruiter. Your task is to provide insightful, semantic job recommendations based on a user's resume, optional keywords, and a list of all available jobs.
 
 You must perform a deep analysis of the resume, identifying specific technical skills (like Python, React, AWS, etc.) and soft skills.
+
+For each recommendation, you MUST find the most similar job from the provided 'allJobs' list and set the 'originalJobId' field to its ID. The title, company, and description in your recommendation should closely match the original job. This is the most critical part of your task.
 
 Then, determine if the user is a "career changer" or an "experienced professional" seeking a new role in their current field.
 
@@ -68,10 +73,16 @@ Then, determine if the user is a "career changer" or an "experienced professiona
     *   **If NO keywords are provided**: Base recommendations solely on their resume experience and identified skills. Suggest appropriate next-step roles in their current career path. For example, if "Python" is a prominent skill, suggest Python-related jobs.
 
 For each recommendation, provide:
-1.  **Job Title**: A specific, level-appropriate title.
-2.  **Company**: A type of company that hires for this role.
-3.  **Reasoning**: A concise explanation connecting their skills (both technical and transferable) and experience level to the recommended role.
-4.  **Description**: A full, detailed, and professionally written job description for the recommended role. This should be well-structured with sections for "Key Responsibilities" and "Qualifications".
+1.  **Job Title**: The specific, level-appropriate title from the original job.
+2.  **Company**: The company from the original job.
+3.  **Reasoning**: A concise explanation connecting the user's skills to the recommended role.
+4.  **Description**: The full job description from the original job.
+5.  **originalJobId**: The ID of the job from the 'allJobs' list that you based the recommendation on.
+
+**All Available Jobs (for finding originalJobId):**
+---
+{{{json allJobs}}}
+---
 
 **User's Resume Summary (Analyze for skills like Python, Java, etc.):**
 ---
@@ -85,7 +96,7 @@ For each recommendation, provide:
 ---
 {{/if}}
 
-Provide your recommendations now in the specified format.`,
+Provide your recommendations now in the specified format. Ensure 'originalJobId' is always populated.`,
   config: {
     safetySettings: [
       {
