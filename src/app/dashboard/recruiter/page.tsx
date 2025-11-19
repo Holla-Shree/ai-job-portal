@@ -127,31 +127,43 @@ function RecruiterPortalContent() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, "jobs"), where("recruiterId", "==", user.id));
-    const unsubscribeJobs = onSnapshot(q, (snapshot) => {
-        setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)));
-    });
 
+    // Listen to all candidates
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
     });
-    
-    // Listen to all applications, then filter them client-side
-    const unsubscribeApplications = onSnapshot(collection(db, "applications"), (snapshot) => {
-      const allApps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
-      
-      const myJobTitles = new Set(jobs.map(job => job.title));
-      // Only show applications for this recruiter's jobs
-      const relevantApps = allApps.filter(app => myJobTitles.has(app.jobTitle) && app.status !== 'Interested');
-      setApplicationHistory(relevantApps);
+
+    // Listen to this recruiter's jobs
+    const jobsQuery = query(collection(db, "jobs"), where("recruiterId", "==", user.id));
+    const unsubscribeJobs = onSnapshot(jobsQuery, (jobSnapshot) => {
+        const recruiterJobs = jobSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+        setJobs(recruiterJobs);
+
+        // Only proceed if there are jobs to filter by
+        if (recruiterJobs.length > 0) {
+            const myJobTitles = new Set(recruiterJobs.map(job => job.title));
+            
+            // Listen to all applications and filter for this recruiter's jobs
+            const applicationsQuery = query(collection(db, "applications"), where("jobTitle", "in", Array.from(myJobTitles)));
+            const unsubscribeApplications = onSnapshot(applicationsQuery, (appSnapshot) => {
+                const relevantApps = appSnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification))
+                    .filter(app => app.status !== 'Interested'); // Exclude saved jobs
+                setApplicationHistory(relevantApps);
+            });
+            return () => unsubscribeApplications();
+        } else {
+             // If the recruiter has no jobs, there are no applications to show.
+            setApplicationHistory([]);
+        }
     });
 
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
-        unsubscribeApplications();
     };
-  }, [user, jobs]); // Added jobs dependency to re-filter applications when jobs change
+  }, [user]);
+
 
   useEffect(() => {
     if (isClient) {
