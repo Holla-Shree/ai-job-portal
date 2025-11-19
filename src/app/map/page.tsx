@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleMap, Map, Marker } from '@vis.gl/react-google-maps';
@@ -64,7 +65,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
     
     const handleMessageRecruiter = () => {
         if (!user) {
-            router.push('/login?redirect=/dashboard/map');
+            router.push('/login?redirect=/map');
             toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
             return;
         }

@@ -45,6 +45,7 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
     const { toast } = useToast();
     const router = useRouter();
     const { addNotification, expressInterest, unsaveJob, jobs } = useNotifications();
+    const { user } = useAuth();
     
     const originalJob = jobs.find(j => j.id === job.originalJobId);
 
@@ -69,6 +70,11 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
     };
     
      const handleMessageRecruiter = () => {
+        if (!user) {
+            router.push('/login?redirect=/dashboard/user/settings/profile');
+            toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
+            return;
+        }
         if (!originalJob?.recruiterId || !originalJob?.id) {
             toast({
                 title: 'Cannot Message Recruiter',
@@ -99,7 +105,7 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter} disabled={!originalJob?.recruiterId}>
+                 <Button variant="secondary" className="w-full" onClick={handleMessageRecruiter} disabled={!originalJob?.recruiterId}>
                     <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
                 </Button>
                 <Button variant="outline" className="h-10 px-3" onClick={handleToggleInterest}>
