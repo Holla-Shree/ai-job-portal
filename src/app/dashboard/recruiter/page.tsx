@@ -74,18 +74,18 @@ const dashboardItems = [
       linkText: "View My Postings"
     },
     {
+      icon: <Users className="h-10 w-10 text-primary" />,
+      title: "Candidate Applications",
+      description: "Review and manage all incoming applications for your job postings in one place.",
+      link: "?tab=applications",
+      linkText: "View Applications"
+    },
+    {
       icon: <Star className="h-10 w-10 text-primary" />,
       title: "Shortlisted Candidates",
       description: "Access and manage the candidates you've shortlisted across all your job postings.",
       link: "?tab=shortlisted",
       linkText: "View Shortlisted"
-    },
-    {
-      icon: <Users className="h-10 w-10 text-primary" />,
-      title: "Talent Pool",
-      description: "Proactively search and browse our entire database of candidates to find hidden gems.",
-      link: "?tab=talent",
-      linkText: "Search Talent"
     },
   ];
 
@@ -135,18 +135,23 @@ function RecruiterPortalContent() {
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
     });
-
+    
+    // Listen to all applications, then filter them client-side
     const unsubscribeApplications = onSnapshot(collection(db, "applications"), (snapshot) => {
-        setApplicationHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification)));
+      const allApps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
+      
+      const myJobTitles = new Set(jobs.map(job => job.title));
+      // Only show applications for this recruiter's jobs
+      const relevantApps = allApps.filter(app => myJobTitles.has(app.jobTitle) && app.status !== 'Interested');
+      setApplicationHistory(relevantApps);
     });
-
 
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
         unsubscribeApplications();
     };
-  }, [user]);
+  }, [user, jobs]); // Added jobs dependency to re-filter applications when jobs change
 
   useEffect(() => {
     if (isClient) {
@@ -352,15 +357,28 @@ function RecruiterPortalContent() {
     </div>
   );
 
+  const getStatusBadgeVariant = (status: ApplicationNotification['status']) => {
+      switch (status) {
+          case 'Interested': return 'outline';
+          case 'Applied': return 'secondary';
+          case 'Under Review': return 'default';
+          case 'Interview': return 'default';
+          case 'Offer': return 'default';
+          case 'Rejected': return 'destructive';
+          default: return 'outline';
+      }
+  };
+
   return (
       <div className="container mx-auto py-8">
         {activeTab !== 'dashboard' && <Button variant="ghost" onClick={() => router.push('?tab=dashboard')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>}
         {activeTab === 'dashboard' ? renderDashboard() : (
             <Tabs value={activeTab} onValueChange={(tab) => router.push(`?tab=${tab}`)} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 mb-6 h-auto">
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
                 <TabsTrigger value="postJob" className="whitespace-normal py-2"><PlusCircle className="mr-2 h-4 w-4" />Post a Job</TabsTrigger>
                 <TabsTrigger value="postings" className="whitespace-normal py-2"><Briefcase className="mr-2 h-4 w-4" />My Postings</TabsTrigger>
-                <TabsTrigger value="screeningResults" className="whitespace-normal py-2"><Sparkles className="mr-2 h-4 w-4" />Screening Results</TabsTrigger>
+                <TabsTrigger value="applications" className="whitespace-normal py-2"><FileCheck2 className="mr-2 h-4 w-4" />Applications</TabsTrigger>
+                <TabsTrigger value="screeningResults" className="whitespace-normal py-2"><Sparkles className="mr-2 h-4 w-4" />Screening</TabsTrigger>
                 <TabsTrigger value="talent" className="whitespace-normal py-2"><Users className="mr-2 h-4 w-4" />Talent Pool</TabsTrigger>
             </TabsList>
             
@@ -514,6 +532,72 @@ function RecruiterPortalContent() {
                     </Table>
                     </ScrollArea>
                 </CardContent>
+                </Card>
+            </TabsContent>
+
+             <TabsContent value="applications">
+                <Card className="shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><FileCheck2 className="mr-2" />Candidate Applications</CardTitle>
+                        <CardDescription>Review candidates who have applied to your job postings.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[600px]">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Candidate</TableHead>
+                                        <TableHead>Applying For</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {applicationHistory.length > 0 ? (
+                                        applicationHistory.map((app) => {
+                                            const candidateDetails = candidates.find(c => c.id === app.candidateId);
+                                            const jobDetails = jobs.find(j => j.title === app.jobTitle);
+                                            return (
+                                                <TableRow key={app.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar>
+                                                                <AvatarImage src={candidateDetails?.avatar} alt={app.candidateName} data-ai-hint="person avatar"/>
+                                                                <AvatarFallback>{app.candidateName ? app.candidateName.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="font-medium">{app.candidateName}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>{app.jobTitle}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={getStatusBadgeVariant(app.status)}>{app.status}</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        {app.candidateId && jobDetails?.id && (
+                                                            <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(app.candidateId!, jobDetails.id)}>
+                                                                <MessageSquare className="mr-2 h-3 w-3" /> Message
+                                                            </Button>
+                                                        )}
+                                                         {app.candidateId && (
+                                                            <Button size="sm" onClick={() => handleScheduleInterview(app.candidateId!, app.candidateName)}>
+                                                                <CalendarPlus className="mr-2 h-3 w-3" /> Schedule
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                No applications received yet.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
                 </Card>
             </TabsContent>
             
