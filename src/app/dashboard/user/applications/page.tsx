@@ -191,8 +191,6 @@ function ApplicationPipelinePage() {
         return jobs.find(job => job.id === selectedApplication.jobId);
     }, [selectedApplication, jobs]);
 
-    if (!isClient) return null;
-
     const applicationHistoryForSelected = useMemo(() => {
         if (!selectedApplication) return [];
         // This is a mock history. In a real app, you'd store status changes as separate events.
@@ -206,6 +204,8 @@ function ApplicationPipelinePage() {
         const currentIndex = statuses.indexOf(selectedApplication.status);
         return history.slice(0, currentIndex + 1);
     }, [selectedApplication]);
+
+    if (!isClient) return null;
 
     return (
         <>
