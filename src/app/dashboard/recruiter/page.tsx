@@ -141,6 +141,8 @@ function RecruiterPortalContent() {
 
         // Only proceed if there are jobs to filter by
         if (recruiterJobs.length > 0) {
+            const myJobIds = recruiterJobs.map(job => job.id);
+            // This is simplified, a more robust solution might need to query for applications matching recruiter ID instead
             const myJobTitles = new Set(recruiterJobs.map(job => job.title));
             const myRecruiterId = user.id;
 
@@ -254,6 +256,15 @@ function RecruiterPortalContent() {
       const results: ScoredCandidate[] = [];
       try {
         const qualifiedCandidates = candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered'));
+        
+        // Find all applications for this specific job and update their status to "Under Review"
+        const relevantApplications = applicationHistory.filter(app => app.jobTitle === job.title && app.company === job.company && app.status === 'Applied');
+        relevantApplications.forEach(app => {
+            if (app.candidateId) {
+                updateApplicationStatus(app.candidateId, app.jobTitle, 'Under Review');
+            }
+        });
+        
         for (let i = 0; i < qualifiedCandidates.length; i++) {
           const candidate = qualifiedCandidates[i];
           const screeningResult = await screenCandidate({
