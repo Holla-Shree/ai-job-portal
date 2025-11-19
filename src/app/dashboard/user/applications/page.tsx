@@ -169,7 +169,7 @@ function ApplicationPipelinePage() {
                                 <div className="pt-4">
                                     {applicationsByStatus[status].length > 0 ? (
                                         applicationsByStatus[status].map(app => {
-                                            const jobDetails = jobs.find(job => job.title === app.jobTitle && job.company === app.company);
+                                            const jobDetails = jobs.find(job => job.id === app.jobId);
                                             return <JobCard key={app.id} application={app} jobDetails={jobDetails} />
                                         })
                                     ) : (
