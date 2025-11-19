@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -43,6 +42,7 @@ export interface ApplicationNotification {
   read: boolean;
   status: 'Interested' | 'Applied' | 'Under Review' | 'Interview' | 'Offer' | 'Rejected';
   candidateId?: string;
+  jobId?: string;
 }
 
 interface NotificationContextType {
@@ -301,8 +301,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
      
      const appQuery = query(collection(db, "applications"), 
         where("candidateId", "==", user.id),
-        where("jobTitle", "==", jobDetails.title),
-        where("company", "==", jobDetails.company),
+        where("jobId", "==", jobId),
         where("status", "==", 'Interested')
     );
     const appSnapshot = await getDocs(appQuery);
@@ -321,12 +320,12 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const addNotification = async (jobTitle: string, company: string) => {
     if (!user?.id) return;
     const candidateId = user.id;
+    const job = jobs.find(j => j.title === jobTitle && j.company === company);
 
     const q = query(
         collection(db, 'applications'), 
         where("candidateId", "==", candidateId),
-        where("jobTitle", "==", jobTitle),
-        where("company", "==", company),
+        where("jobId", "==", job?.id)
     );
     const querySnapshot = await getDocs(q);
 
@@ -342,6 +341,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           read: false,
           status: 'Applied' as const,
           candidateId: candidateId,
+          jobId: job?.id || null
         };
         await addDoc(collection(db, 'applications'), newApplication);
     }
@@ -350,18 +350,18 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const expressInterest = async (jobTitle: string, company: string) => {
     if (!user?.id) return;
     const candidateId = user.id;
+    const job = jobs.find(j => j.title === jobTitle && j.company === company);
 
     const q = query(
         collection(db, 'applications'), 
         where("candidateId", "==", candidateId),
-        where("jobTitle", "==", jobTitle),
-        where("company", "==", company),
+        where("jobId", "==", job?.id),
     );
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-        const job = jobs.find(j => j.title === jobTitle && j.company === company);
-        const newInterest = {
+        const newInterest: ApplicationNotification = {
+          id: '', // Firestore will generate this
           jobTitle,
           company,
           candidateName: user.name || 'A Job Seeker',
@@ -369,7 +369,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           read: false,
           status: 'Interested' as const,
           candidateId: candidateId,
-          jobId: job?.id || null
+          jobId: job?.id
         };
         await addDoc(collection(db, 'applications'), newInterest);
     }

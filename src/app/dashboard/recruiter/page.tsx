@@ -137,17 +137,12 @@ function RecruiterPortalContent() {
         
         if (recruiterJobs.length > 0) {
             const myJobIds = recruiterJobs.map(job => job.id);
-            const myRecruiterId = user.id;
-
             const applicationsQuery = query(collection(db, "applications"), where("jobId", "in", myJobIds));
             
             const unsubscribeApplications = onSnapshot(applicationsQuery, (appSnapshot) => {
                 const allApps = appSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
                 
-                const relevantApps = allApps.filter(app => {
-                    const job = recruiterJobs.find(j => j.id === (app as any).jobId);
-                    return job && job.recruiterId === myRecruiterId && app.status !== 'Interested';
-                });
+                const relevantApps = allApps.filter(app => app.status !== 'Interested');
                 setApplicationHistory(relevantApps);
             });
             return () => unsubscribeApplications();
@@ -252,7 +247,7 @@ function RecruiterPortalContent() {
       try {
         const qualifiedCandidates = candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered'));
         
-        const relevantApplications = applicationHistory.filter(app => (app as any).jobId === job.id && app.status === 'Applied');
+        const relevantApplications = applicationHistory.filter(app => app.jobId === job.id && app.status === 'Applied');
         relevantApplications.forEach(app => {
             if (app.candidateId) {
                 updateApplicationStatus(app.candidateId, app.jobTitle, 'Under Review');
@@ -587,7 +582,7 @@ function RecruiterPortalContent() {
                                         {applicationHistory.length > 0 ? (
                                             applicationHistory.map((app) => {
                                                 const candidateDetails = candidates.find(c => c.id === app.candidateId);
-                                                const jobDetails = jobs.find(j => j.id === (app as any).jobId);
+                                                const jobDetails = jobs.find(j => j.id === app.jobId);
                                                 return (
                                                     <TableRow key={app.id}>
                                                         <TableCell>
@@ -748,9 +743,11 @@ function RecruiterPortalContent() {
                                                     )}
                                                     <Separator />
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJob?.id || '')}>
-                                                            <MessageSquare className="mr-2 h-4 w-4" /> Message
-                                                        </Button>
+                                                        {activeScreeningJob?.id && (
+                                                            <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJob.id)}>
+                                                                <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                                            </Button>
+                                                        )}
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
                                                                 <Button variant="default" size="sm">

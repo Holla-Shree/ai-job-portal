@@ -69,7 +69,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
             toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
             return;
         }
-        if (!job.recruiterId) {
+        if (!job.recruiterId || !job.id) {
             toast({
                 title: 'Cannot Message Recruiter',
                 description: 'Recruiter information for this job is not available.',
@@ -158,11 +158,10 @@ export default function JobMapPage() {
         if (!user) return new Set();
         return new Set(
             applicationHistory
-                .filter(app => app.candidateId === user.id && app.status === 'Interested')
-                .map(app => jobs.find(j => j.title === app.jobTitle && j.company === app.company)?.id)
-                .filter(Boolean)
+                .filter(app => app.candidateId === user.id && app.status === 'Interested' && app.jobId)
+                .map(app => app.jobId)
         );
-    }, [applicationHistory, user, jobs]);
+    }, [applicationHistory, user]);
 
     useEffect(() => {
         // Initially, show all jobs that have a valid position
