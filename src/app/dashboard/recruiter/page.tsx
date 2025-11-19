@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2, UserSearch, ArrowRight, ArrowLeft, MoreVertical, ThumbsDown, Gift } from "lucide-react";
+import { Loader2, Briefcase, PlusCircle, Sparkles, Users, FileCheck2, ChevronDown, ChevronUp, Star, CalendarPlus, Search, MessageSquare, Trash2, UserSearch, ArrowRight, ArrowLeft, MoreVertical, ThumbsDown, Gift, User } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,7 +37,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 
 interface ScoredCandidate extends ScreenCandidateOutput {
-  candidate: { id: string; name: string; profile: string; };
+  candidate: { id: string; name: string; profile: string; avatar?: string; };
 }
 
 // Job Posting form schema
@@ -106,6 +106,7 @@ function RecruiterPortalContent() {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [screeningResults, setScreeningResults] = useState<ScoredCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<ScoredCandidate | null>(null);
+  const [viewingCandidate, setViewingCandidate] = useState<Candidate | null>(null);
   const [screeningProgress, setScreeningProgress] = useState(0);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
   const [talentSearchTerm, setTalentSearchTerm] = useState('');
@@ -321,6 +322,14 @@ function RecruiterPortalContent() {
     }
   };
 
+  const handleViewProfile = (candidateId?: string) => {
+    if (!candidateId) return;
+    const candidate = candidates.find(c => c.id === candidateId);
+    if (candidate) {
+        setViewingCandidate(candidate);
+    }
+  };
+
   const getBadgeVariant = (strength: ScreenCandidateOutput['matchStrength']) => {
     switch (strength) {
       case 'Strong Match': return 'default';
@@ -391,515 +400,550 @@ function RecruiterPortalContent() {
   };
 
   return (
-      <div className="container mx-auto py-8">
-        {activeTab !== 'dashboard' && <Button variant="ghost" onClick={() => router.push('?tab=dashboard')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>}
-        {activeTab === 'dashboard' ? renderDashboard() : (
-            <Tabs value={activeTab} onValueChange={(tab) => router.push(`?tab=${tab}`)} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
-                <TabsTrigger value="postJob" className="whitespace-normal py-2"><PlusCircle className="mr-2 h-4 w-4" />Post a Job</TabsTrigger>
-                <TabsTrigger value="postings" className="whitespace-normal py-2"><Briefcase className="mr-2 h-4 w-4" />My Postings</TabsTrigger>
-                <TabsTrigger value="applications" className="whitespace-normal py-2"><FileCheck2 className="mr-2 h-4 w-4" />Applications</TabsTrigger>
-                <TabsTrigger value="screeningResults" className="whitespace-normal py-2"><Sparkles className="mr-2 h-4 w-4" />Screening</TabsTrigger>
-                <TabsTrigger value="talent" className="whitespace-normal py-2"><Users className="mr-2 h-4 w-4" />Talent Pool</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="postJob">
-                <Card className="shadow-xl max-w-2xl mx-auto">
-                    <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a New Job</CardTitle>
-                    <CardDescription>Fill in the details to post a job. You can screen candidates from the "My Postings" tab.</CardDescription>
-                    </CardHeader>
-                    <form onSubmit={jobPostForm.handleSubmit(handlePostJob)}>
-                    <CardContent className="space-y-6">
-                        <div>
-                        <Label htmlFor="jobTitle">Job Title</Label>
-                        <Input id="jobTitle" {...jobPostForm.register("jobTitle")} placeholder="e.g., Senior Software Engineer" />
-                        {jobPostForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobTitle.message}</p>}
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+      <>
+        <div className="container mx-auto py-8">
+            {activeTab !== 'dashboard' && <Button variant="ghost" onClick={() => router.push('?tab=dashboard')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>}
+            {activeTab === 'dashboard' ? renderDashboard() : (
+                <Tabs value={activeTab} onValueChange={(tab) => router.push(`?tab=${tab}`)} className="w-full">
+                <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 mb-6 h-auto">
+                    <TabsTrigger value="postJob" className="whitespace-normal py-2"><PlusCircle className="mr-2 h-4 w-4" />Post a Job</TabsTrigger>
+                    <TabsTrigger value="postings" className="whitespace-normal py-2"><Briefcase className="mr-2 h-4 w-4" />My Postings</TabsTrigger>
+                    <TabsTrigger value="applications" className="whitespace-normal py-2"><FileCheck2 className="mr-2 h-4 w-4" />Applications</TabsTrigger>
+                    <TabsTrigger value="screeningResults" className="whitespace-normal py-2"><Sparkles className="mr-2 h-4 w-4" />Screening</TabsTrigger>
+                    <TabsTrigger value="talent" className="whitespace-normal py-2"><Users className="mr-2 h-4 w-4" />Talent Pool</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="postJob">
+                    <Card className="shadow-xl max-w-2xl mx-auto">
+                        <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><PlusCircle className="mr-2" />Post a New Job</CardTitle>
+                        <CardDescription>Fill in the details to post a job. You can screen candidates from the "My Postings" tab.</CardDescription>
+                        </CardHeader>
+                        <form onSubmit={jobPostForm.handleSubmit(handlePostJob)}>
+                        <CardContent className="space-y-6">
                             <div>
-                                <Label htmlFor="companyName">Company Name</Label>
-                                <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
-                                {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
+                            <Label htmlFor="jobTitle">Job Title</Label>
+                            <Input id="jobTitle" {...jobPostForm.register("jobTitle")} placeholder="e.g., Senior Software Engineer" />
+                            {jobPostForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobTitle.message}</p>}
                             </div>
-                            <div>
-                                <Label htmlFor="location">Location</Label>
-                                <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
-                                {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="type">Job Type</Label>
-                                <Input id="type" {...jobPostForm.register("type")} placeholder="e.g., Full-time" />
-                                {jobPostForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.type.message}</p>}
-                            </div>
-                            <div>
-                                <Label htmlFor="domain">Domain</Label>
-                                <Input id="domain" {...jobPostForm.register("domain")} placeholder="e.g., Tech" />
-                                {jobPostForm.formState.errors.domain && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.domain.message}</p>}
-                            </div>
-                        </div>
-                        <div>
-                                <Label htmlFor="salary">Salary / Compensation</Label>
-                                <Input id="salary" {...jobPostForm.register("salary")} placeholder="e.g., ₹20-25 LPA" />
-                                {jobPostForm.formState.errors.salary && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.salary.message}</p>}
-                            </div>
-                        <div>
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="jobDescription">Job Description</Label>
-                            <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto">
-                                <Sparkles className="mr-1.5 h-4 w-4" /> Generate with AI
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <form onSubmit={generatorForm.handleSubmit(handleGenerateDescription)}>
-                                <DialogHeader>
-                                    <DialogTitle>Generate Job Description</DialogTitle>
-                                    <DialogDescription>Provide a job title and notes, and the AI will draft a description.</DialogDescription>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <Input {...generatorForm.register("jobTitle")} placeholder="Job Title" />
-                                    {generatorForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{generatorForm.formState.errors.jobTitle.message}</p>}
-                                    <Textarea {...generatorForm.register("notes")} placeholder="Keywords / Notes (Optional)..." />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="companyName">Company Name</Label>
+                                    <Input id="companyName" {...jobPostForm.register("companyName")} placeholder="e.g., Tech Solutions Inc." />
+                                    {jobPostForm.formState.errors.companyName && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.companyName.message}</p>}
                                 </div>
-                                <DialogFooter>
-                                    <Button type="submit" disabled={isGenerating}>
-                                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Generate
+                                <div>
+                                    <Label htmlFor="location">Location</Label>
+                                    <Input id="location" {...jobPostForm.register("location")} placeholder="e.g., San Francisco, CA or Remote" />
+                                    {jobPostForm.formState.errors.location && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.location.message}</p>}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="type">Job Type</Label>
+                                    <Input id="type" {...jobPostForm.register("type")} placeholder="e.g., Full-time" />
+                                    {jobPostForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.type.message}</p>}
+                                </div>
+                                <div>
+                                    <Label htmlFor="domain">Domain</Label>
+                                    <Input id="domain" {...jobPostForm.register("domain")} placeholder="e.g., Tech" />
+                                    {jobPostForm.formState.errors.domain && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.domain.message}</p>}
+                                </div>
+                            </div>
+                            <div>
+                                    <Label htmlFor="salary">Salary / Compensation</Label>
+                                    <Input id="salary" {...jobPostForm.register("salary")} placeholder="e.g., ₹20-25 LPA" />
+                                    {jobPostForm.formState.errors.salary && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.salary.message}</p>}
+                                </div>
+                            <div>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="jobDescription">Job Description</Label>
+                                <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="link" size="sm" className="text-primary p-0 h-auto">
+                                    <Sparkles className="mr-1.5 h-4 w-4" /> Generate with AI
                                     </Button>
-                                </DialogFooter>
-                                </form>
-                            </DialogContent>
-                            </Dialog>
-                        </div>
-                        <Textarea id="jobDescription" {...jobPostForm.register("jobDescription")} rows={8} placeholder="Provide a detailed description or generate one." />
-                        {jobPostForm.formState.errors.jobDescription && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobDescription.message}</p>}
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" disabled={isPosting}>
-                        {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
-                        {isPosting ? 'Posting Job...' : 'Post Job'}
-                        </Button>
-                    </CardFooter>
-                    </form>
-                </Card>
-            </TabsContent>
-
-            <TabsContent value="postings">
-                <Card className="shadow-xl">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2" />My Job Postings</CardTitle>
-                    <CardDescription>Manage your active job listings and screen candidates.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[600px]">
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Job Title</TableHead>
-                            <TableHead>Company</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {jobs.length > 0 ? (
-                            jobs.map((job) => (
-                                <TableRow key={job.id}>
-                                <TableCell className="font-medium">{job.title}</TableCell>
-                                <TableCell>{job.company}</TableCell>
-                                <TableCell>{job.city}</TableCell>
-                                <TableCell className="text-right space-x-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleScreeningForJob(job)} disabled={isScreening}>
-                                        <Sparkles className="mr-2 h-3 w-3" />
-                                        Screen
-                                    </Button>
-                                    <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="sm">
-                                        <Trash2 className="mr-2 h-3 w-3" />
-                                        Delete
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <form onSubmit={generatorForm.handleSubmit(handleGenerateDescription)}>
+                                    <DialogHeader>
+                                        <DialogTitle>Generate Job Description</DialogTitle>
+                                        <DialogDescription>Provide a job title and notes, and the AI will draft a description.</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                        <Input {...generatorForm.register("jobTitle")} placeholder="Job Title" />
+                                        {generatorForm.formState.errors.jobTitle && <p className="text-sm text-destructive mt-1">{generatorForm.formState.errors.jobTitle.message}</p>}
+                                        <Textarea {...generatorForm.register("notes")} placeholder="Keywords / Notes (Optional)..." />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit" disabled={isGenerating}>
+                                        {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Generate
                                         </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the job posting for "{job.title}".
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className="bg-destructive hover:bg-destructive/90">
-                                                Confirm Delete
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                    </AlertDialog>
-                                </TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                    You haven't posted any jobs yet.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        </TableBody>
-                    </Table>
-                    </ScrollArea>
-                </CardContent>
-                </Card>
-            </TabsContent>
+                                    </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                                </Dialog>
+                            </div>
+                            <Textarea id="jobDescription" {...jobPostForm.register("jobDescription")} rows={8} placeholder="Provide a detailed description or generate one." />
+                            {jobPostForm.formState.errors.jobDescription && <p className="text-sm text-destructive mt-1">{jobPostForm.formState.errors.jobDescription.message}</p>}
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" disabled={isPosting}>
+                            {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Briefcase className="mr-2 h-4 w-4" />} 
+                            {isPosting ? 'Posting Job...' : 'Post Job'}
+                            </Button>
+                        </CardFooter>
+                        </form>
+                    </Card>
+                </TabsContent>
 
-             <TabsContent value="applications">
-                <Card className="shadow-xl">
+                <TabsContent value="postings">
+                    <Card className="shadow-xl">
                     <CardHeader>
-                        <CardTitle className="font-headline flex items-center"><FileCheck2 className="mr-2" />Candidate Applications</CardTitle>
-                        <CardDescription>Review candidates who have applied to your job postings.</CardDescription>
+                        <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2" />My Job Postings</CardTitle>
+                        <CardDescription>Manage your active job listings and screen candidates.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-[600px]">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Candidate</TableHead>
-                                        <TableHead>Applying For</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Job Title</TableHead>
+                                <TableHead>Company</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {jobs.length > 0 ? (
+                                jobs.map((job) => (
+                                    <TableRow key={job.id}>
+                                    <TableCell className="font-medium">{job.title}</TableCell>
+                                    <TableCell>{job.company}</TableCell>
+                                    <TableCell>{job.city}</TableCell>
+                                    <TableCell className="text-right space-x-2">
+                                        <Button variant="outline" size="sm" onClick={() => handleScreeningForJob(job)} disabled={isScreening}>
+                                            <Sparkles className="mr-2 h-3 w-3" />
+                                            Screen
+                                        </Button>
+                                        <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" size="sm">
+                                            <Trash2 className="mr-2 h-3 w-3" />
+                                            Delete
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete the job posting for "{job.title}".
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className="bg-destructive hover:bg-destructive/90">
+                                                    Confirm Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {applicationHistory.length > 0 ? (
-                                        applicationHistory.map((app) => {
-                                            const candidateDetails = candidates.find(c => c.id === app.candidateId);
-                                            const jobDetails = jobs.find(j => j.id === (app as any).jobId);
-                                            return (
-                                                <TableRow key={app.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar>
-                                                                <AvatarImage src={candidateDetails?.avatar} alt={app.candidateName} data-ai-hint="person avatar"/>
-                                                                <AvatarFallback>{app.candidateName ? app.candidateName.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
-                                                            </Avatar>
-                                                            <span className="font-medium">{app.candidateName}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{app.jobTitle}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={getStatusBadgeVariant(app.status)}>{app.status}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                         <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                {app.candidateId && jobDetails?.id && (
-                                                                    <DropdownMenuItem onClick={() => handleMessageCandidate(app.candidateId!, jobDetails.id)}>
-                                                                        <MessageSquare className="mr-2 h-4 w-4" /> Message
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                                {app.candidateId && (
-                                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Interview')}>
-                                                                        <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                                 {app.candidateId && (
-                                                                    <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Offer')}>
-                                                                        <Gift className="mr-2 h-4 w-4" /> Make Offer
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                                {app.candidateId && (
-                                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Rejected')}>
-                                                                        <ThumbsDown className="mr-2 h-4 w-4" /> Reject
-                                                                    </DropdownMenuItem>
-                                                                )}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                                No applications received yet.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                        You haven't posted any jobs yet.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            </TableBody>
+                        </Table>
                         </ScrollArea>
                     </CardContent>
-                </Card>
-            </TabsContent>
-            
-            <TabsContent value="screeningResults">
-                    <Card className="shadow-lg">
+                    </Card>
+                </TabsContent>
+
+                 <TabsContent value="applications">
+                    <Card className="shadow-xl">
                         <CardHeader>
-                            <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
-                            <CardDescription>
-                                {activeScreeningJob
-                                    ? `Top candidates for "${activeScreeningJob.title}", ranked by match score.`
-                                    : "Select a job to screen from the 'My Postings' tab to see results here."
-                                }
-                            </CardDescription>
+                            <CardTitle className="font-headline flex items-center"><FileCheck2 className="mr-2" />Candidate Applications</CardTitle>
+                            <CardDescription>Review candidates who have applied to your job postings.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                        {isScreening && (
-                            <div className="space-y-2">
-                                <Progress value={screeningProgress} className="w-full" />
-                                <p className="text-sm text-muted-foreground text-center">Screening {candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered')).length} candidates... ({Math.round(screeningProgress)}%)</p>
-                            </div>
-                        )}
-                        {!isScreening && screeningResults.length === 0 && (
-                            <div className="text-center text-sm text-muted-foreground h-48 flex flex-col items-center justify-center">
-                                <p>No screening results to display.</p>
-                                <Button variant="link" onClick={() => router.push('?tab=postings')}>Go to My Postings to start screening</Button>
-                            </div>
-                        )}
-                        {screeningResults.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
-                                {/* Candidate List Panel */}
-                                <div className="md:col-span-1 border-r pr-2">
-                                    <ScrollArea className="h-full">
-                                        <div className="space-y-2">
-                                            {screeningResults.map((result) => (
-                                                <Card 
-                                                    key={result.candidate.id}
-                                                    className={cn(
-                                                        "cursor-pointer hover:bg-muted/50 transition-colors",
-                                                        selectedCandidate?.candidate.id === result.candidate.id && "bg-muted border-primary"
-                                                    )}
-                                                    onClick={() => setSelectedCandidate(result)}
-                                                >
-                                                    <CardContent className="p-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <div>
-                                                                <p className="font-semibold text-sm">{result.candidate.name || "Unnamed Candidate"}</p>
-                                                                <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                            <ScrollArea className="h-[600px]">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Candidate</TableHead>
+                                            <TableHead>Applying For</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {applicationHistory.length > 0 ? (
+                                            applicationHistory.map((app) => {
+                                                const candidateDetails = candidates.find(c => c.id === app.candidateId);
+                                                const jobDetails = jobs.find(j => j.id === (app as any).jobId);
+                                                return (
+                                                    <TableRow key={app.id}>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar>
+                                                                    <AvatarImage src={candidateDetails?.avatar} alt={app.candidateName} data-ai-hint="person avatar"/>
+                                                                    <AvatarFallback>{app.candidateName ? app.candidateName.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="font-medium">{app.candidateName}</span>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <p className={`text-xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
-                                                                <p className="text-xs text-muted-foreground">Score</p>
-                                                            </div>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
+                                                        </TableCell>
+                                                        <TableCell>{app.jobTitle}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={getStatusBadgeVariant(app.status)}>{app.status}</Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                             <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon">
+                                                                        <MoreVertical className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => handleViewProfile(app.candidateId)}>
+                                                                        <User className="mr-2 h-4 w-4" /> View Profile
+                                                                    </DropdownMenuItem>
+                                                                    <Separator />
+                                                                    {app.candidateId && jobDetails?.id && (
+                                                                        <DropdownMenuItem onClick={() => handleMessageCandidate(app.candidateId!, jobDetails.id)}>
+                                                                            <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {app.candidateId && (
+                                                                        <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Interview')}>
+                                                                            <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                     {app.candidateId && (
+                                                                        <DropdownMenuItem onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Offer')}>
+                                                                            <Gift className="mr-2 h-4 w-4" /> Make Offer
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    {app.candidateId && (
+                                                                        <DropdownMenuItem className="text-destructive" onClick={() => handleUpdateStatus(app.candidateId!, app.jobTitle, 'Rejected')}>
+                                                                            <ThumbsDown className="mr-2 h-4 w-4" /> Reject
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                    No applications received yet.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="screeningResults">
+                        <Card className="shadow-lg">
+                            <CardHeader>
+                                <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
+                                <CardDescription>
+                                    {activeScreeningJob
+                                        ? `Top candidates for "${activeScreeningJob.title}", ranked by match score.`
+                                        : "Select a job to screen from the 'My Postings' tab to see results here."
+                                    }
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                            {isScreening && (
+                                <div className="space-y-2">
+                                    <Progress value={screeningProgress} className="w-full" />
+                                    <p className="text-sm text-muted-foreground text-center">Screening {candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered')).length} candidates... ({Math.round(screeningProgress)}%)</p>
                                 </div>
-                                {/* Details Panel */}
-                                <div className="md:col-span-2">
-                                    <ScrollArea className="h-full">
-                                        {selectedCandidate ? (
-                                            <div className="space-y-6">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <h3 className="text-xl font-bold">{selectedCandidate.candidate.name}</h3>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <Badge variant={getBadgeVariant(selectedCandidate.matchStrength)}>{selectedCandidate.matchStrength}</Badge>
-                                                            <span className={`font-semibold ${getScoreColor(selectedCandidate.score)}`}>Score: {selectedCandidate.score}</span>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleShortlistCandidate(selectedCandidate.candidate.id)}
-                                                        title={shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'Remove from shortlist' : 'Add to shortlist'}
+                            )}
+                            {!isScreening && screeningResults.length === 0 && (
+                                <div className="text-center text-sm text-muted-foreground h-48 flex flex-col items-center justify-center">
+                                    <p>No screening results to display.</p>
+                                    <Button variant="link" onClick={() => router.push('?tab=postings')}>Go to My Postings to start screening</Button>
+                                </div>
+                            )}
+                            {screeningResults.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
+                                    {/* Candidate List Panel */}
+                                    <div className="md:col-span-1 border-r pr-2">
+                                        <ScrollArea className="h-full">
+                                            <div className="space-y-2">
+                                                {screeningResults.map((result) => (
+                                                    <Card 
+                                                        key={result.candidate.id}
+                                                        className={cn(
+                                                            "cursor-pointer hover:bg-muted/50 transition-colors",
+                                                            selectedCandidate?.candidate.id === result.candidate.id && "bg-muted border-primary"
+                                                        )}
+                                                        onClick={() => setSelectedCandidate(result)}
                                                     >
-                                                        <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
-                                                    </Button>
+                                                        <CardContent className="p-3">
+                                                            <div className="flex justify-between items-center">
+                                                                <div>
+                                                                    <p className="font-semibold text-sm">{result.candidate.name || "Unnamed Candidate"}</p>
+                                                                    <Badge variant={getBadgeVariant(result.matchStrength)} className="mt-1">{result.matchStrength}</Badge>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className={`text-xl font-bold ${getScoreColor(result.score)}`}>{result.score}</p>
+                                                                    <p className="text-xs text-muted-foreground">Score</p>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                    {/* Details Panel */}
+                                    <div className="md:col-span-2">
+                                        <ScrollArea className="h-full">
+                                            {selectedCandidate ? (
+                                                <div className="space-y-6">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <h3 className="text-xl font-bold">{selectedCandidate.candidate.name}</h3>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <Badge variant={getBadgeVariant(selectedCandidate.matchStrength)}>{selectedCandidate.matchStrength}</Badge>
+                                                                <span className={`font-semibold ${getScoreColor(selectedCandidate.score)}`}>Score: {selectedCandidate.score}</span>
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleShortlistCandidate(selectedCandidate.candidate.id)}
+                                                            title={shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'Remove from shortlist' : 'Add to shortlist'}
+                                                        >
+                                                            <Star className={`h-5 w-5 transition-colors ${shortlistedCandidates.includes(selectedCandidate.candidate.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground'}`} />
+                                                        </Button>
+                                                    </div>
+                                                    <Separator />
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">AI Rationale</h4>
+                                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedCandidate.rationale}</p>
+                                                    </div>
+                                                    {selectedCandidate.missingQualifications && selectedCandidate.missingQualifications.length > 0 && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Missing Qualifications</h4>
+                                                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                                            {selectedCandidate.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
+                                                        </ul>
+                                                    </div>
+                                                    )}
+                                                    <Separator />
+                                                    <div className="flex items-center gap-2">
+                                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJob?.id || '')}>
+                                                            <MessageSquare className="mr-2 h-4 w-4" /> Message
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="default" size="sm">
+                                                                    <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This will simulate sending an interview invitation to {selectedCandidate.candidate.name}.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleUpdateStatus(selectedCandidate.candidate.id, activeScreeningJob?.title || 'a role', 'Interview')}>
+                                                                        Confirm & Schedule
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </div>
                                                 </div>
-                                                <Separator />
-                                                <div>
-                                                    <h4 className="font-semibold mb-2">AI Rationale</h4>
-                                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedCandidate.rationale}</p>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
+                                                    <UserSearch className="w-12 h-12 mb-4" />
+                                                    <p className="font-semibold">Select a candidate</p>
+                                                    <p className="text-sm">Click on a candidate from the list to see their detailed screening report.</p>
                                                 </div>
-                                                {selectedCandidate.missingQualifications && selectedCandidate.missingQualifications.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-semibold mb-2">Missing Qualifications</h4>
-                                                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                                        {selectedCandidate.missingQualifications.map((q, i) => <li key={i}>{q}</li>)}
-                                                    </ul>
+                                            )}
+                                        </ScrollArea>
+                                    </div>
+                                </div>
+                            )}
+                            </CardContent>
+                        </Card>
+                </TabsContent>
+
+                <TabsContent value="shortlisted">
+                    <Card className="shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><Star className="mr-2" />Shortlisted Candidates</CardTitle>
+                        <CardDescription>Your top candidates across all job postings.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[600px]">
+                            {getShortlistedCandidatesDetails.length > 0 ? (
+                                <Accordion type="single" collapsible className="w-full">
+                                    {getShortlistedCandidatesDetails.map((candidate) => (
+                                        <AccordionItem value={candidate.id} key={candidate.id}>
+                                            <AccordionTrigger>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar>
+                                                        <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
+                                                        <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="font-semibold">{candidate.name || 'Unnamed Candidate'}</span>
                                                 </div>
-                                                )}
-                                                <Separator />
-                                                <div className="flex items-center gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJob?.id || '')}>
-                                                        <MessageSquare className="mr-2 h-4 w-4" /> Message
-                                                    </Button>
-                                                    <AlertDialog>
+                                            </AccordionTrigger>
+                                            <AccordionContent>
+                                                <div className="pl-4 space-y-4">
+                                                    <div>
+                                                        <h4 className="font-semibold mb-1 text-sm">Profile Summary</h4>
+                                                        <p className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</p>
+                                                    </div>
+                                                    <Separator />
+                                                    <div className="flex items-center gap-2">
+                                                        <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, 'an open role')}>
+                                                            <MessageSquare className="mr-2 h-3 w-3" />
+                                                            Message
+                                                        </Button>
+                                                        <AlertDialog>
                                                         <AlertDialogTrigger asChild>
-                                                            <Button variant="default" size="sm">
-                                                                <CalendarPlus className="mr-2 h-4 w-4" /> Schedule Interview
+                                                            <Button size="sm">
+                                                            <CalendarPlus className="mr-2 h-3 w-3" />
+                                                            Schedule
                                                             </Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
                                                                 <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    This will simulate sending an interview invitation to {selectedCandidate.candidate.name}.
+                                                                This will send an invitation to {candidate.name} and update their application status.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleUpdateStatus(selectedCandidate.candidate.id, activeScreeningJob?.title || 'a role', 'Interview')}>
-                                                                    Confirm & Schedule
+                                                                <AlertDialogAction onClick={() => handleUpdateStatus(candidate.id, 'a role', 'Interview')}>
+                                                                    Confirm
                                                                 </AlertDialogAction>
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
-                                                <UserSearch className="w-12 h-12 mb-4" />
-                                                <p className="font-semibold">Select a candidate</p>
-                                                <p className="text-sm">Click on a candidate from the list to see their detailed screening report.</p>
-                                            </div>
-                                        )}
-                                    </ScrollArea>
-                                </div>
-                            </div>
-                        )}
-                        </CardContent>
-                    </Card>
-            </TabsContent>
-
-            <TabsContent value="shortlisted">
-                <Card className="shadow-xl">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Star className="mr-2" />Shortlisted Candidates</CardTitle>
-                    <CardDescription>Your top candidates across all job postings.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-[600px]">
-                        {getShortlistedCandidatesDetails.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                                {getShortlistedCandidatesDetails.map((candidate) => (
-                                    <AccordionItem value={candidate.id} key={candidate.id}>
-                                        <AccordionTrigger>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
-                                                    <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
-                                                </Avatar>
-                                                <span className="font-semibold">{candidate.name || 'Unnamed Candidate'}</span>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="pl-4 space-y-4">
-                                                <div>
-                                                    <h4 className="font-semibold mb-1 text-sm">Profile Summary</h4>
-                                                    <p className="text-muted-foreground text-xs whitespace-pre-wrap">{candidate.profile}</p>
-                                                </div>
-                                                <Separator />
-                                                <div className="flex items-center gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, 'an open role')}>
-                                                        <MessageSquare className="mr-2 h-3 w-3" />
-                                                        Message
-                                                    </Button>
-                                                    <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button size="sm">
-                                                        <CalendarPlus className="mr-2 h-3 w-3" />
-                                                        Schedule
+                                                        </AlertDialog>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleShortlistCandidate(candidate.id)}>
+                                                            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                                                            <span className="sr-only">Remove from shortlist</span>
                                                         </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Schedule Interview?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                            This will send an invitation to {candidate.name} and update their application status.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleUpdateStatus(candidate.id, 'a role', 'Interview')}>
-                                                                Confirm
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                    </AlertDialog>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleShortlistCandidate(candidate.id)}>
-                                                        <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                                                        <span className="sr-only">Remove from shortlist</span>
-                                                    </Button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        ) : (
-                            <div className="h-24 flex items-center justify-center text-center text-muted-foreground">
-                                No candidates have been shortlisted yet.
-                            </div>
-                        )}
-                    </ScrollArea>
-                </CardContent>
-                </Card>
-            </TabsContent>
-
-            <TabsContent value="talent">
-                <Card className="shadow-xl">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Talent Pool</CardTitle>
-                    <CardDescription>Browse and search all candidates in the system.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="mb-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                        placeholder="Search by name or keywords..."
-                        className="pl-10"
-                        value={talentSearchTerm}
-                        onChange={(e) => setTalentSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    </div>
-                    <ScrollArea className="h-[600px]">
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Candidate</TableHead>
-                            <TableHead>Profile Summary</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {filteredTalentPool.map((candidate) => (
-                            <TableRow key={candidate.id}>
-                            <TableCell className="font-medium">
-                                <div className="flex items-center gap-3">
-                                <Avatar>
-                                    <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
-                                    <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
-                                </Avatar>
-                                <span>{candidate.name || 'Unnamed Candidate'}</span>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                </Accordion>
+                            ) : (
+                                <div className="h-24 flex items-center justify-center text-center text-muted-foreground">
+                                    No candidates have been shortlisted yet.
                                 </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-xs">{candidate.profile}</TableCell>
+                            )}
+                        </ScrollArea>
+                    </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="talent">
+                    <Card className="shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Talent Pool</CardTitle>
+                        <CardDescription>Browse and search all candidates in the system.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                            placeholder="Search by name or keywords..."
+                            className="pl-10"
+                            value={talentSearchTerm}
+                            onChange={(e) => setTalentSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        </div>
+                        <ScrollArea className="h-[600px]">
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>Candidate</TableHead>
+                                <TableHead>Profile Summary</TableHead>
                             </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                    </ScrollArea>
-                </CardContent>
-                </Card>
-            </TabsContent>
-            </Tabs>
-        )}
-      </div>
+                            </TableHeader>
+                            <TableBody>
+                            {filteredTalentPool.map((candidate) => (
+                                <TableRow key={candidate.id}>
+                                <TableCell className="font-medium">
+                                    <div className="flex items-center gap-3">
+                                    <Avatar>
+                                        <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
+                                        <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                                    </Avatar>
+                                    <span>{candidate.name || 'Unnamed Candidate'}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-xs">{candidate.profile}</TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                        </ScrollArea>
+                    </CardContent>
+                    </Card>
+                </TabsContent>
+                </Tabs>
+            )}
+        </div>
+        
+        <Dialog open={!!viewingCandidate} onOpenChange={() => setViewingCandidate(null)}>
+            <DialogContent className="sm:max-w-2xl">
+                {viewingCandidate && (
+                    <>
+                    <DialogHeader>
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={viewingCandidate.avatar} alt={viewingCandidate.name} data-ai-hint="person avatar"/>
+                                <AvatarFallback>{viewingCandidate.name ? viewingCandidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <DialogTitle className="text-2xl font-bold">{viewingCandidate.name}</DialogTitle>
+                                <DialogDescription>{viewingCandidate.email}</DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <h3 className="font-semibold mb-2">Anonymized Profile Summary</h3>
+                        <ScrollArea className="h-96 rounded-md border p-4">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {viewingCandidate.profile}
+                            </p>
+                        </ScrollArea>
+                    </div>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
+      </>
   );
 }
 
