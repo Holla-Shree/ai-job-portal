@@ -33,9 +33,7 @@ function MessagingPage() {
         deleteConversation,
         clearConversationMessages,
         sendMessage,
-        candidates,
-        recruiters,
-        jobs,
+        findOrCreateConversation,
     } = useNotifications();
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -48,6 +46,7 @@ function MessagingPage() {
     const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const searchParams = useSearchParams();
+    const [isLoadingConversation, setIsLoadingConversation] = useState(false);
 
     const selectedConversation = useMemo(() => {
         return conversations.find(c => c.id === selectedConversationId) || null;
@@ -62,51 +61,24 @@ function MessagingPage() {
         const partnerId = searchParams.get('start_with_user');
         const jobId = searchParams.get('about_job_id');
 
-        const findOrCreateConversation = async () => {
-            if (!partnerId || !jobId || !user) return;
-
-            const participants = [user.id, partnerId].sort();
-            
-            const q = query(
-                collection(db, "conversations"),
-                where("participants", "==", participants),
-                where("jobId", "==", jobId)
-            );
-
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                // Conversation exists
-                const convoDoc = querySnapshot.docs[0];
-                setSelectedConversationId(convoDoc.id);
-            } else {
-                // Conversation does not exist, create it
-                const job = jobs.find(j => j.id === jobId);
-                if (!job) return;
-
-                const newConversation = {
-                    participants: participants,
-                    jobId: jobId,
-                    jobTitle: job.title,
-                    lastMessage: "New conversation started.",
-                    messages: [],
-                    pinned: false,
-                    favourited: false,
-                    unreadBy: [partnerId],
-                    mutedBy: [],
-                    timestamp: Date.now(),
-                    // Partner details will be added by the context listener
-                };
-                const newDocRef = await addDoc(collection(db, "conversations"), newConversation);
-                setSelectedConversationId(newDocRef.id);
-            }
-        };
-
-        if (partnerId && jobId) {
-            findOrCreateConversation();
+        if (partnerId && jobId && user) {
+            setIsLoadingConversation(true);
+            findOrCreateConversation(partnerId, jobId)
+                .then(convoId => {
+                    if (convoId) {
+                        setSelectedConversationId(convoId);
+                    } else {
+                        toast({
+                            title: 'Error',
+                            description: 'Could not start or find the conversation.',
+                            variant: 'destructive',
+                        });
+                    }
+                })
+                .finally(() => setIsLoadingConversation(false));
         }
 
-    }, [searchParams, user, conversations, jobs]);
+    }, [searchParams, user, findOrCreateConversation, toast]);
 
     const filteredConversations = useMemo(() => {
         if (!user) return [];
@@ -349,6 +321,9 @@ function MessagingPage() {
     );
 
     const getPlaceholderText = () => {
+        if (isLoadingConversation) {
+            return "Loading conversation...";
+        }
         if (user?.role === 'user') {
             return "Choose a conversation from the left panel to view messages and connect with recruiters.";
         }
@@ -632,8 +607,8 @@ function MessagingPage() {
               </>
           ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                  <MessageSquare className="w-16 h-16 mb-4" />
-                  <h3 className="text-xl font-semibold">Select a conversation</h3>
+                  {isLoadingConversation ? <Loader2 className="w-16 h-16 mb-4 animate-spin"/> : <MessageSquare className="w-16 h-16 mb-4" />}
+                  <h3 className="text-xl font-semibold">{isLoadingConversation ? 'Loading...' : 'Select a conversation'}</h3>
                   <p className="max-w-xs">{getPlaceholderText()}</p>
               </div>
           )}

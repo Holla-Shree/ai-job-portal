@@ -57,6 +57,7 @@ interface NotificationContextType {
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   deleteConversation: (conversationId: string) => Promise<void>;
   clearConversationMessages: (conversationId: string) => Promise<void>;
+  findOrCreateConversation: (partnerId: string, jobId: string) => Promise<string | null>;
   jobs: Job[];
   addJob: (job: Job) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
@@ -169,49 +170,61 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
   
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+        setConversations([]);
+        return;
+    };
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
-    const unsubscribeConversations = onSnapshot(conversationsQuery, async (querySnapshot) => {
-        const convosDataPromises = querySnapshot.docs.map(async (doc) => {
+    
+    const resolvePartner = (partnerId: string, currentUser: User, allCandidates: Candidate[], allRecruiters: Recruiter[]) => {
+        if (partnerId === 'SYSTEM') {
+            return {
+                partnerName: 'System Notifications',
+                partnerRole: 'System' as const,
+                avatar: 'S',
+            };
+        }
+
+        let partnerUser: Candidate | Recruiter | null = null;
+        let partnerRole: 'Candidate' | 'Recruiter' = 'Candidate';
+
+        if (currentUser.role === 'user') {
+            partnerUser = allRecruiters.find(r => r.id === partnerId) || null;
+            partnerRole = 'Recruiter';
+        } else { // recruiter or admin
+            partnerUser = allCandidates.find(c => c.id === partnerId) || null;
+            partnerRole = 'Candidate';
+        }
+        
+        if (partnerUser) {
+            return {
+                partnerName: partnerUser.name || `A ${partnerRole}`,
+                partnerRole,
+                avatar: partnerUser.avatar || (partnerUser.name ? partnerUser.name.charAt(0) : partnerRole.charAt(0)),
+            };
+        }
+        
+        return {
+            partnerName: 'A partner',
+            partnerRole: 'Candidate' as const,
+            avatar: 'P'
+        };
+    };
+
+    const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
+        const convosData = querySnapshot.docs.map(doc => {
             const data = doc.data();
             const partnerId = data.participants.find((p: string) => p !== user.id);
-            let partnerName = 'A partner';
-            let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
-            let avatar = '';
+            const partnerInfo = resolvePartner(partnerId, user, candidates, recruiters);
             
-            if (partnerId) {
-                if (partnerId === 'SYSTEM') {
-                    partnerName = 'System Notifications';
-                    partnerRole = 'System';
-                    avatar = 'S';
-                } else {
-                    let partnerUser: Candidate | Recruiter | null = null;
-                     if (user.role === 'user') {
-                        partnerUser = recruiters.find(r => r.id === partnerId) || null;
-                        partnerRole = 'Recruiter';
-                    } else { // recruiter or admin
-                        partnerUser = candidates.find(c => c.id === partnerId) || null;
-                        partnerRole = 'Candidate';
-                    }
-
-                    if (partnerUser) {
-                        partnerName = partnerUser.name || `A ${partnerRole}`;
-                        avatar = partnerUser.avatar || (partnerUser.name ? partnerUser.name.charAt(0) : partnerRole.charAt(0));
-                    }
-                }
-            }
-
             return {
                 id: doc.id,
                 ...data,
-                partnerName,
-                partnerRole,
-                avatar,
+                ...partnerInfo,
             } as Conversation;
         });
 
-        const convosData = await Promise.all(convosDataPromises);
         convosData.sort((a,b) => b.timestamp - a.timestamp);
         setConversations(convosData);
     });
@@ -219,7 +232,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     return () => {
         unsubscribeConversations();
     };
-  }, [user?.id, user?.role, candidates, recruiters]);
+  }, [user, candidates, recruiters]);
 
   // Separate effect to sync user profile data
   useEffect(() => {
@@ -502,11 +515,54 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   };
 
+  const findOrCreateConversation = async (partnerId: string, jobId: string): Promise<string | null> => {
+    if (!user) return null;
+
+    const participants = [user.id, partnerId].sort();
+    
+    const q = query(
+        collection(db, "conversations"),
+        where("participants", "==", participants),
+        where("jobId", "==", jobId)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        // Conversation exists
+        return querySnapshot.docs[0].id;
+    } else {
+        // Conversation does not exist, create it
+        const job = jobs.find(j => j.id === jobId);
+        if (!job) return null;
+
+        const newConversationData = {
+            participants: participants,
+            jobId: jobId,
+            jobTitle: job.title,
+            lastMessage: "New conversation started.",
+            messages: [],
+            pinned: false,
+            favourited: false,
+            unreadBy: [partnerId],
+            mutedBy: [],
+            timestamp: Date.now(),
+        };
+        try {
+            const newDocRef = await addDoc(collection(db, "conversations"), newConversationData);
+            return newDocRef.id;
+        } catch (error) {
+            console.error("Error creating new conversation:", error);
+            return null;
+        }
+    }
+};
+
   return (
     <NotificationContext.Provider value={{ 
         notifications, addNotification, expressInterest, markAsRead, toggleMute, 
         applicationHistory, setApplicationHistory, updateApplicationStatus, 
-        conversations, setConversations, deleteConversation, clearConversationMessages, 
+        conversations, setConversations, deleteConversation, clearConversationMessages, findOrCreateConversation,
         jobs, addJob, deleteJob, 
         candidates, updateCandidateProfile, 
         recruiters, updateRecruiterProfile, 
