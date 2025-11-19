@@ -21,7 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const userGrowthChartConfig = {
@@ -44,7 +44,7 @@ interface ChatMessage {
     content: string;
 }
 
-type CombinedUser = (Candidate | Recruiter) & { role: 'Candidate' | 'Recruiter'; dateJoined: string; status: 'Active' | 'Suspended'; email?: string; profile?: string; };
+type CombinedUser = (Candidate | Recruiter | Admin) & { role: 'Candidate' | 'Recruiter' | 'Admin'; dateJoined: string; status: 'Active' | 'Suspended'; email?: string; profile?: string; };
 
 
 function AdminPanelPage() {
@@ -53,6 +53,7 @@ function AdminPanelPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [recruiters, setRecruiters] = useState<Recruiter[]>([]);
+    const [admins, setAdmins] = useState<Admin[]>([]);
     const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
     
     const [isDataLoading, setIsDataLoading] = useState(true);
@@ -76,12 +77,11 @@ function AdminPanelPage() {
             onSnapshot(collection(db, "jobs"), (snapshot) => setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)))),
             onSnapshot(collection(db, "candidates"), (snapshot) => setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)))),
             onSnapshot(collection(db, "recruiters"), (snapshot) => setRecruiters(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter)))),
+            onSnapshot(collection(db, "admins"), (snapshot) => setAdmins(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Admin)))),
             onSnapshot(collection(db, "applications"), (snapshot) => setApplicationHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification)))),
         ];
         
-        // This is a simplified check. In a real app, you'd want a more robust way 
-        // to know when all initial data is loaded.
-        const loadingTimeout = setTimeout(() => setIsDataLoading(false), 2000); // Failsafe to hide loader
+        const loadingTimeout = setTimeout(() => setIsDataLoading(false), 2000);
 
         return () => {
             unsubscribes.forEach(unsub => unsub());
@@ -91,11 +91,11 @@ function AdminPanelPage() {
 
 
     const MOCK_STATS = useMemo(() => ({
-        totalUsers: candidates.length + recruiters.length,
+        totalUsers: candidates.length + recruiters.length + admins.length,
         totalJobs: jobs.length,
         totalApplications: applicationHistory.length,
         resumesParsed: candidates.filter(c => c.profile && !c.profile.startsWith('Newly registered')).length,
-    }), [candidates, jobs, applicationHistory, recruiters]);
+    }), [candidates, jobs, applicationHistory, recruiters, admins]);
 
     const MOCK_USER_GROWTH_DATA = [
         { month: 'Jan', users: 12 },
@@ -103,7 +103,7 @@ function AdminPanelPage() {
         { month: 'Mar', users: 41 },
         { month: 'Apr', users: 68 },
         { month: 'May', users: 99 },
-        { month: 'Jun', users: candidates.length },
+        { month: 'Jun', users: candidates.length + recruiters.length },
     ];
 
     const MOCK_AI_USAGE_DATA = [
@@ -116,10 +116,11 @@ function AdminPanelPage() {
     useEffect(() => {
         const combined = [
             ...candidates.map(c => ({...c, role: 'Candidate' as const, dateJoined: '2024-06-15', status: 'Active' as const })),
-            ...recruiters.map(r => ({...r, role: 'Recruiter' as const, dateJoined: '2024-05-20', status: 'Active' as const }))
+            ...recruiters.map(r => ({...r, role: 'Recruiter' as const, dateJoined: '2024-05-20', status: 'Active' as const })),
+            ...admins.map(a => ({...a, role: 'Admin' as const, dateJoined: '2024-01-01', status: 'Active' as const }))
         ];
         setAllUsers(combined);
-    }, [candidates, recruiters]);
+    }, [candidates, recruiters, admins]);
 
     const filteredUsers = useMemo(() => {
         if (!userSearch) return allUsers;
@@ -253,6 +254,7 @@ function AdminPanelPage() {
 
     const confirmSuspendUser = () => {
         if (!selectedUser) return;
+        // This is a UI-only change. For real suspension, you'd update a status in Firestore.
         setAllUsers(users => users.map(u => 
             u.id === selectedUser.id ? { ...u, status: u.status === 'Active' ? 'Suspended' : 'Active' } : u
         ));
@@ -264,16 +266,39 @@ function AdminPanelPage() {
         setSelectedUser(null);
     };
 
-    const confirmDeleteUser = () => {
+    const confirmDeleteUser = async () => {
         if (!selectedUser) return;
-        setAllUsers(users => users.filter(u => u.id !== selectedUser.id));
-        toast({
-            title: 'User Deleted',
-            description: `${selectedUser.name} has been permanently removed from the system.`,
-            variant: 'destructive',
-        });
-        setIsDeleteDialogOpen(false);
-        setSelectedUser(null);
+
+        let collectionName = '';
+        switch(selectedUser.role) {
+            case 'Candidate': collectionName = 'candidates'; break;
+            case 'Recruiter': collectionName = 'recruiters'; break;
+            case 'Admin': collectionName = 'admins'; break;
+        }
+
+        if (!collectionName) {
+            toast({ title: 'Error', description: 'Invalid user role.', variant: 'destructive' });
+            return;
+        }
+        
+        try {
+            await deleteDoc(doc(db, collectionName, selectedUser.id));
+            toast({
+                title: 'User Deleted',
+                description: `${selectedUser.name} has been permanently removed from the system.`,
+                variant: 'destructive',
+            });
+        } catch (error) {
+             console.error('Error deleting user:', error);
+             toast({
+                title: 'Deletion Failed',
+                description: 'Could not remove the user from the database.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setSelectedUser(null);
+        }
     };
     
     const recentScreenings: ApplicationNotification[] = useMemo(() => {
@@ -427,7 +452,7 @@ function AdminPanelPage() {
                                                         </div>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell><Badge variant={user.role === 'Candidate' ? 'secondary' : 'outline'}>{user.role}</Badge></TableCell>
+                                                <TableCell><Badge variant={user.role === 'Candidate' ? 'secondary' : user.role === 'Admin' ? 'default' : 'outline'}>{user.role}</Badge></TableCell>
                                                 <TableCell>{user.dateJoined}</TableCell>
                                                 <TableCell><div className="flex items-center"><Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>{user.status}</Badge></div></TableCell>
                                                 <TableCell className="text-right">
@@ -439,11 +464,11 @@ function AdminPanelPage() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuItem onClick={() => handleViewProfile(user)}><Eye className="mr-2 h-4 w-4" /> View Profile</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleSuspendUser(user)}>
+                                                            <DropdownMenuItem onClick={() => handleSuspendUser(user)} disabled={user.role === 'Admin'}>
                                                                 {user.status === 'Active' ? <UserX className="mr-2 h-4 w-4" /> : <UserCheck className="mr-2 h-4 w-4" />}
                                                                 {user.status === 'Active' ? 'Suspend' : 'Reactivate'}
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user)} disabled={user.role === 'Admin'}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
