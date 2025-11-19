@@ -278,6 +278,7 @@ function AdminPanelPage() {
 
         if (!collectionName) {
             toast({ title: 'Error', description: 'Invalid user role.', variant: 'destructive' });
+            setIsDeleteDialogOpen(false);
             return;
         }
         
