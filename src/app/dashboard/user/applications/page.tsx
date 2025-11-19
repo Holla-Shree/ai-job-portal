@@ -190,7 +190,7 @@ function ApplicationPipelinePage() {
         if (!selectedApplication) return null;
         return jobs.find(job => job.id === selectedApplication.jobId);
     }, [selectedApplication, jobs]);
-
+    
     const applicationHistoryForSelected = useMemo(() => {
         if (!selectedApplication) return [];
         // This is a mock history. In a real app, you'd store status changes as separate events.
@@ -204,8 +204,9 @@ function ApplicationPipelinePage() {
         const currentIndex = statuses.indexOf(selectedApplication.status);
         return history.slice(0, currentIndex + 1);
     }, [selectedApplication]);
-
+    
     if (!isClient) return null;
+
 
     return (
         <>
@@ -255,12 +256,15 @@ function ApplicationPipelinePage() {
 
             <Dialog open={!!selectedApplication} onOpenChange={(open) => !open && setSelectedApplication(null)}>
                 <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Application Details</DialogTitle>
+                        {selectedJobDetails && (
+                            <DialogDescription>
+                                Details for your application to {selectedJobDetails.title} at {selectedJobDetails.company}.
+                            </DialogDescription>
+                        )}
+                    </DialogHeader>
                     {selectedApplication && selectedJobDetails && (
-                        <>
-                        <DialogHeader className="pr-10">
-                            <DialogTitle className="text-2xl font-bold">{selectedJobDetails.title}</DialogTitle>
-                            <DialogDescription>{selectedJobDetails.company} &middot; {selectedJobDetails.city}</DialogDescription>
-                        </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 max-h-[70vh] overflow-y-auto">
                             <div className="md:col-span-2 space-y-4">
                                 <h3 className="font-semibold">Job Description</h3>
@@ -299,7 +303,6 @@ function ApplicationPipelinePage() {
                                 </div>
                             </div>
                         </div>
-                        </>
                     )}
                 </DialogContent>
             </Dialog>

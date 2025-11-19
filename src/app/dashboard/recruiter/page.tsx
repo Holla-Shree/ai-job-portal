@@ -923,20 +923,22 @@ function RecruiterPortalContent() {
         
         <Dialog open={!!viewingCandidate} onOpenChange={() => setViewingCandidate(null)}>
             <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Candidate Profile</DialogTitle>
+                    {viewingCandidate && <DialogDescription>Viewing profile for {viewingCandidate.name}.</DialogDescription>}
+                </DialogHeader>
                 {viewingCandidate && (
                     <>
-                    <DialogHeader>
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16">
-                                <AvatarImage src={viewingCandidate.avatar} alt={viewingCandidate.name} data-ai-hint="person avatar"/>
-                                <AvatarFallback>{viewingCandidate.name ? viewingCandidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <DialogTitle className="text-2xl font-bold">{viewingCandidate.name}</DialogTitle>
-                                <DialogDescription>{viewingCandidate.email}</DialogDescription>
-                            </div>
+                    <div className="flex items-center gap-4 pt-4">
+                        <Avatar className="h-16 w-16">
+                            <AvatarImage src={viewingCandidate.avatar} alt={viewingCandidate.name} data-ai-hint="person avatar"/>
+                            <AvatarFallback>{viewingCandidate.name ? viewingCandidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <h3 className="text-xl font-bold">{viewingCandidate.name}</h3>
+                            <p className="text-sm text-muted-foreground">{viewingCandidate.email}</p>
                         </div>
-                    </DialogHeader>
+                    </div>
                     <div className="py-4">
                         <h3 className="font-semibold mb-2">Anonymized Profile Summary</h3>
                         <ScrollArea className="h-96 rounded-md border p-4">

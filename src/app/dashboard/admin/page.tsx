@@ -626,33 +626,37 @@ function AdminPanelPage() {
                 {/* Dialog for Viewing User Profile */}
                 <Dialog open={isViewProfileOpen} onOpenChange={setIsViewProfileOpen}>
                     <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>Profile Details</DialogTitle>
+                            {selectedUser && (
+                                <DialogDescription>
+                                    Viewing details for {selectedUser.name}.
+                                </DialogDescription>
+                            )}
+                        </DialogHeader>
                         {selectedUser && (
-                            <>
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-3">
-                                        <Avatar className="h-12 w-12">
-                                            <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} data-ai-hint="person avatar" />
-                                            <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            {selectedUser.name}
-                                            <DialogDescription>{selectedUser.email}</DialogDescription>
-                                        </div>
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <div className="py-4 space-y-4">
-                                    <div className="text-sm space-y-2">
-                                        <div><strong>Role:</strong> {selectedUser.role}</div>
-                                        <div><strong>Joined:</strong> {selectedUser.dateJoined}</div>
-                                        <div><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></div>
-                                    </div>
-                                    <Separator />
-                                    <h4 className="font-semibold">Profile Summary</h4>
-                                    <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
-                                        {selectedUser.profile || "No profile summary available."}
+                            <div className="py-4 space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-16 w-16">
+                                        <AvatarImage src={selectedUser.avatar} alt={selectedUser.name || 'User'} data-ai-hint="person avatar" />
+                                        <AvatarFallback>{selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h3 className="font-semibold text-lg">{selectedUser.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                                     </div>
                                 </div>
-                            </>
+                                <div className="text-sm space-y-2">
+                                    <div><strong>Role:</strong> {selectedUser.role}</div>
+                                    <div><strong>Joined:</strong> {selectedUser.dateJoined}</div>
+                                    <div><strong>Status:</strong> <Badge variant={selectedUser.status === 'Active' ? 'default' : 'destructive'}>{selectedUser.status}</Badge></div>
+                                </div>
+                                <Separator />
+                                <h4 className="font-semibold">Profile Summary</h4>
+                                <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-60 overflow-y-auto">
+                                    {selectedUser.profile || "No profile summary available."}
+                                </div>
+                            </div>
                         )}
                     </DialogContent>
                 </Dialog>
