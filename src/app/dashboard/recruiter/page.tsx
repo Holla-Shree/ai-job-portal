@@ -130,11 +130,13 @@ function RecruiterPortalContent() {
   useEffect(() => {
     if (!user) return;
 
+    // First, listen to the recruiter's jobs
     const jobsQuery = query(collection(db, "jobs"), where("recruiterId", "==", user.id));
     const unsubscribeJobs = onSnapshot(jobsQuery, (jobSnapshot) => {
         const recruiterJobs = jobSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
         setJobs(recruiterJobs);
         
+        // If there are jobs, listen for applications to those jobs
         if (recruiterJobs.length > 0) {
             const myJobIds = recruiterJobs.map(job => job.id);
             const applicationsQuery = query(collection(db, "applications"), where("jobId", "in", myJobIds));
@@ -142,19 +144,24 @@ function RecruiterPortalContent() {
             const unsubscribeApplications = onSnapshot(applicationsQuery, (appSnapshot) => {
                 const allApps = appSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
                 
+                // Filter out 'Interested' status, as those are not formal applications
                 const relevantApps = allApps.filter(app => app.status !== 'Interested');
                 setApplicationHistory(relevantApps);
             });
+            // Return the cleanup function for applications when jobs change
             return () => unsubscribeApplications();
         } else {
+            // No jobs, so no applications
             setApplicationHistory([]);
         }
     });
 
+    // Separately, listen to all candidates
     const unsubscribeCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         setCandidates(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate)));
     });
 
+    // Return the cleanup function for jobs and candidates
     return () => {
         unsubscribeJobs();
         unsubscribeCandidates();
@@ -215,6 +222,7 @@ function RecruiterPortalContent() {
   
  const handlePostJob: SubmitHandler<JobPostingFormValues> = async (data) => {
     if (!user) return;
+    setIsPosting(true);
     const newJob: Omit<Job, 'id'> = {
         title: data.jobTitle,
         company: data.companyName,
@@ -227,10 +235,11 @@ function RecruiterPortalContent() {
         position: { lat: 20.5937, lng: 78.9629 }, // Default position
     };
     
-    await contextAddJob(newJob as Job);
+    await contextAddJob(newJob);
     
     toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
     jobPostForm.reset();
+    setIsPosting(false);
     router.push('?tab=postings');
   };
 

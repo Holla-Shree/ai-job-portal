@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -60,7 +61,7 @@ interface NotificationContextType {
   clearConversationMessages: (conversationId: string) => Promise<void>;
   findOrCreateConversation: (partnerId: string, jobId: string) => Promise<string | null>;
   jobs: Job[];
-  addJob: (job: Job) => Promise<void>;
+  addJob: (job: Omit<Job, 'id'>) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
   candidates: Candidate[];
   updateCandidateProfile: (candidateId: string, profileData: Partial<Candidate>) => Promise<void>;
@@ -360,8 +361,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-        const newInterest: ApplicationNotification = {
-          id: '', // Firestore will generate this
+        const newInterest: Omit<ApplicationNotification, 'id'> = {
           jobTitle,
           company,
           candidateName: user.name || 'A Job Seeker',
@@ -423,12 +423,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
   
 
-  const addJob = async (job: Job) => {
-    
+  const addJob = async (job: Omit<Job, 'id'>) => {
+    if (!user) throw new Error("User not authenticated");
     try {
-        const { id, ...jobData } = job;
-        const docRef = await addDoc(collection(db, "jobs"), jobData);
-        await updateDoc(docRef, { recruiterId: user?.id, id: docRef.id });
+        const docRef = await addDoc(collection(db, "jobs"), {
+            ...job,
+            recruiterId: user.id, // Ensure recruiterId is set
+        });
+        await updateDoc(docRef, { id: docRef.id });
     } catch (e) {
         console.error("Error adding document: ", e);
         throw e;
