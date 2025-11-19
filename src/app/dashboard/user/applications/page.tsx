@@ -115,8 +115,6 @@ function ApplicationPipelinePage() {
                 setApplicationHistory(appsData);
             });
 
-            // The jobs are already being listened to in the NotificationContext, so we don't need a separate listener here.
-
             return () => {
                 unsubscribeApps();
             };
@@ -133,7 +131,6 @@ function ApplicationPipelinePage() {
             }
         });
         
-        // Sort each column by timestamp
         for (const col in grouped) {
             grouped[col as StatusColumn].sort((a,b) => b.timestamp - a.timestamp);
         }

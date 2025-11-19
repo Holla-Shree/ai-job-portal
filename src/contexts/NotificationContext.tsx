@@ -404,22 +404,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
   
   const updateApplicationStatus = async (candidateId: string, jobTitle: string, status: ApplicationNotification['status']) => {
-    const q = query(
-        collection(db, "applications"), 
-        where("candidateId", "==", candidateId),
-        where("jobTitle", "==", jobTitle)
-    );
-    try {
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            const docRef = querySnapshot.docs[0].ref;
-            await updateDoc(docRef, { status: status });
-        } else {
-            console.warn(`No application found for candidate ${candidateId} and job ${jobTitle} to update.`);
-        }
-    } catch (error) {
-        console.error("Error updating application status: ", error);
-    }
+      const q = query(
+          collection(db, "applications"),
+          where("candidateId", "==", candidateId),
+          where("jobTitle", "==", jobTitle)
+      );
+      try {
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+              const docRef = querySnapshot.docs[0].ref;
+              await updateDoc(docRef, { status: status });
+          } else {
+              console.warn(`No application found for candidate ${candidateId} and job ${jobTitle} to update.`);
+          }
+      } catch (error) {
+          console.error("Error updating application status: ", error);
+      }
   };
   
 
