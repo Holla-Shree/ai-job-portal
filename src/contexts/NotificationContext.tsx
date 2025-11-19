@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -52,7 +53,7 @@ interface NotificationContextType {
   toggleMute: (id: string) => void;
   applicationHistory: ApplicationNotification[];
   setApplicationHistory: React.Dispatch<React.SetStateAction<ApplicationNotification[]>>;
-  updateApplicationStatus: (candidateId: string, status: ApplicationNotification['status']) => void;
+  updateApplicationStatus: (candidateId: string, jobTitle: string, status: ApplicationNotification['status']) => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   deleteConversation: (conversationId: string) => Promise<void>;
@@ -402,15 +403,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
   
-  const updateApplicationStatus = async (candidateId: string, status: ApplicationNotification['status']) => {
-    const q = query(collection(db, "applications"), where("candidateId", "==", candidateId));
+  const updateApplicationStatus = async (candidateId: string, jobTitle: string, status: ApplicationNotification['status']) => {
+    const q = query(
+        collection(db, "applications"), 
+        where("candidateId", "==", candidateId),
+        where("jobTitle", "==", jobTitle)
+    );
     try {
         const querySnapshot = await getDocs(q);
-        const batch = writeBatch(db);
-        querySnapshot.forEach((doc) => {
-            batch.update(doc.ref, { status: status });
-        });
-        await batch.commit();
+        if (!querySnapshot.empty) {
+            const docRef = querySnapshot.docs[0].ref;
+            await updateDoc(docRef, { status: status });
+        } else {
+            console.warn(`No application found for candidate ${candidateId} and job ${jobTitle} to update.`);
+        }
     } catch (error) {
         console.error("Error updating application status: ", error);
     }

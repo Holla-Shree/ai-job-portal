@@ -142,13 +142,18 @@ function RecruiterPortalContent() {
         // Only proceed if there are jobs to filter by
         if (recruiterJobs.length > 0) {
             const myJobTitles = new Set(recruiterJobs.map(job => job.title));
-            
-            // Listen to all applications and filter for this recruiter's jobs
+            const myRecruiterId = user.id;
+
             const applicationsQuery = query(collection(db, "applications"), where("jobTitle", "in", Array.from(myJobTitles)));
+            
             const unsubscribeApplications = onSnapshot(applicationsQuery, (appSnapshot) => {
-                const relevantApps = appSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification))
-                    .filter(app => app.status !== 'Interested'); // Exclude saved jobs
+                const allApps = appSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ApplicationNotification));
+                
+                const relevantApps = allApps.filter(app => {
+                    const job = recruiterJobs.find(j => j.title === app.jobTitle && j.company === app.company);
+                    return job && job.recruiterId === myRecruiterId && app.status !== 'Interested';
+                });
+                
                 setApplicationHistory(relevantApps);
             });
             return () => unsubscribeApplications();
@@ -290,8 +295,8 @@ function RecruiterPortalContent() {
     });
   };
 
-  const handleScheduleInterview = (candidateId: string, candidateName: string) => {
-     updateApplicationStatus(candidateId, 'Interview');
+  const handleScheduleInterview = (candidateId: string, candidateName: string, jobTitle: string) => {
+     updateApplicationStatus(candidateId, jobTitle, 'Interview');
      toast({
         title: "Interview Scheduled",
         description: `An invitation has been sent to ${candidateName} and their application status has been updated.`,
@@ -591,7 +596,7 @@ function RecruiterPortalContent() {
                                                             </Button>
                                                         )}
                                                          {app.candidateId && (
-                                                            <Button size="sm" onClick={() => handleScheduleInterview(app.candidateId!, app.candidateName)}>
+                                                            <Button size="sm" onClick={() => handleScheduleInterview(app.candidateId!, app.candidateName, app.jobTitle)}>
                                                                 <CalendarPlus className="mr-2 h-3 w-3" /> Schedule
                                                             </Button>
                                                         )}
@@ -724,7 +729,7 @@ function RecruiterPortalContent() {
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleScheduleInterview(selectedCandidate.candidate.id, selectedCandidate.candidate.name)}>
+                                                                <AlertDialogAction onClick={() => handleScheduleInterview(selectedCandidate.candidate.id, selectedCandidate.candidate.name, activeScreeningJob?.title || 'a role')}>
                                                                     Confirm & Schedule
                                                                 </AlertDialogAction>
                                                             </AlertDialogFooter>
@@ -796,7 +801,7 @@ function RecruiterPortalContent() {
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate')}>
+                                                            <AlertDialogAction onClick={() => handleScheduleInterview(candidate.id, candidate.name || 'this candidate', 'a role')}>
                                                                 Confirm
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
