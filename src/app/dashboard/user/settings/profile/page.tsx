@@ -1,5 +1,4 @@
 
-
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -253,7 +252,7 @@ function UserProfilePage() {
   const [isLoadingResume, setIsLoadingResume] = useState(false);
   const [isLoadingJobs, setIsLoadingJobs] = useState(false);
   const [resumeAnalysis, setResumeAnalysis] = useState<AnalyzeResumeOutput | null>(null);
-  const [jobRecommendations, setJobRecommendations] = useState<RecommendJobsOutput | null>(null);
+  const [jobRecommendations, setJobRecommendations] = useState<RecommendedJob[] | null>(null);
   const [selectedJob, setSelectedJob] = useState<RecommendedJob | null>(null);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -341,7 +340,16 @@ function UserProfilePage() {
     setSelectedJob(null);
     try {
       const result = await recommendJobs(data);
-      setJobRecommendations(result);
+      const recommendedJobsWithIds = result.jobRecommendations.map((job, index) => {
+        const originalJob = jobs.find(j => j.title === job.title && j.company === job.company);
+        return {
+          ...job,
+          id: `rec-${index}`,
+          originalJobId: originalJob?.id
+        };
+      });
+
+      setJobRecommendations(recommendedJobsWithIds);
       toast({ title: "Jobs Recommended", description: "Found potential job matches for you." });
     } catch (error) {
       console.error("Job recommendation error:", error);
@@ -519,13 +527,10 @@ function UserProfilePage() {
               {jobRecommendations && (
                 <CardContent className="mt-6">
                   <h3 className="font-headline text-xl font-semibold mb-4">Recommended Jobs:</h3>
-                  {jobRecommendations.jobRecommendations.length > 0 ? (
+                  {jobRecommendations.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {jobRecommendations.jobRecommendations.map((job, index) => {
-                          const originalJob = jobs.find(j => j.title === job.title && j.company === job.company);
-                          const recommendedJob = { ...job, id: `rec-${index}`, originalJobId: originalJob?.id };
-                          return (
-                            <Card key={index} className="flex flex-col">
+                      {jobRecommendations.map((job) => (
+                            <Card key={job.id} className="flex flex-col">
                               <CardHeader className="pb-3">
                                 <CardTitle className="text-lg flex items-center gap-2">
                                   <Briefcase className="h-5 w-5 text-primary" />
@@ -539,7 +544,7 @@ function UserProfilePage() {
                                 <p className="text-sm text-muted-foreground">{job.reasoning}</p>
                               </CardContent>
                               <CardFooter className="gap-2 justify-center">
-                                <Button variant="default" size="sm" onClick={() => setSelectedJob(recommendedJob)}>
+                                <Button variant="default" size="sm" onClick={() => setSelectedJob(job)}>
                                     Know More
                                 </Button>
                                 <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
@@ -547,8 +552,7 @@ function UserProfilePage() {
                                 </Button>
                               </CardFooter>
                             </Card>
-                          );
-                      })}
+                          ))}
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-4">No specific job titles recommended based on the input. Try refining your resume text or keywords.</p>
