@@ -92,7 +92,7 @@ const dashboardItems = [
 
 function RecruiterPortalContent() {
   const { toast } = useToast();
-  const { updateApplicationStatus } = useNotifications();
+  const { updateApplicationStatus, addJob: contextAddJob } = useNotifications();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [applicationHistory, setApplicationHistory] = useState<ApplicationNotification[]>([]);
@@ -109,7 +109,7 @@ function RecruiterPortalContent() {
   const [shortlistedCandidates, setShortlistedCandidates] = useState<string[]>([]);
   const [talentSearchTerm, setTalentSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [activeScreeningJobTitle, setActiveScreeningJobTitle] = useState<string | null>(null);
+  const [activeScreeningJob, setActiveScreeningJob] = useState<Job | null>(null);
   const { user } = useAuth();
   
   const jobPostForm = useForm<JobPostingFormValues>({ resolver: zodResolver(jobPostingSchema) });
@@ -126,7 +126,9 @@ function RecruiterPortalContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+    if (!user) return;
+    const q = query(collection(db, "jobs"), where("recruiterId", "==", user.id));
+    const unsubscribeJobs = onSnapshot(q, (snapshot) => {
         setJobs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job)));
     });
 
@@ -144,7 +146,7 @@ function RecruiterPortalContent() {
         unsubscribeCandidates();
         unsubscribeApplications();
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (isClient) {
@@ -198,6 +200,7 @@ function RecruiterPortalContent() {
   };
   
  const handlePostJob: SubmitHandler<JobPostingFormValues> = async (data) => {
+    if (!user) return;
     const newJob: Omit<Job, 'id'> = {
         title: data.jobTitle,
         company: data.companyName,
@@ -206,10 +209,11 @@ function RecruiterPortalContent() {
         domain: data.domain,
         salary: data.salary,
         description: data.jobDescription,
+        recruiterId: user.id,
         position: { lat: 20.5937, lng: 78.9629 }, // Default position
     };
     
-    await addDoc(collection(db, "jobs"), newJob);
+    await contextAddJob(newJob as Job);
     
     toast({ title: "Job Posted Successfully", description: "You can now view and manage it in 'My Postings'." });
     jobPostForm.reset();
@@ -222,7 +226,7 @@ function RecruiterPortalContent() {
       setScreeningResults([]);
       setSelectedCandidate(null);
       setScreeningProgress(0);
-      setActiveScreeningJobTitle(job.title);
+      setActiveScreeningJob(job);
       toast({ title: `Screening for "${job.title}"`, description: "AI is now screening candidates..." });
       
       const results: ScoredCandidate[] = [];
@@ -277,8 +281,8 @@ function RecruiterPortalContent() {
      });
   };
   
-  const handleMessageCandidate = (candidateId: string, jobTitle: string) => {
-    router.push(`/dashboard/messaging?start_with_candidate=${candidateId}&about_job=${encodeURIComponent(jobTitle)}`);
+  const handleMessageCandidate = (candidateId: string, jobId: string) => {
+    router.push(`/dashboard/messaging?start_with_user=${candidateId}&about_job_id=${jobId}`);
   };
 
   const handleDeleteJob = async (jobId: string) => {
@@ -350,7 +354,7 @@ function RecruiterPortalContent() {
 
   return (
       <div className="container mx-auto py-8">
-        {activeTab !== 'dashboard' && <Button variant="ghost" onClick={() => router.push('?tab=dashboard')} className="mb-4"><ArrowRight className="mr-2 h-4 w-4" />Back to Dashboard</Button>}
+        {activeTab !== 'dashboard' && <Button variant="ghost" onClick={() => router.push('?tab=dashboard')} className="mb-4"><ArrowLeft className="mr-2 h-4 w-4" />Back to Dashboard</Button>}
         {activeTab === 'dashboard' ? renderDashboard() : (
             <Tabs value={activeTab} onValueChange={(tab) => router.push(`?tab=${tab}`)} className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 mb-6 h-auto">
@@ -518,8 +522,8 @@ function RecruiterPortalContent() {
                         <CardHeader>
                             <CardTitle className="font-headline flex items-center"><Users className="mr-2" />Screening Results</CardTitle>
                             <CardDescription>
-                                {activeScreeningJobTitle 
-                                    ? `Top candidates for "${activeScreeningJobTitle}", ranked by match score.`
+                                {activeScreeningJob
+                                    ? `Top candidates for "${activeScreeningJob.title}", ranked by match score.`
                                     : "Select a job to screen from the 'My Postings' tab to see results here."
                                 }
                             </CardDescription>
@@ -606,7 +610,7 @@ function RecruiterPortalContent() {
                                                 )}
                                                 <Separator />
                                                 <div className="flex items-center gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJobTitle || 'an open role')}>
+                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(selectedCandidate.candidate.id, activeScreeningJob?.id || '')}>
                                                         <MessageSquare className="mr-2 h-4 w-4" /> Message
                                                     </Button>
                                                     <AlertDialog>
@@ -662,7 +666,7 @@ function RecruiterPortalContent() {
                                         <AccordionTrigger>
                                             <div className="flex items-center gap-3">
                                                 <Avatar>
-                                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
+                                                    <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
                                                     <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
                                                 </Avatar>
                                                 <span className="font-semibold">{candidate.name || 'Unnamed Candidate'}</span>
@@ -676,7 +680,7 @@ function RecruiterPortalContent() {
                                                 </div>
                                                 <Separator />
                                                 <div className="flex items-center gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, 'a role you have shortlisted them for')}>
+                                                    <Button variant="outline" size="sm" onClick={() => handleMessageCandidate(candidate.id, 'an open role')}>
                                                         <MessageSquare className="mr-2 h-3 w-3" />
                                                         Message
                                                     </Button>
@@ -754,7 +758,7 @@ function RecruiterPortalContent() {
                             <TableCell className="font-medium">
                                 <div className="flex items-center gap-3">
                                 <Avatar>
-                                    <AvatarImage src={`https://placehold.co/40x40.png?text=${candidate.name ? candidate.name.charAt(0) : 'C'}`} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
+                                    <AvatarImage src={candidate.avatar} alt={candidate.name || 'Candidate'} data-ai-hint="person avatar"/>
                                     <AvatarFallback>{candidate.name ? candidate.name.charAt(0).toUpperCase() : 'C'}</AvatarFallback>
                                 </Avatar>
                                 <span>{candidate.name || 'Unnamed Candidate'}</span>

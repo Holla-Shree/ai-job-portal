@@ -62,6 +62,23 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
         }
     };
     
+    const handleMessageRecruiter = () => {
+        if (!user) {
+            router.push('/login?redirect=/dashboard/map');
+            toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
+            return;
+        }
+        if (!job.recruiterId) {
+            toast({
+                title: 'Cannot Message Recruiter',
+                description: 'Recruiter information for this job is not available.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        router.push(`/dashboard/messaging?start_with_user=${job.recruiterId}&about_job_id=${job.id}`);
+    };
+
     return (
         <div className="h-full flex flex-col">
             <div className="p-4 border-b">
@@ -110,9 +127,12 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
             </ScrollArea>
              <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
-                    <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
-                    {isInterested ? 'Remove Interest' : 'Express Interest'}
+                 <Button className="w-full" variant="secondary" onClick={handleMessageRecruiter} disabled={!job.recruiterId}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
+                <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleInterest}>
+                    <Star className={cn("h-5 w-5", isInterested && "fill-amber-400 text-amber-400")} />
+                    <span className="sr-only">Express Interest</span>
                 </Button>
             </div>
         </div>

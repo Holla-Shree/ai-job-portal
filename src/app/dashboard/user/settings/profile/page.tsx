@@ -1,4 +1,5 @@
 
+
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -38,13 +39,15 @@ const jobRecommendationSchema = z.object({
 });
 type JobRecommendationFormValues = z.infer<typeof jobRecommendationSchema>;
 
-type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string };
+type RecommendedJob = RecommendJobsOutput['jobRecommendations'][0] & { id: string, originalJobId?: string };
 
 function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack: () => void; isInterested: boolean; }) {
     const { toast } = useToast();
     const router = useRouter();
-    const { addNotification, expressInterest, unsaveJob } = useNotifications();
+    const { addNotification, expressInterest, unsaveJob, jobs } = useNotifications();
     
+    const originalJob = jobs.find(j => j.id === job.originalJobId);
+
     const handleApply = () => {
         addNotification(job.title, job.company);
         toast({
@@ -55,7 +58,9 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
     
     const handleToggleInterest = () => {
         if (isInterested) {
-            unsaveJob(job.id);
+            if (job.originalJobId) {
+                unsaveJob(job.originalJobId);
+            }
             toast({ title: 'Removed from Interest List' });
         } else {
             expressInterest(job.title, job.company);
@@ -63,6 +68,18 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
         }
     };
     
+     const handleMessageRecruiter = () => {
+        if (!originalJob?.recruiterId || !originalJob?.id) {
+            toast({
+                title: 'Cannot Message Recruiter',
+                description: 'Recruiter information for this job is not available.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        router.push(`/dashboard/messaging?start_with_user=${originalJob.recruiterId}&about_job_id=${originalJob.id}`);
+    };
+
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -82,9 +99,12 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
             </CardContent>
             <CardFooter className="flex items-center gap-2">
                  <Button className="w-full" onClick={handleApply}>Apply Now</Button>
-                <Button variant="outline" className="w-full" onClick={handleToggleInterest}>
-                    <Star className={cn("mr-2 h-4 w-4", isInterested && "fill-amber-400 text-amber-400")} /> 
-                    {isInterested ? 'Remove Interest' : 'Express Interest'}
+                 <Button variant="outline" className="w-full" onClick={handleMessageRecruiter} disabled={!originalJob?.recruiterId}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
+                <Button variant="outline" className="h-10 px-3" onClick={handleToggleInterest}>
+                    <Star className={cn("h-5 w-5", isInterested && "fill-amber-400 text-amber-400")} /> 
+                    <span className="sr-only">{isInterested ? 'Remove Interest' : 'Express Interest'}</span>
                 </Button>
             </CardFooter>
         </Card>
@@ -245,13 +265,18 @@ function UserProfilePage() {
 
   const interestedJobIds = useMemo(() => {
     if (!user) return new Set();
-    return new Set(
-        applicationHistory
-            .filter(app => app.candidateId === user.id && app.status === 'Interested')
-            .map(app => `rec-${jobRecommendations?.jobRecommendations.findIndex(j => j.title === app.jobTitle && j.company === app.company)}`)
-            .filter(id => id !== 'rec--1')
-    );
-}, [applicationHistory, user, jobRecommendations]);
+    const interestedApps = applicationHistory.filter(app => app.candidateId === user.id && app.status === 'Interested');
+    const jobIds = new Set<string>();
+
+    interestedApps.forEach(app => {
+        const foundJob = jobs.find(j => j.title === app.jobTitle && j.company === app.company);
+        if (foundJob) {
+            jobIds.add(foundJob.id);
+        }
+    });
+
+    return jobIds;
+}, [applicationHistory, user, jobs]);
 
   useEffect(() => {
     if (currentUserProfile) {
@@ -456,7 +481,7 @@ function UserProfilePage() {
                 <JobDetails 
                     job={selectedJob} 
                     onBack={() => setSelectedJob(null)}
-                    isInterested={interestedJobIds.has(selectedJob.id.toString())}
+                    isInterested={!!selectedJob.originalJobId && interestedJobIds.has(selectedJob.originalJobId)}
                 />
             ) : (
             <Card className="shadow-lg">
@@ -490,30 +515,34 @@ function UserProfilePage() {
                   <h3 className="font-headline text-xl font-semibold mb-4">Recommended Jobs:</h3>
                   {jobRecommendations.jobRecommendations.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {jobRecommendations.jobRecommendations.map((job, index) => (
-                        <Card key={index} className="flex flex-col">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <Briefcase className="h-5 w-5 text-primary" />
-                              {job.title}
-                            </CardTitle>
-                            <CardDescription className="text-xs pt-1">
-                              Typically at: {job.company}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="flex-grow">
-                            <p className="text-sm text-muted-foreground">{job.reasoning}</p>
-                          </CardContent>
-                          <CardFooter className="gap-2 justify-center">
-                            <Button variant="default" size="sm" onClick={() => setSelectedJob({ ...job, id: `rec-${index}` })}>
-                                Know More
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
-                                Find Similar
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                      ))}
+                      {jobRecommendations.jobRecommendations.map((job, index) => {
+                          const originalJob = jobs.find(j => j.title === job.title && j.company === job.company);
+                          const recommendedJob = { ...job, id: `rec-${index}`, originalJobId: originalJob?.id };
+                          return (
+                            <Card key={index} className="flex flex-col">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <Briefcase className="h-5 w-5 text-primary" />
+                                  {job.title}
+                                </CardTitle>
+                                <CardDescription className="text-xs pt-1">
+                                  Typically at: {job.company}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="flex-grow">
+                                <p className="text-sm text-muted-foreground">{job.reasoning}</p>
+                              </CardContent>
+                              <CardFooter className="gap-2 justify-center">
+                                <Button variant="default" size="sm" onClick={() => setSelectedJob(recommendedJob)}>
+                                    Know More
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleFindSimilar(job.title)}>
+                                    Find Similar
+                                </Button>
+                              </CardFooter>
+                            </Card>
+                          );
+                      })}
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-4">No specific job titles recommended based on the input. Try refining your resume text or keywords.</p>

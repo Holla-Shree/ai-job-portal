@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from 'next/link';
-import { useNotifications, Conversation, Message } from '@/contexts/NotificationContext';
+import { useNotifications, Conversation, Message, Candidate, Recruiter, Job } from '@/contexts/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
 import { collection, query, where, getDocs, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -33,7 +33,9 @@ function MessagingPage() {
         deleteConversation,
         clearConversationMessages,
         sendMessage,
-        candidates
+        candidates,
+        recruiters,
+        jobs,
     } = useNotifications();
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -57,18 +59,18 @@ function MessagingPage() {
 
 
     useEffect(() => {
-        const startWithCandidate = searchParams.get('start_with_candidate');
-        const aboutJob = searchParams.get('about_job');
+        const partnerId = searchParams.get('start_with_user');
+        const jobId = searchParams.get('about_job_id');
 
         const findOrCreateConversation = async () => {
-            if (!startWithCandidate || !aboutJob || !user) return;
+            if (!partnerId || !jobId || !user) return;
 
-            const participants = [user.id, startWithCandidate].sort();
+            const participants = [user.id, partnerId].sort();
             
             const q = query(
                 collection(db, "conversations"),
                 where("participants", "==", participants),
-                where("jobTitle", "==", aboutJob)
+                where("jobId", "==", jobId)
             );
 
             const querySnapshot = await getDocs(q);
@@ -79,31 +81,32 @@ function MessagingPage() {
                 setSelectedConversationId(convoDoc.id);
             } else {
                 // Conversation does not exist, create it
-                const partner = candidates.find(c => c.id === startWithCandidate);
+                const job = jobs.find(j => j.id === jobId);
+                if (!job) return;
+
                 const newConversation = {
                     participants: participants,
-                    jobTitle: aboutJob,
+                    jobId: jobId,
+                    jobTitle: job.title,
                     lastMessage: "New conversation started.",
                     messages: [],
                     pinned: false,
                     favourited: false,
-                    unreadBy: [startWithCandidate],
+                    unreadBy: [partnerId],
                     mutedBy: [],
                     timestamp: Date.now(),
-                    partnerName: partner?.name || "A Candidate",
-                    partnerRole: "Candidate",
-                    avatar: partner?.avatar || 'C',
+                    // Partner details will be added by the context listener
                 };
                 const newDocRef = await addDoc(collection(db, "conversations"), newConversation);
                 setSelectedConversationId(newDocRef.id);
             }
         };
 
-        if (startWithCandidate) {
+        if (partnerId && jobId) {
             findOrCreateConversation();
         }
 
-    }, [searchParams, user, conversations, candidates]);
+    }, [searchParams, user, conversations, jobs]);
 
     const filteredConversations = useMemo(() => {
         if (!user) return [];

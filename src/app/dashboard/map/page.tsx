@@ -65,6 +65,23 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             toast({ title: 'Job Saved!' });
         }
     };
+
+    const handleMessageRecruiter = () => {
+        if (!user) {
+            router.push('/login?redirect=/dashboard/map');
+            toast({ title: 'Please log in to message recruiters', variant: 'destructive' });
+            return;
+        }
+        if (!job.recruiterId) {
+            toast({
+                title: 'Cannot Message Recruiter',
+                description: 'Recruiter information for this job is not available.',
+                variant: 'destructive',
+            });
+            return;
+        }
+        router.push(`/dashboard/messaging?start_with_user=${job.recruiterId}&about_job_id=${job.id}`);
+    };
     
     return (
         <div className="h-full flex flex-col">
@@ -114,6 +131,9 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
             </ScrollArea>
              <div className="p-4 border-t mt-auto flex items-center gap-2">
                 <Button className="w-full" onClick={handleApply}>Apply Now</Button>
+                <Button className="w-full" variant="secondary" onClick={handleMessageRecruiter} disabled={!job.recruiterId}>
+                    <MessageSquare className="mr-2 h-4 w-4" /> Message Recruiter
+                </Button>
                 <Button variant="outline" className="h-10 p-2.5" onClick={handleToggleSave} title={isSaved ? "Unsave Job" : "Save Job"}>
                     <Bookmark className={cn("h-5 w-5", isSaved && "fill-primary text-primary")} />
                 </Button>

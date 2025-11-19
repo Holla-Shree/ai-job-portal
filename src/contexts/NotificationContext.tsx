@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -19,6 +18,7 @@ export interface Message {
 export interface Conversation {
   id: string;
   participants: string[]; // [userId, recruiterId]
+  jobId: string;
   jobTitle: string;
   lastMessage: string;
   messages: Message[];
@@ -81,6 +81,7 @@ export type Job = {
     id: string; 
     title: string; 
     company: string; 
+    recruiterId?: string;
     city: string; 
     position: { lat: number; lng: number; }; 
     type: string; 
@@ -140,47 +141,64 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, []);
 
-  // Effect to listen for all candidates
+  // Listen for all data collections
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "candidates"), (snapshot) => {
+    const unsubJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+        const jobsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+        setJobs(jobsData);
+    });
+    const unsubCandidates = onSnapshot(collection(db, "candidates"), (snapshot) => {
         const candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Candidate));
         setCandidates(candidatesData);
     });
-    return () => unsubscribe();
+    const unsubRecruiters = onSnapshot(collection(db, "recruiters"), (snapshot) => {
+        const recruitersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Recruiter));
+        setRecruiters(recruitersData);
+    });
+    const unsubAdmins = onSnapshot(collection(db, "admins"), (snapshot) => {
+        const adminsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Admin));
+        setAdmins(adminsData);
+    });
+
+    return () => {
+        unsubJobs();
+        unsubCandidates();
+        unsubRecruiters();
+        unsubAdmins();
+    };
   }, []);
   
   useEffect(() => {
     if (!user?.id) return;
 
     const conversationsQuery = query(collection(db, "conversations"), where("participants", "array-contains", user.id));
-    const unsubscribeConversations = onSnapshot(conversationsQuery, (querySnapshot) => {
+    const unsubscribeConversations = onSnapshot(conversationsQuery, async (querySnapshot) => {
         const convosDataPromises = querySnapshot.docs.map(async (doc) => {
             const data = doc.data();
             const partnerId = data.participants.find((p: string) => p !== user.id);
             let partnerName = 'A partner';
             let partnerRole: 'Recruiter' | 'Candidate' | 'System' = 'Candidate';
             let avatar = '';
-
+            
             if (partnerId) {
                 if (partnerId === 'SYSTEM') {
                     partnerName = 'System Notifications';
                     partnerRole = 'System';
                     avatar = 'S';
-                } else if (user.role === 'user') {
-                    // This now fetches from firestore directly if needed.
-                    const recQuery = query(collection(db, 'recruiters'), where('id', '==', partnerId));
-                    const recSnapshot = await getDocs(recQuery);
-                    const rec = recSnapshot.empty ? null : recSnapshot.docs[0].data();
-                    partnerName = rec?.name || "A Recruiter";
-                    avatar = rec?.avatar || (rec?.name ? rec.name.charAt(0) : 'R');
-                    partnerRole = 'Recruiter';
-                } else if (user.role === 'recruiter' || user.role === 'admin') {
-                    const candQuery = query(collection(db, 'candidates'), where('id', '==', partnerId));
-                    const candSnapshot = await getDocs(candQuery);
-                    const cand = candSnapshot.empty ? null : candSnapshot.docs[0].data();
-                    partnerName = cand?.name || "A Candidate";
-                    avatar = cand?.avatar || (cand?.name ? cand.name.charAt(0) : 'C');
-                    partnerRole = 'Candidate';
+                } else {
+                    let partnerUser: Candidate | Recruiter | null = null;
+                     if (user.role === 'user') {
+                        partnerUser = recruiters.find(r => r.id === partnerId) || null;
+                        partnerRole = 'Recruiter';
+                    } else { // recruiter or admin
+                        partnerUser = candidates.find(c => c.id === partnerId) || null;
+                        partnerRole = 'Candidate';
+                    }
+
+                    if (partnerUser) {
+                        partnerName = partnerUser.name || `A ${partnerRole}`;
+                        avatar = partnerUser.avatar || (partnerUser.name ? partnerUser.name.charAt(0) : partnerRole.charAt(0));
+                    }
                 }
             }
 
@@ -193,16 +211,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             } as Conversation;
         });
 
-        Promise.all(convosDataPromises).then(convosData => {
-            convosData.sort((a,b) => b.timestamp - a.timestamp);
-            setConversations(convosData);
-        });
+        const convosData = await Promise.all(convosDataPromises);
+        convosData.sort((a,b) => b.timestamp - a.timestamp);
+        setConversations(convosData);
     });
 
     return () => {
         unsubscribeConversations();
     };
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, candidates, recruiters]);
 
   // Separate effect to sync user profile data
   useEffect(() => {
@@ -265,12 +282,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   
   const unsaveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
-     const q = query(collection(db, 'jobs'), where('id', '==', jobId));
-     const jobSnapshot = await getDocs(q);
-     if (jobSnapshot.empty) return;
-     const jobDetails = {id: jobSnapshot.docs[0].id, ...jobSnapshot.docs[0].data()} as Job;
+     const jobDetails = jobs.find(j => j.id === jobId);
+     if (!jobDetails) return;
      
-
      const appQuery = query(collection(db, "applications"), 
         where("candidateId", "==", user.id),
         where("jobTitle", "==", jobDetails.title),
@@ -332,6 +346,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
+        const job = jobs.find(j => j.title === jobTitle && j.company === company);
         const newInterest = {
           jobTitle,
           company,
@@ -340,6 +355,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           read: false,
           status: 'Interested' as const,
           candidateId: candidateId,
+          jobId: job?.id || null
         };
         await addDoc(collection(db, 'applications'), newInterest);
     }
@@ -393,7 +409,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
         const { id, ...jobData } = job;
         const docRef = await addDoc(collection(db, "jobs"), jobData);
-        setJobs(prevJobs => [...prevJobs, { ...job, id: docRef.id }]);
+        await updateDoc(docRef, { recruiterId: user?.id, id: docRef.id });
     } catch (e) {
         console.error("Error adding document: ", e);
         throw e;
