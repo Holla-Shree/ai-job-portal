@@ -49,7 +49,7 @@ export interface ApplicationNotification {
 interface NotificationContextType {
   notifications: ApplicationNotification[];
   addNotification: (jobTitle: string, company: string) => void;
-  expressInterest: (jobTitle: string, company: string) => void;
+  expressInterest: (jobId: string) => void;
   markAsRead: (id: string) => void;
   toggleMute: (id: string) => void;
   applicationHistory: ApplicationNotification[];
@@ -292,13 +292,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const saveJob = async (job: Job) => {
       if (!user?.id) return;
-      await expressInterest(job.title, job.company);
+      await expressInterest(job.id);
   };
   
   const unsaveJob = async (jobId: string) => {
     if (!user || user.role !== 'user') return;
-     const jobDetails = jobs.find(j => j.id === jobId);
-     if (!jobDetails) return;
      
      const appQuery = query(collection(db, "applications"), 
         where("candidateId", "==", user.id),
@@ -348,28 +346,29 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const expressInterest = async (jobTitle: string, company: string) => {
+  const expressInterest = async (jobId: string) => {
     if (!user?.id) return;
-    const candidateId = user.id;
-    const job = jobs.find(j => j.title === jobTitle && j.company === company);
+
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
 
     const q = query(
         collection(db, 'applications'), 
-        where("candidateId", "==", candidateId),
-        where("jobId", "==", job?.id),
+        where("candidateId", "==", user.id),
+        where("jobId", "==", jobId),
     );
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
         const newInterest: Omit<ApplicationNotification, 'id'> = {
-          jobTitle,
-          company,
+          jobTitle: job.title,
+          company: job.company,
           candidateName: user.name || 'A Job Seeker',
           timestamp: Date.now(),
           read: false,
           status: 'Interested' as const,
-          candidateId: candidateId,
-          jobId: job?.id
+          candidateId: user.id,
+          jobId: jobId
         };
         await addDoc(collection(db, 'applications'), newInterest);
     }

@@ -63,7 +63,7 @@ function JobDetails({ job, onBack, isInterested }: { job: RecommendedJob; onBack
             unsaveJob(originalJob.id);
             toast({ title: 'Removed from Interest List' });
         } else {
-            expressInterest(originalJob.title, originalJob.company);
+            expressInterest(originalJob.id);
             toast({ title: 'Interest Expressed!' });
         }
     };
@@ -270,18 +270,9 @@ function UserProfilePage() {
 
   const interestedJobIds = useMemo(() => {
     if (!user) return new Set();
-    const interestedApps = applicationHistory.filter(app => app.candidateId === user.id && app.status === 'Interested');
-    const jobIds = new Set<string>();
-
-    interestedApps.forEach(app => {
-        const foundJob = jobs.find(j => j.title === app.jobTitle && j.company === app.company);
-        if (foundJob) {
-            jobIds.add(foundJob.id);
-        }
-    });
-
-    return jobIds;
-}, [applicationHistory, user, jobs]);
+    const interestedApps = applicationHistory.filter(app => app.candidateId === user.id && app.status === 'Interested' && app.jobId);
+    return new Set<string>(interestedApps.map(app => app.jobId!));
+}, [applicationHistory, user]);
 
   useEffect(() => {
     if (currentUserProfile) {

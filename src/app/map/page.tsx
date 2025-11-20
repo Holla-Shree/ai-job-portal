@@ -58,7 +58,7 @@ function JobDetails({ job, onBack, isInterested }: { job: Job; onBack: () => voi
             unsaveJob(job.id);
             toast({ title: 'Removed from Interest List' });
         } else {
-            expressInterest(job.title, job.company);
+            expressInterest(job.id);
             toast({ title: 'Interest Expressed!' });
         }
     };

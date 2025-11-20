@@ -30,12 +30,8 @@ function JobDetails({ job, onBack }: { job: Job; onBack: () => void; }) {
 
     const isSaved = useMemo(() => {
         if (!user) return false;
-        return applicationHistory.some(app => 
-            app.candidateId === user.id && 
-            app.jobTitle === job.title && 
-            app.company === job.company && 
-            app.status === 'Interested'
-        );
+        // Use jobId for reliable check
+        return applicationHistory.some(app => app.jobId === job.id && app.status === 'Interested');
     }, [applicationHistory, user, job]);
 
     const handleApply = () => {
