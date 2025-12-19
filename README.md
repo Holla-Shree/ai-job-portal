@@ -2,7 +2,21 @@
 
 ## PROJECT DESCRIPTION
 
-JobMatch AI is an intelligent job matching and career development platform. It leverages AI to connect job seekers with relevant opportunities, parse resumes to build profiles, and prepare candidates for interviews.
+JobMatch AI is a full-stack, AI-powered job matching and career development platform designed to bridge the gap between job seekers and relevant employment opportunities. The system leverages AI-driven resume parsing to extract candidate skills and experience, automatically building structured user profiles.
+
+The platform provides intelligent job recommendations based on profile relevance and enables candidates to prepare for interviews through AI-assisted mock interview features and feedback. Built with a focus on scalability, performance and secure data handling, JobMatch AI delivers a seamless and user-centric recruitment experience.
+
+Key Highlights:
+
+* AI-based resume parsing and profile generation
+
+* Intelligent job matching and recommendations
+
+* AI-driven mock interview preparation and feedback
+
+* Secure authentication and real-time data workflows
+
+* Scalable full-stack architecture with modern web technologies
 
 ---
 
